@@ -118,6 +118,20 @@ PRODUCTS = [
     },
 ]
 
+# 여행지별 여권 스탬프 아이콘 (3D 이모지) + 스탬프 색상
+DESTINATION_STAMPS = {
+    "서울": {"icon": "🏙️", "color": "#4fa3d1"},
+    "도쿄": {"icon": "🗼", "color": "#e893a8"},
+    "방콕": {"icon": "🛕", "color": "#f2a20b"},
+    "싱가포르": {"icon": "🦁", "color": "#5fbf94"},
+    "파리": {"icon": "🥐", "color": "#8f7fd1"},
+    "두바이": {"icon": "🕌", "color": "#d1a45f"},
+    "뉴욕": {"icon": "🗽", "color": "#4fa3d1"},
+    "제주": {"icon": "🍊", "color": "#f2a20b"},
+    "베이징": {"icon": "🐼", "color": "#6f8a97"},
+    "발리": {"icon": "🌺", "color": "#e5657c"},
+}
+
 SKIN_TYPES = ["건성", "지성", "복합성", "민감성"]
 CONCERNS = ["여드름", "홍조", "건조", "색소침착", "피지", "모공", "민감", "트러블"]
 
@@ -244,18 +258,77 @@ st.set_page_config(page_title="Beauty Passport", page_icon="🛂", layout="cente
 st.markdown(
     """
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&display=swap');
+
       :root{
-        --accent:#c8795b; --accent-dark:#a85f43; --muted:#8a7d75; --line:#ece3dc;
+        --sky1:#eaf7ff; --sky2:#d7f0f7; --sky3:#cdeee0;
+        --blue:#7ec4e8; --blue-dark:#4fa3d1; --green:#8fd9b6; --green-dark:#5fbf94;
+        --ink:#2c4a5e; --muted:#6f8a97; --line:#d9ecec;
+        --accent:#4fa3d1; --accent-dark:#3a86b3;
       }
-      .bp-hero{background:linear-gradient(135deg,#c8795b,#e0a988);color:#fff;
+      html, body, [class*="css"]{ font-family:'Nunito', sans-serif; color:var(--ink); }
+
+      /* ---------- Cloud 3D typography ---------- */
+      .bp-cloud-text{
+        font-family:'Baloo 2','Nunito',sans-serif;
+        font-weight:800; color:#fff; letter-spacing:.5px;
+        text-shadow:
+          -2px -2px 0 #dff2fb, 2px -2px 0 #dff2fb, -2px 2px 0 #dff2fb, 2px 2px 0 #dff2fb,
+          0 1px 0 #eafaf3, 0 10px 18px rgba(60,120,160,.35);
+      }
+      .bp-cloud-pill{
+        display:inline-block; font-family:'Baloo 2','Nunito',sans-serif; font-weight:700;
+        color:var(--blue-dark); background:#fff; border-radius:999px; padding:6px 18px;
+        box-shadow:0 6px 0 #d3ecf5, 0 10px 16px rgba(90,160,200,.25);
+        font-size:13px; letter-spacing:.3px;
+      }
+
+      /* ---------- Boarding-pass hero ---------- */
+      .bp-ticket{
+        position:relative; border-radius:26px; padding:34px 32px 30px;
+        margin-bottom:18px; overflow:hidden; color:#fff;
+        background:
+          radial-gradient(circle at 12% 20%, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 40%),
+          radial-gradient(circle at 85% 15%, rgba(255,255,255,.35) 0%, rgba(255,255,255,0) 35%),
+          linear-gradient(150deg, var(--blue) 0%, var(--blue-dark) 55%, var(--green-dark) 130%);
+        box-shadow:0 18px 36px rgba(79,163,209,.28);
+      }
+      .bp-ticket::before, .bp-ticket::after{
+        content:""; position:absolute; width:34px; height:34px; background:#fff;
+        border-radius:50%; top:50%; transform:translateY(-50%);
+      }
+      .bp-ticket::before{ left:-17px; }
+      .bp-ticket::after{ right:-17px; }
+      .bp-ticket-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:22px}
+      .bp-logo{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:16px; letter-spacing:1px}
+      .bp-ticket-badge{font-size:11px; font-weight:700; background:rgba(255,255,255,.25);
+               padding:4px 12px; border-radius:999px; letter-spacing:.5px}
+      .bp-ticket-route{display:flex; align-items:center; gap:14px; margin-bottom:18px}
+      .bp-route-point{flex:0 0 auto}
+      .bp-route-label{display:block; font-size:11px; opacity:.85; letter-spacing:1px}
+      .bp-route-city{display:block; font-weight:800; font-size:18px}
+      .bp-route-line{flex:1; position:relative; height:2px;
+               background:repeating-linear-gradient(90deg,#fff 0 8px,transparent 8px 14px);
+               opacity:.85}
+      .bp-route-line .plane{position:absolute; top:-11px; left:50%; transform:translateX(-50%);
+               font-size:20px}
+      .bp-ticket-divider{border-top:2px dashed rgba(255,255,255,.5); margin:18px 0}
+      .bp-ticket h1{font-size:30px; margin:0 0 12px; line-height:1.25}
+      .bp-ticket p{opacity:.95; max-width:560px; line-height:1.6; margin:0; font-weight:600}
+
+      /* legacy hero kept for compatibility */
+      .bp-hero{background:linear-gradient(135deg,var(--blue),var(--green));color:#fff;
                border-radius:20px;padding:34px 30px;margin-bottom:10px}
       .bp-hero h1{font-size:30px;margin:0 0 10px;letter-spacing:-.5px}
       .bp-hero p{opacity:.95;max-width:560px;line-height:1.6;margin:0}
-      .bp-card{background:#fff;border:1px solid var(--line);border-radius:16px;
-               padding:20px 22px;margin:14px 0}
+
+      /* ---------- Cards ---------- */
+      .bp-card{background:#fff;border:1px solid var(--line);border-radius:20px;
+               padding:22px 22px;margin:14px 0;
+               box-shadow:0 10px 22px rgba(120,170,190,.14)}
       .bp-card h3{margin:0 0 10px;font-size:18px}
       .bp-cal{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
-      .bp-day{border:1px solid var(--line);border-radius:12px;padding:10px;
+      .bp-day{border:1px solid var(--line);border-radius:14px;padding:10px;
               text-align:center;background:#fff}
       .bp-day .d{font-weight:700;font-size:13px}
       .bp-day .e{font-size:22px;margin:6px 0;line-height:1.2}
@@ -265,11 +338,52 @@ st.markdown(
       .bp-step:last-child{border-bottom:none}
       .bp-step .no{flex:0 0 34px;height:34px;border-radius:50%;background:var(--accent);
                color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
-      .bp-tag{display:inline-block;font-size:12px;color:var(--muted);background:#f3ece7;
+      .bp-tag{display:inline-block;font-size:12px;color:var(--muted);background:#eef7f3;
               padding:2px 10px;border-radius:999px;margin:4px 6px 0 0}
       .bp-muted{color:var(--muted);font-size:14px}
       .bp-bar{height:14px;border-radius:999px;background:var(--line);overflow:hidden;margin:10px 0}
       .bp-bar>div{height:100%}
+
+      /* ---------- Search bar ---------- */
+      .bp-search-label{text-align:center; margin:26px 0 8px}
+      div[data-testid="stForm"] .bp-search-form{padding-top:0}
+
+      /* ---------- Passport stamps ---------- */
+      .bp-stamp-wrap{display:flex; flex-direction:column; align-items:center; margin:6px 0 4px}
+      .bp-stamp{
+        --rot:-4deg;
+        width:118px; height:118px; border-radius:50%;
+        display:flex; flex-direction:column; align-items:center; justify-content:center;
+        border:3px dashed var(--stamp-color, var(--blue-dark));
+        transform:rotate(var(--rot));
+        background:radial-gradient(circle, #fff 60%, rgba(255,255,255,0) 100%);
+        box-shadow:0 8px 16px rgba(90,150,180,.18), inset 0 0 0 6px rgba(255,255,255,.6);
+        margin:0 auto;
+      }
+      .bp-stamp .icon{font-size:38px; transform:rotate(calc(var(--rot) * -1))}
+      .bp-stamp .country{
+        font-size:10px; font-weight:800; letter-spacing:1px; margin-top:2px;
+        color:var(--stamp-color, var(--blue-dark)); transform:rotate(calc(var(--rot) * -1));
+      }
+      .bp-stamp-city{margin-top:8px; font-weight:800; font-size:14px; text-align:center}
+      .bp-stamp-tag{margin-top:2px; font-size:11px; color:var(--muted); text-align:center}
+
+      /* ---------- Native Streamlit buttons re-skinned ---------- */
+      div[data-testid="stButton"] > button, div[data-testid="stFormSubmitButton"] > button{
+        border-radius:999px !important; font-weight:800 !important; border:none !important;
+      }
+      div[data-testid="stButton"] > button[kind="secondary"]{
+        background:#eef8f6 !important; color:var(--blue-dark) !important;
+        border:1px solid var(--line) !important; font-size:12px !important;
+      }
+      div[data-testid="stButton"] > button[kind="secondary"]:hover{
+        background:var(--green) !important; color:#fff !important;
+      }
+      div[data-testid="stFormSubmitButton"] > button[kind="primary"],
+      div[data-testid="stButton"] > button[kind="primary"]{
+        background:linear-gradient(135deg,var(--blue),var(--green-dark)) !important;
+        box-shadow:0 6px 14px rgba(79,163,209,.35) !important;
+      }
     </style>
     """,
     unsafe_allow_html=True,
@@ -294,17 +408,56 @@ menu = st.sidebar.radio("메뉴", MENU_OPTIONS, key="menu", label_visibility="co
 # 페이지: 홈
 # --------------------------------------------------------------------------
 def page_home():
+    # ---------------- 보딩패스 스타일 히어로 ----------------
     st.markdown(
         """
-        <div class="bp-hero">
-          <h1>여행지 맞춤 스킨케어,<br>여권처럼 챙기세요</h1>
+        <div class="bp-ticket">
+          <div class="bp-ticket-top">
+            <span class="bp-logo">🛂 BEAUTY PASSPORT</span>
+            <span class="bp-ticket-badge">✈ TRAVEL SKINCARE</span>
+          </div>
+          <div class="bp-ticket-route">
+            <div class="bp-route-point">
+              <span class="bp-route-label">FROM</span>
+              <span class="bp-route-city">내 피부</span>
+            </div>
+            <div class="bp-route-line"><span class="plane">✈️</span></div>
+            <div class="bp-route-point" style="text-align:right">
+              <span class="bp-route-label">TO</span>
+              <span class="bp-route-city">맞춤 루틴</span>
+            </div>
+          </div>
+          <div class="bp-ticket-divider"></div>
+          <h1 class="bp-cloud-text">Stay Glowing<br>Anywhere</h1>
           <p>바쁜 일정, 잦은 출장. 여행지 기후가 바뀔 때마다 피부는 시행착오를 겪습니다.
              내 피부 데이터와 여행 맥락을 결합해 <b>딱 필요한 만큼의 소용량 맞춤 루틴</b>을
-             설계해 드립니다.</p>
+             여권처럼 챙겨드립니다.</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+    # ---------------- 구름 타이포 검색창 ----------------
+    st.markdown(
+        '<div class="bp-search-label"><span class="bp-cloud-pill">☁️ 어디로 떠나시나요?</span></div>',
+        unsafe_allow_html=True,
+    )
+    with st.form("home_quick_search", border=False):
+        c1, c2 = st.columns([4, 1])
+        with c1:
+            quick_dest = st.selectbox(
+                "여행지 선택",
+                list(DESTINATIONS.keys()),
+                format_func=lambda d: f"{d} ({DESTINATIONS[d]['country']})",
+                label_visibility="collapsed",
+            )
+        with c2:
+            go = st.form_submit_button("검색 →", type="primary", use_container_width=True)
+    if go:
+        st.session_state["quick_dest"] = quick_dest
+        st.session_state["next_menu"] = "여행지 설문"
+        st.rerun()
+
     st.info("왼쪽 사이드바에서 **피부 설문**을 눌러 1분 진단을 시작하세요.")
 
     c1, c2 = st.columns(2)
@@ -334,6 +487,42 @@ def page_home():
             '확인할 수 있습니다.</p></div>',
             unsafe_allow_html=True,
         )
+
+    # ---------------- 여권 스탬프 스타일 인기 여행지 ----------------
+    st.markdown(
+        '<div class="bp-search-label" style="margin-top:34px">'
+        '<span class="bp-cloud-pill">🧳 인기 여행지 스탬프</span></div>',
+        unsafe_allow_html=True,
+    )
+    st.caption("스탬프를 눌러 해당 여행지로 바로 이동해 보세요.")
+
+    dests = list(DESTINATIONS.items())
+    rotations = ["-6deg", "4deg", "-3deg", "7deg", "-8deg"]
+    cols_per_row = 5
+    for row_start in range(0, len(dests), cols_per_row):
+        row = dests[row_start:row_start + cols_per_row]
+        cols = st.columns(len(row))
+        for i, (dest, info) in enumerate(row):
+            stamp = DESTINATION_STAMPS.get(dest, {"icon": "📍", "color": "#4fa3d1"})
+            rot = rotations[(row_start + i) % len(rotations)]
+            with cols[i]:
+                st.markdown(
+                    f"""
+                    <div class="bp-stamp-wrap">
+                      <div class="bp-stamp" style="--rot:{rot}; --stamp-color:{stamp['color']}">
+                        <span class="icon">{stamp['icon']}</span>
+                        <span class="country">{info['country']}</span>
+                      </div>
+                      <div class="bp-stamp-city">{dest}</div>
+                      <div class="bp-stamp-tag">{info['tag']}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                if st.button("선택하기", key=f"stamp_{dest}", use_container_width=True):
+                    st.session_state["quick_dest"] = dest
+                    st.session_state["next_menu"] = "여행지 설문"
+                    st.rerun()
 
 
 # --------------------------------------------------------------------------
@@ -459,10 +648,15 @@ def page_travel_survey():
     skin_type = st.session_state.get("skin_type", SKIN_TYPES[0])
     concerns = st.session_state.get("concerns", [])
 
+    dest_options = list(DESTINATIONS.keys())
+    quick_dest = st.session_state.pop("quick_dest", None)
+    default_index = dest_options.index(quick_dest) if quick_dest in dest_options else 0
+
     with st.form("travel_survey_form"):
         dest = st.selectbox(
             "여행지",
-            list(DESTINATIONS.keys()),
+            dest_options,
+            index=default_index,
             format_func=lambda d: f"{d} ({DESTINATIONS[d]['country']})",
         )
         st.markdown("여행 기간")
