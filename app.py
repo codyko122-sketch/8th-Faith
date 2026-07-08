@@ -393,7 +393,7 @@ st.markdown(
 # --------------------------------------------------------------------------
 # 사이드바 내비게이션
 # --------------------------------------------------------------------------
-MENU_OPTIONS = ["홈", "피부 설문", "여행지 설문", "성분 검색"]
+MENU_OPTIONS = ["홈", "여행지 설문", "피부 설문", "성분 검색"]
 
 st.sidebar.markdown("## 🛂 Beauty **Passport**")
 st.sidebar.caption("시나리오 2 · Global Beauty · 프로토타입")
@@ -727,10 +727,10 @@ def page_ingredients():
 # --------------------------------------------------------------------------
 if menu == "홈":
     page_home()
-elif menu == "피부 설문":
-    page_skin_survey()
 elif menu == "여행지 설문":
     page_travel_survey()
+elif menu == "피부 설문":
+    page_skin_survey()
 else:
     page_ingredients()
 
