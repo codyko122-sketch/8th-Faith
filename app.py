@@ -28,16 +28,16 @@ import streamlit as st
 # 실제 서비스에서는 여기를 실시간 날씨/미세먼지 API 연동으로 교체하면 됩니다.
 # --------------------------------------------------------------------------
 DESTINATIONS = {
-    "서울": {"temp": 22, "humidity": 60, "uv": 6, "dust": 78, "tag": "온대"},
-    "도쿄": {"temp": 24, "humidity": 68, "uv": 7, "dust": 45, "tag": "온난습윤"},
-    "방콕": {"temp": 34, "humidity": 82, "uv": 11, "dust": 60, "tag": "고온다습"},
-    "싱가포르": {"temp": 32, "humidity": 84, "uv": 11, "dust": 40, "tag": "열대"},
-    "파리": {"temp": 19, "humidity": 55, "uv": 5, "dust": 30, "tag": "서안해양"},
-    "두바이": {"temp": 40, "humidity": 45, "uv": 11, "dust": 95, "tag": "사막"},
-    "뉴욕": {"temp": 21, "humidity": 58, "uv": 6, "dust": 42, "tag": "온대"},
-    "제주": {"temp": 23, "humidity": 72, "uv": 7, "dust": 35, "tag": "해양성"},
-    "베이징": {"temp": 26, "humidity": 50, "uv": 7, "dust": 120, "tag": "건조/황사"},
-    "발리": {"temp": 31, "humidity": 80, "uv": 11, "dust": 38, "tag": "열대"},
+    "서울": {"temp": 22, "humidity": 60, "uv": 6, "dust": 78, "tag": "온대", "country": "대한민국"},
+    "도쿄": {"temp": 24, "humidity": 68, "uv": 7, "dust": 45, "tag": "온난습윤", "country": "일본"},
+    "방콕": {"temp": 34, "humidity": 82, "uv": 11, "dust": 60, "tag": "고온다습", "country": "태국"},
+    "싱가포르": {"temp": 32, "humidity": 84, "uv": 11, "dust": 40, "tag": "열대", "country": "싱가포르"},
+    "파리": {"temp": 19, "humidity": 55, "uv": 5, "dust": 30, "tag": "서안해양", "country": "프랑스"},
+    "두바이": {"temp": 40, "humidity": 45, "uv": 11, "dust": 95, "tag": "사막", "country": "아랍에미리트"},
+    "뉴욕": {"temp": 21, "humidity": 58, "uv": 6, "dust": 42, "tag": "온대", "country": "미국"},
+    "제주": {"temp": 23, "humidity": 72, "uv": 7, "dust": 35, "tag": "해양성", "country": "대한민국"},
+    "베이징": {"temp": 26, "humidity": 50, "uv": 7, "dust": 120, "tag": "건조/황사", "country": "중국"},
+    "발리": {"temp": 31, "humidity": 80, "uv": 11, "dust": 38, "tag": "열대", "country": "인도네시아"},
 }
 
 # --------------------------------------------------------------------------
@@ -125,7 +125,7 @@ CONCERNS = ["여드름", "홍조", "건조", "색소침착", "피지", "모공",
 # --------------------------------------------------------------------------
 # 로직 (플랫폼 무관 · 순수 함수)
 # --------------------------------------------------------------------------
-def build_calendar(dest, days):
+def build_calendar(dest, days, start=None):
     """여행 일수만큼 일별 날씨/미세먼지 이모지 캘린더 생성.
     기후 프로파일을 기준으로 현실적인 범위 내에서 일별 값을 생성합니다."""
     profile = DESTINATIONS.get(dest, {"temp": 24, "humidity": 60, "uv": 6, "dust": 50})
@@ -133,7 +133,7 @@ def build_calendar(dest, days):
     seed = sum(ord(ch) for ch in dest) * 1000 + days
     rng = random.Random(seed)
     cal = []
-    start = date.today()
+    start = start or date.today()
     for i in range(days):
         d = start + timedelta(days=i)
         temp = profile["temp"] + rng.randint(-3, 3)
@@ -279,9 +279,15 @@ st.markdown(
 # --------------------------------------------------------------------------
 # 사이드바 내비게이션
 # --------------------------------------------------------------------------
+MENU_OPTIONS = ["홈", "피부 설문", "여행지 설문", "성분 검색"]
+
 st.sidebar.markdown("## 🛂 Beauty **Passport**")
 st.sidebar.caption("시나리오 2 · Global Beauty · 프로토타입")
-menu = st.sidebar.radio("메뉴", ["홈", "피부 진단", "성분 검색"], label_visibility="collapsed")
+
+if "next_menu" in st.session_state:
+    st.session_state["menu"] = st.session_state.pop("next_menu")
+
+menu = st.sidebar.radio("메뉴", MENU_OPTIONS, key="menu", label_visibility="collapsed")
 
 
 # --------------------------------------------------------------------------
@@ -299,7 +305,7 @@ def page_home():
         """,
         unsafe_allow_html=True,
     )
-    st.info("왼쪽 사이드바에서 **피부 진단**을 눌러 1분 진단을 시작하세요.")
+    st.info("왼쪽 사이드바에서 **피부 설문**을 눌러 1분 진단을 시작하세요.")
 
     c1, c2 = st.columns(2)
     with c1:
@@ -333,15 +339,18 @@ def page_home():
 # --------------------------------------------------------------------------
 # 페이지: 피부 진단 + 리포트
 # --------------------------------------------------------------------------
-def render_report(skin_type, concerns, dest, days):
+def render_report(skin_type, concerns, dest, days, start_date=None, end_date=None):
     p = DESTINATIONS.get(dest, DESTINATIONS["서울"])
     score, (level_txt, level_col), notes = skin_issue_index(dest, skin_type, concerns)
-    cal = build_calendar(dest, days)
+    cal = build_calendar(dest, days, start_date)
     routine = recommend_products(skin_type, concerns)
 
     conc_txt = ", ".join(concerns) if concerns else "없음"
+    period_txt = ""
+    if start_date and end_date:
+        period_txt = f" ({start_date.strftime('%Y.%m.%d')} ~ {end_date.strftime('%Y.%m.%d')})"
     st.header(f"{dest} 피부 리포트")
-    st.caption(f"{skin_type} · 고민: {conc_txt} · {days}일 일정")
+    st.caption(f"{skin_type} · 고민: {conc_txt} · {days}일 일정{period_txt}")
 
     # AI 스타일 서머리
     summary = (
@@ -425,36 +434,64 @@ def render_report(skin_type, concerns, dest, days):
             st.balloons()
 
 
-def page_survey():
-    st.header("피부 진단")
-    st.caption("피부 정보와 여행 계획을 입력하면 맞춤 루틴과 기후 리포트를 만들어 드립니다.")
+def page_skin_survey():
+    st.header("피부 설문")
+    st.caption("피부 타입과 고민을 알려주시면 다음 단계에서 여행지에 맞는 리포트를 만들어 드립니다.")
 
-    with st.form("survey_form"):
+    with st.form("skin_survey_form"):
         skin_type = st.radio("피부 타입", SKIN_TYPES, horizontal=True)
         concerns = st.multiselect("피부 고민 (복수 선택)", CONCERNS)
+        submitted = st.form_submit_button("다음: 여행지 설문 →", type="primary")
+
+    if submitted:
+        st.session_state["skin_type"] = skin_type
+        st.session_state["concerns"] = concerns
+        st.session_state["next_menu"] = "여행지 설문"
+        st.rerun()
+
+
+def page_travel_survey():
+    st.header("여행지 설문")
+    st.caption("여행지와 여행 기간을 입력하면 기후 리포트와 맞춤 루틴을 만들어 드립니다.")
+
+    if "skin_type" not in st.session_state:
+        st.info("먼저 **피부 설문**에서 피부 타입과 고민을 선택해 주세요. (선택하지 않으면 기본값으로 진행됩니다.)")
+    skin_type = st.session_state.get("skin_type", SKIN_TYPES[0])
+    concerns = st.session_state.get("concerns", [])
+
+    with st.form("travel_survey_form"):
+        dest = st.selectbox(
+            "여행지",
+            list(DESTINATIONS.keys()),
+            format_func=lambda d: f"{d} ({DESTINATIONS[d]['country']})",
+        )
+        st.markdown("여행 기간")
         c1, c2 = st.columns(2)
         with c1:
-            dest = st.selectbox(
-                "여행지",
-                list(DESTINATIONS.keys()),
-                format_func=lambda d: f"{d} ({DESTINATIONS[d]['tag']})",
-            )
+            start_date = st.date_input("출발 날짜", value=date.today())
         with c2:
-            days = st.slider("여행 일수", min_value=1, max_value=30, value=5)
+            end_date = st.date_input("도착 날짜", value=date.today() + timedelta(days=4))
         submitted = st.form_submit_button("맞춤 리포트 생성 →", type="primary")
 
     if submitted:
+        s, e = (end_date, start_date) if end_date < start_date else (start_date, end_date)
+        days = max(1, min(30, (e - s).days + 1))
         st.session_state["report"] = {
             "skin_type": skin_type,
             "concerns": concerns,
             "dest": dest,
             "days": days,
+            "start_date": s,
+            "end_date": e,
         }
 
     if "report" in st.session_state:
         st.divider()
         r = st.session_state["report"]
-        render_report(r["skin_type"], r["concerns"], r["dest"], r["days"])
+        render_report(
+            r["skin_type"], r["concerns"], r["dest"], r["days"],
+            r.get("start_date"), r.get("end_date"),
+        )
 
 
 # --------------------------------------------------------------------------
@@ -496,8 +533,10 @@ def page_ingredients():
 # --------------------------------------------------------------------------
 if menu == "홈":
     page_home()
-elif menu == "피부 진단":
-    page_survey()
+elif menu == "피부 설문":
+    page_skin_survey()
+elif menu == "여행지 설문":
+    page_travel_survey()
 else:
     page_ingredients()
 
