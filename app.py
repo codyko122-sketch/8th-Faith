@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Beauty Passport — 여행지 맞춤 스킨케어 프로토타입
+Beauty Passport — 여행지 맞춤 스킨케어 프로토타입 (Streamlit 버전)
 시나리오 2. Global Beauty
 
 기능
@@ -13,16 +13,13 @@ Beauty Passport — 여행지 맞춤 스킨케어 프로토타입
 
 실행
   pip install -r requirements.txt
-  python app.py
-  → http://127.0.0.1:5000
+  streamlit run app.py
 """
 
 from datetime import date, timedelta
 import random
 
-from flask import Flask, render_template_string, request, redirect, url_for
-
-app = Flask(__name__)
+import streamlit as st
 
 # --------------------------------------------------------------------------
 # 데이터: 여행지 기후 프로파일
@@ -124,14 +121,17 @@ PRODUCTS = [
 SKIN_TYPES = ["건성", "지성", "복합성", "민감성"]
 CONCERNS = ["여드름", "홍조", "건조", "색소침착", "피지", "모공", "민감", "트러블"]
 
+
 # --------------------------------------------------------------------------
-# 로직
+# 로직 (플랫폼 무관 · 순수 함수)
 # --------------------------------------------------------------------------
 def build_calendar(dest, days):
     """여행 일수만큼 일별 날씨/미세먼지 이모지 캘린더 생성.
     기후 프로파일을 기준으로 현실적인 범위 내에서 일별 값을 생성합니다."""
     profile = DESTINATIONS.get(dest, {"temp": 24, "humidity": 60, "uv": 6, "dust": 50})
-    rng = random.Random(hash((dest, days)) & 0xFFFFFFFF)
+    # PYTHONHASHSEED 영향을 받지 않도록 안정적인 정수 시드를 직접 계산
+    seed = sum(ord(ch) for ch in dest) * 1000 + days
+    rng = random.Random(seed)
     cal = []
     start = date.today()
     for i in range(days):
@@ -237,293 +237,269 @@ def recommend_products(skin_type, concerns):
 
 
 # --------------------------------------------------------------------------
-# 템플릿 (공통 레이아웃 + 페이지)
+# UI: 페이지 설정 + 스타일
 # --------------------------------------------------------------------------
-BASE = """
-<!doctype html>
-<html lang="ko">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Beauty Passport</title>
-<style>
-  :root{
-    --bg:#fbf7f4; --ink:#2a2320; --muted:#8a7d75; --line:#ece3dc;
-    --accent:#c8795b; --accent-dark:#a85f43; --card:#ffffff;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo",sans-serif;
-       background:var(--bg);color:var(--ink);line-height:1.6}
-  a{color:inherit;text-decoration:none}
-  header{position:sticky;top:0;z-index:10;background:rgba(251,247,244,.9);
-         backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
-  .nav{max-width:860px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;gap:20px}
-  .brand{font-weight:700;letter-spacing:.5px;font-size:18px}
-  .brand span{color:var(--accent)}
-  .nav .links{margin-left:auto;display:flex;gap:18px;font-size:14px;color:var(--muted)}
-  .nav .links a:hover{color:var(--accent)}
-  .wrap{max-width:860px;margin:0 auto;padding:32px 24px 64px}
-  h1{font-size:30px;margin:0 0 8px;letter-spacing:-.5px}
-  h2{font-size:20px;margin:32px 0 12px}
-  .sub{color:var(--muted);margin:0 0 24px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px;margin:16px 0}
-  .btn{display:inline-block;background:var(--accent);color:#fff;padding:13px 24px;border-radius:999px;
-       font-weight:600;border:none;cursor:pointer;font-size:15px;transition:.15s}
-  .btn:hover{background:var(--accent-dark)}
-  label{display:block;font-weight:600;margin:18px 0 8px;font-size:14px}
-  select,input[type=number],input[type=text]{width:100%;padding:12px 14px;border:1px solid var(--line);
-       border-radius:10px;font-size:15px;background:#fff;font-family:inherit}
-  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
-  .chip input{position:absolute;opacity:0}
-  .chip span{display:inline-block;padding:8px 14px;border:1px solid var(--line);border-radius:999px;
-       cursor:pointer;font-size:14px;background:#fff}
-  .chip input:checked + span{background:var(--accent);color:#fff;border-color:var(--accent)}
-  .hero{background:linear-gradient(135deg,#c8795b,#e0a988);color:#fff;border-radius:20px;padding:40px 32px}
-  .hero h1{font-size:34px}
-  .hero p{opacity:.95;max-width:520px}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  .index-bar{height:14px;border-radius:999px;background:var(--line);overflow:hidden;margin:10px 0}
-  .index-bar > div{height:100%}
-  .cal{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;margin-top:8px}
-  .day{border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center;background:#fff}
-  .day .d{font-weight:700;font-size:13px}
-  .day .e{font-size:22px;margin:6px 0;line-height:1.2}
-  .day .m{font-size:11px;color:var(--muted)}
-  .step{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--line)}
-  .step:last-child{border-bottom:none}
-  .step .no{flex:0 0 34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;
-       display:flex;align-items:center;justify-content:center;font-weight:700}
-  .tag{display:inline-block;font-size:12px;color:var(--muted);background:#f3ece7;
-       padding:2px 10px;border-radius:999px;margin-right:6px}
-  .muted{color:var(--muted);font-size:14px}
-  table{width:100%;border-collapse:collapse;margin-top:8px}
-  td,th{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}
-  th{color:var(--muted);font-weight:600}
-  .footer{max-width:860px;margin:0 auto;padding:24px;color:var(--muted);font-size:13px}
-  @media(max-width:560px){.grid{grid-template-columns:1fr}}
-</style>
-</head>
-<body>
-<header><div class="nav">
-  <a class="brand" href="{{ url_for('home') }}">Beauty <span>Passport</span></a>
-  <div class="links">
-    <a href="{{ url_for('survey') }}">진단 시작</a>
-    <a href="{{ url_for('ingredients') }}">성분 검색</a>
-  </div>
-</div></header>
-<div class="wrap">{{ body|safe }}</div>
-<div class="footer">Beauty Passport · 시나리오 2 Global Beauty · 프로토타입</div>
-</body></html>
-"""
+st.set_page_config(page_title="Beauty Passport", page_icon="🛂", layout="centered")
 
-
-def page(body):
-    return render_template_string(BASE, body=body)
-
-
-# --------------------------------------------------------------------------
-# 라우트
-# --------------------------------------------------------------------------
-@app.route("/")
-def home():
-    body = """
-    <div class="hero">
-      <h1>여행지 맞춤 스킨케어, 여권처럼 챙기세요</h1>
-      <p>바쁜 일정, 잦은 출장. 여행지 기후가 바뀔 때마다 피부는 시행착오를 겪습니다.
-         내 피부 데이터와 여행 맥락을 결합해 <b>딱 필요한 만큼의 소용량 맞춤 루틴</b>을 설계해 드립니다.</p>
-      <p style="margin-top:22px"><a class="btn" href="{url}">1분 피부 진단 시작 →</a></p>
-    </div>
-    <div class="grid">
-      <div class="card"><h2 style="margin-top:0">🌦️ 기후 서머리</h2>
-        <p class="muted">목적지의 기온·습도·자외선·미세먼지를 분석해 피부 이슈 지수로 요약합니다.</p></div>
-      <div class="card"><h2 style="margin-top:0">📅 날씨 캘린더</h2>
-        <p class="muted">여행 일정에 맞춰 더운 날·습한 날·미세먼지를 한눈에 보여줍니다.</p></div>
-      <div class="card"><h2 style="margin-top:0">🧴 소용량 맞춤 키트</h2>
-        <p class="muted">여행 일수에 맞춘 소용량 구성으로 낭비 없이 신청·배송받으세요.</p></div>
-      <div class="card"><h2 style="margin-top:0">🔍 성분 케어</h2>
-        <p class="muted">내 고민에 맞는 성분을 검색하고 이유까지 확인할 수 있습니다.</p></div>
-    </div>
-    """.format(url=url_for("survey"))
-    return page(body)
-
-
-@app.route("/survey")
-def survey():
-    dests = "".join(f'<option value="{d}">{d} ({v["tag"]})</option>'
-                    for d, v in DESTINATIONS.items())
-    types = "".join(
-        f'<label class="chip"><input type="radio" name="skin_type" value="{t}"'
-        f'{" checked" if i == 0 else ""}><span>{t}</span></label>'
-        for i, t in enumerate(SKIN_TYPES))
-    concerns = "".join(
-        f'<label class="chip"><input type="checkbox" name="concerns" value="{c}">'
-        f'<span>{c}</span></label>' for c in CONCERNS)
-    body = f"""
-    <h1>피부 진단</h1>
-    <p class="sub">피부 정보와 여행 계획을 입력하면 맞춤 루틴과 기후 리포트를 만들어 드립니다.</p>
-    <form class="card" method="post" action="{url_for('result')}">
-      <label>피부 타입</label>
-      <div class="chips">{types}</div>
-
-      <label>피부 고민 (복수 선택)</label>
-      <div class="chips">{concerns}</div>
-
-      <div class="grid">
-        <div><label>여행지</label><select name="dest">{dests}</select></div>
-        <div><label>여행 일수</label><input type="number" name="days" min="1" max="30" value="5"></div>
-      </div>
-      <p style="margin-top:24px"><button class="btn" type="submit">맞춤 리포트 생성 →</button></p>
-    </form>
+st.markdown(
     """
-    return page(body)
+    <style>
+      :root{
+        --accent:#c8795b; --accent-dark:#a85f43; --muted:#8a7d75; --line:#ece3dc;
+      }
+      .bp-hero{background:linear-gradient(135deg,#c8795b,#e0a988);color:#fff;
+               border-radius:20px;padding:34px 30px;margin-bottom:10px}
+      .bp-hero h1{font-size:30px;margin:0 0 10px;letter-spacing:-.5px}
+      .bp-hero p{opacity:.95;max-width:560px;line-height:1.6;margin:0}
+      .bp-card{background:#fff;border:1px solid var(--line);border-radius:16px;
+               padding:20px 22px;margin:14px 0}
+      .bp-card h3{margin:0 0 10px;font-size:18px}
+      .bp-cal{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
+      .bp-day{border:1px solid var(--line);border-radius:12px;padding:10px;
+              text-align:center;background:#fff}
+      .bp-day .d{font-weight:700;font-size:13px}
+      .bp-day .e{font-size:22px;margin:6px 0;line-height:1.2}
+      .bp-day .m{font-size:11px;color:var(--muted)}
+      .bp-step{display:flex;gap:14px;align-items:flex-start;padding:14px 0;
+               border-bottom:1px solid var(--line)}
+      .bp-step:last-child{border-bottom:none}
+      .bp-step .no{flex:0 0 34px;height:34px;border-radius:50%;background:var(--accent);
+               color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+      .bp-tag{display:inline-block;font-size:12px;color:var(--muted);background:#f3ece7;
+              padding:2px 10px;border-radius:999px;margin:4px 6px 0 0}
+      .bp-muted{color:var(--muted);font-size:14px}
+      .bp-bar{height:14px;border-radius:999px;background:var(--line);overflow:hidden;margin:10px 0}
+      .bp-bar>div{height:100%}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
-@app.route("/result", methods=["POST"])
-def result():
-    skin_type = request.form.get("skin_type", "복합성")
-    concerns = request.form.getlist("concerns")
-    dest = request.form.get("dest", "서울")
-    try:
-        days = max(1, min(30, int(request.form.get("days", 5))))
-    except ValueError:
-        days = 5
+# --------------------------------------------------------------------------
+# 사이드바 내비게이션
+# --------------------------------------------------------------------------
+st.sidebar.markdown("## 🛂 Beauty **Passport**")
+st.sidebar.caption("시나리오 2 · Global Beauty · 프로토타입")
+menu = st.sidebar.radio("메뉴", ["홈", "피부 진단", "성분 검색"], label_visibility="collapsed")
 
+
+# --------------------------------------------------------------------------
+# 페이지: 홈
+# --------------------------------------------------------------------------
+def page_home():
+    st.markdown(
+        """
+        <div class="bp-hero">
+          <h1>여행지 맞춤 스킨케어,<br>여권처럼 챙기세요</h1>
+          <p>바쁜 일정, 잦은 출장. 여행지 기후가 바뀔 때마다 피부는 시행착오를 겪습니다.
+             내 피부 데이터와 여행 맥락을 결합해 <b>딱 필요한 만큼의 소용량 맞춤 루틴</b>을
+             설계해 드립니다.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.info("왼쪽 사이드바에서 **피부 진단**을 눌러 1분 진단을 시작하세요.")
+
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown(
+            '<div class="bp-card"><h3>🌦️ 기후 서머리</h3>'
+            '<p class="bp-muted">목적지의 기온·습도·자외선·미세먼지를 분석해 '
+            '피부 이슈 지수로 요약합니다.</p></div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            '<div class="bp-card"><h3>🧴 소용량 맞춤 키트</h3>'
+            '<p class="bp-muted">여행 일수에 맞춘 소용량 구성으로 낭비 없이 '
+            '신청·배송받으세요.</p></div>',
+            unsafe_allow_html=True,
+        )
+    with c2:
+        st.markdown(
+            '<div class="bp-card"><h3>📅 날씨 캘린더</h3>'
+            '<p class="bp-muted">여행 일정에 맞춰 더운 날·습한 날·미세먼지를 '
+            '한눈에 보여줍니다.</p></div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            '<div class="bp-card"><h3>🔍 성분 케어</h3>'
+            '<p class="bp-muted">내 고민에 맞는 성분을 검색하고 이유까지 '
+            '확인할 수 있습니다.</p></div>',
+            unsafe_allow_html=True,
+        )
+
+
+# --------------------------------------------------------------------------
+# 페이지: 피부 진단 + 리포트
+# --------------------------------------------------------------------------
+def render_report(skin_type, concerns, dest, days):
     p = DESTINATIONS.get(dest, DESTINATIONS["서울"])
     score, (level_txt, level_col), notes = skin_issue_index(dest, skin_type, concerns)
     cal = build_calendar(dest, days)
     routine = recommend_products(skin_type, concerns)
 
-    # AI 스타일 서머리
-    summary = (f"{dest}은(는) {p['tag']} 기후로 평균 최고 {p['temp']}℃, 습도 {p['humidity']}%, "
-               f"UV {p['uv']}, 미세먼지 {p['dust']} 수준입니다. "
-               f"{skin_type} 피부"
-               + (f"·{'/'.join(concerns)} 고민" if concerns else "")
-               + f"을(를) 고려할 때 {days}일 여행 동안 피부 이슈 발생 가능성은 "
-               f"'{level_txt}'으로 예상됩니다.")
+    conc_txt = ", ".join(concerns) if concerns else "없음"
+    st.header(f"{dest} 피부 리포트")
+    st.caption(f"{skin_type} · 고민: {conc_txt} · {days}일 일정")
 
+    # AI 스타일 서머리
+    summary = (
+        f"{dest}은(는) {p['tag']} 기후로 평균 최고 {p['temp']}℃, 습도 {p['humidity']}%, "
+        f"UV {p['uv']}, 미세먼지 {p['dust']} 수준입니다. "
+        f"{skin_type} 피부"
+        + (f"·{'/'.join(concerns)} 고민" if concerns else "")
+        + f"을(를) 고려할 때 {days}일 여행 동안 피부 이슈 발생 가능성은 "
+        f"'{level_txt}'으로 예상됩니다."
+    )
+
+    st.subheader("🌦️ 기후 AI 서머리")
+    st.write(summary)
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("🌡️ 평균기온", f"{p['temp']}℃")
+    m2.metric("💧 습도", f"{p['humidity']}%")
+    m3.metric("☀️ UV 지수", p["uv"])
+    m4.metric("😷 미세먼지", p["dust"])
+
+    # 피부 이슈 지수
+    st.subheader("📊 피부 이슈 지수")
     notes_html = "".join(f"<li>{n}</li>" for n in notes)
+    st.markdown(
+        f'<div class="bp-card">'
+        f'<div style="display:flex;align-items:baseline;gap:10px">'
+        f'<span style="font-size:38px;font-weight:800;color:{level_col}">{score}</span>'
+        f'<span style="color:{level_col};font-weight:700">{level_txt}</span></div>'
+        f'<div class="bp-bar"><div style="width:{score}%;background:{level_col}"></div></div>'
+        f'<ul class="bp-muted" style="margin:8px 0 0">{notes_html}</ul>'
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+    # 날씨 캘린더
+    st.subheader("📅 여행 날씨 캘린더")
+    st.caption("🔥더운날 ❄️쌀쌀 ☀️온화 💧습함 🌵건조 😷미세먼지나쁨 🌫️보통")
     cal_html = "".join(
-        f'<div class="day"><div class="d">{c["date"]}({c["weekday"]})</div>'
+        f'<div class="bp-day"><div class="d">{c["date"]}({c["weekday"]})</div>'
         f'<div class="e">{"".join(e for e, _ in c["emojis"])}</div>'
         f'<div class="m">{c["temp"]}℃ · 습도{c["humidity"]}%</div></div>'
-        for c in cal)
+        for c in cal
+    )
+    st.markdown(f'<div class="bp-cal">{cal_html}</div>', unsafe_allow_html=True)
 
-    routine_html = ""
-    for i, prod in enumerate(routine, 1):
-        ings = "".join(f'<span class="tag">{ing}</span>' for ing in prod["ingredients"])
-        routine_html += (
-            f'<div class="step"><div class="no">{i}</div><div>'
-            f'<b>{prod["step"]} · {prod["name"]}</b><br>'
-            f'<span class="muted">{prod["desc"]}</span><br>{ings}</div></div>')
+    # 맞춤 루틴
+    st.subheader("🧴 맞춤 스킨케어 루틴")
+    if routine:
+        routine_html = ""
+        for i, prod in enumerate(routine, 1):
+            ings = "".join(f'<span class="bp-tag">{ing}</span>' for ing in prod["ingredients"])
+            routine_html += (
+                f'<div class="bp-step"><div class="no">{i}</div><div>'
+                f'<b>{prod["step"]} · {prod["name"]}</b><br>'
+                f'<span class="bp-muted">{prod["desc"]}</span><br>{ings}</div></div>'
+            )
+        st.markdown(f'<div class="bp-card">{routine_html}</div>', unsafe_allow_html=True)
+    else:
+        st.info("선택하신 조건에 맞는 추천 제품이 없습니다. 피부 고민을 추가해 보세요.")
 
-    kit_items = "".join(f'<li>{pr["name"]}</li>' for pr in routine)
-    conc_txt = ", ".join(concerns) if concerns else "없음"
+    # 소용량 키트 신청
+    st.subheader("📦 소용량 맞춤 키트 신청")
+    st.caption(f"{days}일 일정에 맞춘 소용량 구성입니다.")
+    for pr in routine:
+        st.markdown(f"- {pr['name']}")
 
-    body = f"""
-    <h1>{dest} 피부 리포트</h1>
-    <p class="sub">{skin_type} · 고민: {conc_txt} · {days}일 일정</p>
+    with st.form("kit_form"):
+        who = st.text_input("배송 받을 이름", placeholder="예: 고민순")
+        addr = st.text_input("배송지", placeholder="주소를 입력하세요")
+        apply_submit = st.form_submit_button("키트 신청하기 →", type="primary")
 
-    <div class="card">
-      <h2 style="margin-top:0">🌦️ 기후 AI 서머리</h2>
-      <p>{summary}</p>
-      <div class="grid" style="margin-top:12px">
-        <div class="muted">🌡️ 평균기온 <b>{p['temp']}℃</b></div>
-        <div class="muted">💧 습도 <b>{p['humidity']}%</b></div>
-        <div class="muted">☀️ UV 지수 <b>{p['uv']}</b></div>
-        <div class="muted">😷 미세먼지 <b>{p['dust']}</b></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2 style="margin-top:0">📊 피부 이슈 지수</h2>
-      <div style="display:flex;align-items:baseline;gap:10px">
-        <span style="font-size:38px;font-weight:800;color:{level_col}">{score}</span>
-        <span style="color:{level_col};font-weight:700">{level_txt}</span>
-      </div>
-      <div class="index-bar"><div style="width:{score}%;background:{level_col}"></div></div>
-      <ul class="muted" style="margin:8px 0 0">{notes_html}</ul>
-    </div>
-
-    <div class="card">
-      <h2 style="margin-top:0">📅 여행 날씨 캘린더</h2>
-      <p class="muted">🔥더운날 ❄️쌀쌀 ☀️온화 💧습함 🌵건조 😷미세먼지나쁨 🌫️보통</p>
-      <div class="cal">{cal_html}</div>
-    </div>
-
-    <div class="card">
-      <h2 style="margin-top:0">🧴 맞춤 스킨케어 루틴</h2>
-      {routine_html}
-    </div>
-
-    <form class="card" method="post" action="{url_for('apply')}">
-      <h2 style="margin-top:0">📦 소용량 맞춤 키트 신청</h2>
-      <p class="muted">{days}일 일정에 맞춘 소용량 구성입니다.</p>
-      <ul>{kit_items}</ul>
-      <input type="hidden" name="dest" value="{dest}">
-      <input type="hidden" name="days" value="{days}">
-      <label>배송 받을 이름</label><input type="text" name="who" placeholder="예: 고민순" required>
-      <label>배송지</label><input type="text" name="addr" placeholder="주소를 입력하세요" required>
-      <p style="margin-top:20px"><button class="btn" type="submit">키트 신청하기 →</button></p>
-    </form>
-    """
-    return page(body)
+    if apply_submit:
+        if not who or not addr:
+            st.warning("이름과 배송지를 모두 입력해 주세요.")
+        else:
+            eta = (date.today() + timedelta(days=2)).strftime("%Y년 %m월 %d일")
+            st.success(
+                f"✅ 신청이 완료되었습니다!\n\n"
+                f"**{who}**님의 **{dest} {days}일 맞춤 키트**를 준비합니다.\n\n"
+                f"📮 배송 예정일: **{eta}**\n\n{addr}"
+            )
+            st.balloons()
 
 
-@app.route("/apply", methods=["POST"])
-def apply():
-    who = request.form.get("who", "고객")
-    addr = request.form.get("addr", "")
-    dest = request.form.get("dest", "")
-    days = request.form.get("days", "")
-    eta = (date.today() + timedelta(days=2)).strftime("%Y년 %m월 %d일")
-    body = f"""
-    <div class="card" style="text-align:center;padding:48px 24px">
-      <div style="font-size:52px">✅</div>
-      <h1>신청이 완료되었습니다</h1>
-      <p class="sub">{who}님의 {dest} {days}일 맞춤 키트를 준비합니다.</p>
-      <p><b>배송 예정일: {eta}</b><br><span class="muted">{addr}</span></p>
-      <p style="margin-top:24px">
-        <a class="btn" href="{url_for('home')}">홈으로</a>
-      </p>
-    </div>
-    """
-    return page(body)
+def page_survey():
+    st.header("피부 진단")
+    st.caption("피부 정보와 여행 계획을 입력하면 맞춤 루틴과 기후 리포트를 만들어 드립니다.")
+
+    with st.form("survey_form"):
+        skin_type = st.radio("피부 타입", SKIN_TYPES, horizontal=True)
+        concerns = st.multiselect("피부 고민 (복수 선택)", CONCERNS)
+        c1, c2 = st.columns(2)
+        with c1:
+            dest = st.selectbox(
+                "여행지",
+                list(DESTINATIONS.keys()),
+                format_func=lambda d: f"{d} ({DESTINATIONS[d]['tag']})",
+            )
+        with c2:
+            days = st.slider("여행 일수", min_value=1, max_value=30, value=5)
+        submitted = st.form_submit_button("맞춤 리포트 생성 →", type="primary")
+
+    if submitted:
+        st.session_state["report"] = {
+            "skin_type": skin_type,
+            "concerns": concerns,
+            "dest": dest,
+            "days": days,
+        }
+
+    if "report" in st.session_state:
+        st.divider()
+        r = st.session_state["report"]
+        render_report(r["skin_type"], r["concerns"], r["dest"], r["days"])
 
 
-@app.route("/ingredients")
-def ingredients():
-    q = request.args.get("q", "").strip()
-    rows = ""
-    matched = 0
+# --------------------------------------------------------------------------
+# 페이지: 성분 검색
+# --------------------------------------------------------------------------
+def page_ingredients():
+    st.header("성분 검색")
+    st.caption("제품명·성분명·고민 키워드로 검색해 보세요. (예: 나이아신, 여드름, 세라마이드)")
+
+    q = st.text_input("성분 또는 고민 키워드", "").strip()
+
+    matched = []
     for pr in PRODUCTS:
-        hit = (not q) or (q in pr["name"]) or any(q in ing for ing in pr["ingredients"]) \
-              or any(q in c for c in pr["for_concerns"])
+        hit = (
+            (not q)
+            or (q in pr["name"])
+            or any(q in ing for ing in pr["ingredients"])
+            or any(q in c for c in pr["for_concerns"])
+        )
         if hit:
-            matched += 1
-            ings = ", ".join(pr["ingredients"])
-            rows += (f"<tr><td><b>{pr['name']}</b><br><span class='muted'>{pr['desc']}</span></td>"
-                     f"<td>{ings}</td><td>{', '.join(pr['for_concerns'])}</td></tr>")
-    if not rows:
-        rows = '<tr><td colspan="3" class="muted">검색 결과가 없습니다.</td></tr>'
+            matched.append(pr)
 
-    body = f"""
-    <h1>성분 검색</h1>
-    <p class="sub">제품명·성분명·고민 키워드로 검색해 보세요. (예: 나이아신, 여드름, 세라마이드)</p>
-    <form class="card" method="get" action="{url_for('ingredients')}"
-          style="display:flex;gap:10px;align-items:center">
-      <input type="text" name="q" value="{q}" placeholder="성분 또는 고민 키워드">
-      <button class="btn" type="submit">검색</button>
-    </form>
-    <div class="card">
-      <p class="muted">{matched}개 제품</p>
-      <table>
-        <tr><th>제품</th><th>주요 성분</th><th>추천 고민</th></tr>
-        {rows}
-      </table>
-    </div>
-    """
-    return page(body)
+    st.markdown(f'<p class="bp-muted">{len(matched)}개 제품</p>', unsafe_allow_html=True)
+
+    if not matched:
+        st.info("검색 결과가 없습니다.")
+        return
+
+    for pr in matched:
+        with st.container(border=True):
+            st.markdown(f"**{pr['name']}**")
+            st.markdown(f'<span class="bp-muted">{pr["desc"]}</span>', unsafe_allow_html=True)
+            st.markdown(f"🧪 주요 성분: {', '.join(pr['ingredients'])}")
+            st.markdown(f"🎯 추천 고민: {', '.join(pr['for_concerns'])}")
 
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+# --------------------------------------------------------------------------
+# 라우팅
+# --------------------------------------------------------------------------
+if menu == "홈":
+    page_home()
+elif menu == "피부 진단":
+    page_survey()
+else:
+    page_ingredients()
+
+st.sidebar.divider()
+st.sidebar.caption("Beauty Passport · 시나리오 2 Global Beauty")
