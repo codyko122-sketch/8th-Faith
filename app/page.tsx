@@ -1546,8 +1546,25 @@ export default function BeautyPassportExperience() {
                   <PassportButton
                     disabled={!journeyPhase}
                     onClick={() => {
-                      if (journeyPhase === "before" || journeyPhase === "during") setStage("travel");
-                      else setAnalyzing(true);
+                      if (journeyPhase === "before" || journeyPhase === "during") {
+                        setStage("travel");
+                        return;
+                      }
+                      // 여행 후: 별도 애프터케어 페이지(public/aftercare.html)로 이동
+                      try {
+                        window.localStorage.setItem(
+                          "beautyPassport",
+                          JSON.stringify({
+                            country: country?.name ?? (useCustom ? customCountry : ""),
+                            depart: departDate ?? "",
+                            return: arriveDate ?? "",
+                            name: name ?? "",
+                          }),
+                        );
+                      } catch {
+                        /* localStorage 사용 불가 시 무시 */
+                      }
+                      window.location.href = "/aftercare.html";
                     }}
                   >
                     다음 단계 →
