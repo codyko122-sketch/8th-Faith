@@ -16,7 +16,7 @@ export function SiteNav() {
       <div className="mx-auto flex max-w-5xl items-center gap-6 px-6 py-4">
         <Link href="/" className="flex items-center gap-2 font-serif text-lg font-semibold tracking-tight">
           <span aria-hidden className="text-xl">🛂</span>
-          Beauty <span className="text-accent">Passport</span>
+          <span style={{ fontSize: "calc(1em + 1pt)" }}>Beauty</span> <span className="text-accent">Passport</span>
         </Link>
         <nav className="ml-auto flex items-center gap-1 text-sm">
           {LINKS.map((l) => {

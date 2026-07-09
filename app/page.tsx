@@ -2232,9 +2232,9 @@ function StubField({ label, value }: { label: string; value: string }) {
 
 // CSS 바코드 (고정 패턴)
 function Barcode() {
-  const widths = [3, 1, 2, 1, 1, 3, 1, 2, 2, 1, 1, 2, 3, 1, 1, 2, 1, 3, 2, 1, 2, 1, 1, 3, 1, 2, 1, 2, 3, 1, 1, 2, 2, 1, 3, 1, 1, 2, 1, 2];
+  const widths = [6, 2, 4, 2, 2, 6, 2, 4, 4, 2, 2, 4, 6, 2, 2, 4, 2, 6, 4, 2, 4, 2, 2, 6, 2, 4, 2, 4, 6, 2, 2, 4, 4, 2, 6, 2, 2, 4, 2, 4];
   return (
-    <div className="mt-5 flex h-14 items-stretch justify-center gap-[2px]">
+    <div className="mt-5 flex h-14 items-stretch justify-center bg-white">
       {widths.map((w, i) => (
         <div key={i} style={{ width: w, background: i % 2 === 0 ? "#22315a" : "transparent" }} />
       ))}
