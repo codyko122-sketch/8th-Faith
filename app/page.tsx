@@ -1713,7 +1713,7 @@ export default function BeautyPassportExperience() {
                 </div>
 
                 <div className="mt-6 flex gap-3">
-                  <PassportButton variant="muted" onClick={() => setStage("journey")}>
+                  <PassportButton variant="muted" fullWidth={false} onClick={() => setStage("journey")}>
                     ← 이전
                   </PassportButton>
                   <div className="flex-1">

@@ -69,15 +69,19 @@ export function PassportField({ label, labelKo, className, ...rest }: PassportFi
 export function PassportButton({
   children,
   variant = "primary",
+  fullWidth = true,
   ...rest
 }: {
   children: ReactNode;
   variant?: "primary" | "ghost" | "muted";
+  fullWidth?: boolean;
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       type="button"
-      className={`flex w-full items-center justify-center gap-2 rounded-[14px] px-4 py-[17px] font-sans text-[15px] font-extrabold transition active:scale-[0.985] disabled:cursor-not-allowed ${
+      className={`flex items-center justify-center gap-2 rounded-[14px] px-4 py-[17px] font-sans text-[15px] font-extrabold transition active:scale-[0.985] disabled:cursor-not-allowed ${
+        fullWidth ? "w-full" : "flex-none"
+      } ${
         variant === "primary"
           ? "bg-[#0a0a0a] text-white disabled:bg-[#d4d4d8] disabled:text-[#fafafa]"
           : variant === "muted"
