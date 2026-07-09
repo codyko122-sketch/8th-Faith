@@ -1,0 +1,167 @@
+/* aftercare.html 원본 스타일을 그대로 포팅 (디자인 토큰, 여백, 색상 동일 유지).
+   원본의 body/.passport(데모용 폰 프레임 배경)만 제외 — 실제 앱에서는 이 화면 자체가
+   이미 풀스크린이라 프레임이 필요 없음. 나머지 컴포넌트 스타일은 전부 원본 그대로. */
+.root {
+  --ink: #111111;
+  --ink-soft: #6b7280;
+  --ink-faint: #9ca3af;
+  --line: #e5e7eb;
+  --field: #f3f4f6;
+  --field-2: #eceef1;
+  --paper: #ffffff;
+  --stamp: #e5342a;
+  --stamp-soft: #fbe7e5;
+  --radius-field: 14px;
+  --radius-btn: 16px;
+  --font: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  margin: 0 0 12px;
+}
+.title {
+  font-size: 27px;
+  line-height: 1.14;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.subtitle {
+  color: var(--ink-faint);
+  font-size: 12.5px;
+  margin: 7px 0 0;
+  font-weight: 500;
+}
+
+.logo { flex: none; height: 38px; width: auto; margin-top: 1px; display: block; }
+.plane svg { width: 50px; height: 50px; display: block; color: var(--ink); }
+.luggage svg { width: auto; height: 54px; color: var(--ink); display: block; }
+
+.steps { display: flex; gap: 6px; margin: 16px 0 20px; }
+.steps span {
+  height: 4px; flex: 1; border-radius: 4px;
+  background: var(--line); transition: background 0.25s ease;
+}
+.steps span.on { background: var(--ink); }
+
+.label { display: flex; align-items: baseline; gap: 8px; margin: 0 0 12px; }
+.label b { font-size: 15px; font-weight: 800; letter-spacing: -0.01em; }
+.label small { font-size: 12px; color: var(--ink-faint); font-weight: 600; }
+.label small::before { content: "· "; }
+
+.lead { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.25; margin: 4px 0 6px; }
+.leadSub { color: var(--ink-soft); font-size: 13px; margin: 0 0 22px; line-height: 1.55; }
+
+.choice2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.opt {
+  appearance: none; border: 1.5px solid transparent; background: var(--field);
+  color: var(--ink); border-radius: var(--radius-field); padding: 20px 10px;
+  font-family: var(--font); font-size: 15px; font-weight: 700; cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease; text-align: center;
+}
+.opt small { display: block; font-size: 11px; font-weight: 600; color: var(--ink-faint); margin-top: 4px; }
+.opt:hover { background: var(--field-2); }
+.opt:active { transform: scale(0.97); }
+.opt.sel { border-color: var(--ink); background: #fff; }
+
+.chips { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.chip {
+  appearance: none; border: 1.5px solid transparent; background: var(--field);
+  border-radius: var(--radius-field); padding: 16px 14px; text-align: left; cursor: pointer;
+  font-family: var(--font); transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease;
+  display: flex; align-items: center; gap: 11px;
+}
+.chip .ico { font-size: 20px; line-height: 1; }
+.chip .tx b { display: block; font-size: 14.5px; font-weight: 800; }
+.chip .tx small { font-size: 11px; color: var(--ink-faint); font-weight: 600; }
+.chip:hover { background: var(--field-2); }
+.chip:active { transform: scale(0.97); }
+.chip.sel { border-color: var(--ink); background: #fff; }
+.chip.sel::after { content: "✓"; margin-left: auto; font-weight: 900; color: var(--ink); }
+
+.btnbar { display: flex; gap: 12px; margin-top: 24px; }
+.btn {
+  appearance: none; border: none; font-family: var(--font); font-weight: 800; font-size: 15px;
+  border-radius: var(--radius-btn); padding: 17px 22px; cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.15s ease; letter-spacing: -0.01em;
+}
+.btn:active { transform: scale(0.98); }
+.btn.primary { background: var(--ink); color: #fff; flex: 1; }
+.btn.primary:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn.ghost { background: var(--field); color: var(--ink); flex: none; }
+.btn.block { width: 100%; }
+
+.tripcard {
+  background: var(--field); border-radius: var(--radius-field); padding: 18px 20px;
+  margin-bottom: 22px; display: flex; justify-content: space-between; align-items: center; gap: 14px;
+}
+.tripcard .dest { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+.tripcard .dates { font-size: 12px; color: var(--ink-soft); margin-top: 4px; font-weight: 600; }
+.tripcard .flag { display: flex; align-items: center; }
+
+.stampwrap { display: flex; justify-content: center; margin: 4px 0 18px; padding: 6px 0; overflow: visible; }
+
+.stampRect {
+  border: 2.5px solid var(--stamp); color: var(--stamp); border-radius: 12px;
+  padding: 9px 17px; text-align: center; transform: rotate(-7deg); letter-spacing: 0.06em;
+}
+.stampRect .s1 { font-size: 10px; font-weight: 700; letter-spacing: 0.22em; }
+.stampRect .s2 { font-size: 19px; font-weight: 900; letter-spacing: 0.02em; margin: 2px 0; }
+.stampRect .s3 { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; }
+
+.stampSeal {
+  width: 102px; height: 102px; border: 2.5px solid var(--stamp); border-radius: 50%;
+  color: var(--stamp); display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transform: rotate(-8deg); position: relative; text-align: center;
+}
+.stampSeal::before {
+  content: ""; position: absolute; inset: 6px; border: 1.5px solid var(--stamp); border-radius: 50%;
+}
+.stampSeal .st { font-size: 8px; font-weight: 800; letter-spacing: 0.18em; }
+.stampSeal .rx { font-size: 33px; font-weight: 900; line-height: 0.9; margin: 1px 0; font-family: Georgia, "Times New Roman", serif; }
+.stampSeal .sb { font-size: 10.5px; font-weight: 900; letter-spacing: 0.12em; }
+
+.resultHead { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 4px; }
+.resultSub { font-size: 13px; color: var(--ink-soft); margin: 0 0 16px; line-height: 1.5; }
+
+.focusline {
+  font-size: 12px; color: var(--ink-soft); background: var(--field); border-radius: 12px;
+  padding: 12px 16px; margin: 0 0 16px; line-height: 1.55; font-weight: 600;
+}
+.focusline b { color: var(--ink); }
+
+.products { display: flex; flex-direction: column; gap: 12px; }
+.product { border: 1px solid var(--line); border-radius: var(--radius-field); padding: 15px 18px; }
+.product .cat { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; color: var(--ink-faint); text-transform: uppercase; }
+.product .name { font-size: 16px; font-weight: 800; margin: 4px 0 8px; letter-spacing: -0.01em; }
+.product .ing {
+  display: inline-block; background: var(--stamp-soft); color: var(--stamp);
+  font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px; margin-bottom: 8px;
+}
+.product .why { font-size: 13px; color: var(--ink-soft); line-height: 1.55; margin: 0; }
+
+.footer { border-top: 1px dashed var(--line); margin-top: 18px; padding-top: 16px; text-align: center; }
+.footer .cap { font-size: 11px; font-weight: 800; letter-spacing: 0.26em; color: var(--ink); margin-bottom: 10px; }
+.barcode { display: flex; justify-content: center; align-items: flex-end; gap: 2px; height: 40px; }
+.barcode i { display: block; background: var(--ink); height: 100%; }
+.code { margin-top: 9px; font-size: 12px; font-weight: 700; letter-spacing: 0.26em; color: var(--stamp); font-variant-numeric: tabular-nums; }

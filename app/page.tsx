@@ -51,6 +51,8 @@ import {
   PassportBeachIcon,
   PassportSurveyIcon,
 } from "@/components/passport-ui";
+import { CLIMATE_BY_COUNTRY, CLIMATE_PROFILE, CONCERNS } from "@/lib/aftercare-data";
+import { AcScreenChrome, AcLabel, AcOpt, AcChip, AcBtnBar, AcBtn, AcTripCard, AcStampRect, AcStampSeal, AcProductCard, acStyles } from "@/components/aftercare-ui";
 
 type Stage =
   | "intro"
@@ -63,6 +65,11 @@ type Stage =
   | "journey"
   | "travel"
   | "skin"
+  | "acArrival"
+  | "acQ1"
+  | "acQ2"
+  | "acQ3"
+  | "acResult"
   | "result"
   | "receive"
   | "delivery"
@@ -695,6 +702,12 @@ export default function BeautyPassportExperience() {
   const [findPwError, setFindPwError] = useState("");
   const [findPwDone, setFindPwDone] = useState(false);
   const [journeyPhase, setJourneyPhase] = useState<"before" | "during" | "after" | null>(null);
+  // 애프터케어 (여행 후)
+  const [acQ1, setAcQ1] = useState<"yes" | "no" | null>(null);
+  const [acQ2, setAcQ2] = useState<"yes" | "no" | null>(null);
+  const [acConcerns, setAcConcerns] = useState<string[]>([]);
+  const [acMode, setAcMode] = useState<"concern" | "destination" | null>(null);
+  const [acSaved, setAcSaved] = useState(false);
   // 여행지
   const [countryCode, setCountryCode] = useState<string | null>(null);
   const [cityName, setCityName] = useState<string | null>(null);
@@ -784,6 +797,15 @@ export default function BeautyPassportExperience() {
   const country = COUNTRIES.find((c) => c.code === countryCode) ?? null;
   const city = country?.cities.find((ci) => ci.name === cityName) ?? null;
   const makeupNote = MAKEUP_STYLE_NOTES.find((n) => n.countryCode === countryCode) ?? null;
+
+  const acCountryName = country?.name ?? (useCustom ? customCountry.trim() : "");
+  const acClimateKey = CLIMATE_BY_COUNTRY[acCountryName] ?? "temperate";
+  const acClimateProfile = CLIMATE_PROFILE[acClimateKey];
+  const acChosenConcerns = CONCERNS.filter((c) => acConcerns.includes(c.id));
+  const acSubtitle = name ? `${name}님, 여행에서 돌아온 피부를 점검할 시간` : "여행에서 돌아온 내 피부를 점검할 시간";
+  const acDestName = acCountryName || "이번 여행";
+  const acDestDates = [departDate, arriveDate].filter(Boolean).join("  –  ") || "즐거운 시간 되셨나요?";
+  const acFooterCode = `BP ${(acCountryName || "AC").slice(0, 2).toUpperCase()} ${String(new Date().getMonth() + 1).padStart(2, "0")} ${String(new Date().getDate()).padStart(2, "0")} ${String(new Date().getFullYear() % 100).padStart(2, "0")}`;
 
   const placeDone = useCustom ? customCountry.trim() !== "" && customCity.trim() !== "" : !!city;
   const travelDone = placeDone && !!departDate && !!arriveDate;
@@ -934,6 +956,34 @@ export default function BeautyPassportExperience() {
     setSkin(analyzeBaumann(account.skinCode));
     setStage("journey");
   }
+  function acNextQ1() {
+    if (acQ1 === "yes") setStage("acQ2");
+    else {
+      setAcMode("destination");
+      setStage("acResult");
+    }
+  }
+  function acNextQ2() {
+    if (acQ2 === "yes") setStage("acQ3");
+    else {
+      setAcMode("destination");
+      setStage("acResult");
+    }
+  }
+  function acToggleConcern(id: string) {
+    setAcConcerns((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+  function acRestart() {
+    setAcQ1(null);
+    setAcQ2(null);
+    setAcConcerns([]);
+    setAcMode(null);
+    setStage("acArrival");
+  }
+  function acSave() {
+    setAcSaved(true);
+    setTimeout(() => setAcSaved(false), 1800);
+  }
   function restart() {
     clearSession();
     setAutoLogin(false);
@@ -943,6 +993,7 @@ export default function BeautyPassportExperience() {
     setFindIdName(""); setFindIdResult(null); setFindIdError("");
     setFindPwId(""); setFindPwName(""); setFindPwVerified(false); setFindPwNew(""); setFindPwNew2(""); setFindPwError(""); setFindPwDone(false);
     setJourneyPhase(null);
+    setAcQ1(null); setAcQ2(null); setAcConcerns([]); setAcMode(null); setAcSaved(false);
     setName(""); setAge(""); setGender("");
     setCountryCode(null); setCityName(null);
     setUseCustom(false); setCustomCountry(""); setCustomCity("");
@@ -1546,25 +1597,8 @@ export default function BeautyPassportExperience() {
                   <PassportButton
                     disabled={!journeyPhase}
                     onClick={() => {
-                      if (journeyPhase === "before" || journeyPhase === "during") {
-                        setStage("travel");
-                        return;
-                      }
-                      // 여행 후: 별도 애프터케어 페이지(public/aftercare.html)로 이동
-                      try {
-                        window.localStorage.setItem(
-                          "beautyPassport",
-                          JSON.stringify({
-                            country: country?.name ?? (useCustom ? customCountry : ""),
-                            depart: departDate ?? "",
-                            return: arriveDate ?? "",
-                            name: name ?? "",
-                          }),
-                        );
-                      } catch {
-                        /* localStorage 사용 불가 시 무시 */
-                      }
-                      window.location.href = "/aftercare.html";
+                      if (journeyPhase === "before" || journeyPhase === "during") setStage("travel");
+                      else setStage("acArrival");
                     }}
                   >
                     다음 단계 →
@@ -1572,6 +1606,203 @@ export default function BeautyPassportExperience() {
                 </div>
               </motion.section>
             )}
+
+            {/* 애프터케어 — 여행 후: 입국 심사 */}
+            {stage === "acArrival" && (
+              <motion.section
+                key="acArrival"
+                variants={stageVariants}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
+              >
+                <AcScreenChrome step={0} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode}>
+                  <AcTripCard dest={acDestName} dates={acDestDates} />
+                  <p className={acStyles.lead} style={{ marginBottom: 20 }}>
+                    입국 심사를 시작할게요
+                  </p>
+                  <p className={acStyles.leadSub}>
+                    여행지의 날씨와 자외선은 피부에 흔적을 남깁니다.
+                    <br />
+                    몇 가지 질문으로 지금 피부 상태를 신고하면,
+                    <br />
+                    딱 맞는 애프터케어를 처방해드려요.
+                  </p>
+                  <AcBtnBar>
+                    <AcBtn block onClick={() => setStage("acQ1")}>
+                      심사 시작하기 →
+                    </AcBtn>
+                  </AcBtnBar>
+                </AcScreenChrome>
+              </motion.section>
+            )}
+
+            {/* 애프터케어 — Q1 */}
+            {stage === "acQ1" && (
+              <motion.section
+                key="acQ1"
+                variants={stageVariants}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
+              >
+                <AcScreenChrome step={1} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode}>
+                  <AcLabel en="Skin Check" ko="피부 점검" />
+                  <p className={acStyles.lead}>피부 상태가 달라지셨나요?</p>
+                  <p className={acStyles.leadSub}>여행 전과 비교해 피부 컨디션에 변화가 느껴지는지 알려주세요.</p>
+                  <div className={acStyles.choice2}>
+                    <AcOpt selected={acQ1 === "yes"} onClick={() => setAcQ1("yes")} hint="변화가 있어요">
+                      예
+                    </AcOpt>
+                    <AcOpt selected={acQ1 === "no"} onClick={() => setAcQ1("no")} hint="비슷해요">
+                      아니요
+                    </AcOpt>
+                  </div>
+                  <AcBtnBar>
+                    <AcBtn variant="ghost" onClick={() => setStage("acArrival")}>
+                      ← 이전
+                    </AcBtn>
+                    <AcBtn disabled={!acQ1} onClick={acNextQ1}>
+                      다음 →
+                    </AcBtn>
+                  </AcBtnBar>
+                </AcScreenChrome>
+              </motion.section>
+            )}
+
+            {/* 애프터케어 — Q2 */}
+            {stage === "acQ2" && (
+              <motion.section
+                key="acQ2"
+                variants={stageVariants}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
+              >
+                <AcScreenChrome step={2} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode}>
+                  <AcLabel en="New Concern" ko="새로운 고민" />
+                  <p className={acStyles.lead}>새롭게 생긴 피부 고민이 있나요?</p>
+                  <p className={acStyles.leadSub}>여행 전에는 없었는데 새로 신경 쓰이는 부분이 생겼는지 알려주세요.</p>
+                  <div className={acStyles.choice2}>
+                    <AcOpt selected={acQ2 === "yes"} onClick={() => setAcQ2("yes")} hint="생겼어요">
+                      예
+                    </AcOpt>
+                    <AcOpt selected={acQ2 === "no"} onClick={() => setAcQ2("no")} hint="없어요">
+                      아니요
+                    </AcOpt>
+                  </div>
+                  <AcBtnBar>
+                    <AcBtn variant="ghost" onClick={() => setStage("acQ1")}>
+                      ← 이전
+                    </AcBtn>
+                    <AcBtn disabled={!acQ2} onClick={acNextQ2}>
+                      다음 →
+                    </AcBtn>
+                  </AcBtnBar>
+                </AcScreenChrome>
+              </motion.section>
+            )}
+
+            {/* 애프터케어 — Q3: 고민 신고 */}
+            {stage === "acQ3" && (
+              <motion.section
+                key="acQ3"
+                variants={stageVariants}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
+              >
+                <AcScreenChrome step={3} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode}>
+                  <AcLabel en="Declare" ko="피부 신고" />
+                  <p className={acStyles.lead}>어떤 고민이 새롭게 생겼나요?</p>
+                  <p className={acStyles.leadSub}>해당하는 항목을 모두 선택해 주세요. (중복 선택 가능)</p>
+                  <div className={acStyles.chips}>
+                    {CONCERNS.map((c) => (
+                      <AcChip key={c.id} selected={acConcerns.includes(c.id)} onClick={() => acToggleConcern(c.id)} icon={c.ico} label={c.label} en={c.en} />
+                    ))}
+                  </div>
+                  <AcBtnBar>
+                    <AcBtn variant="ghost" onClick={() => setStage("acQ2")}>
+                      ← 이전
+                    </AcBtn>
+                    <AcBtn
+                      disabled={acConcerns.length === 0}
+                      onClick={() => {
+                        setAcMode("concern");
+                        setStage("acResult");
+                      }}
+                    >
+                      처방 받기 →
+                    </AcBtn>
+                  </AcBtnBar>
+                </AcScreenChrome>
+              </motion.section>
+            )}
+
+            {/* 애프터케어 — 결과 */}
+            {stage === "acResult" &&
+              (() => {
+                const isConcern = acMode === "concern";
+                const per = acChosenConcerns.length >= 3 ? 1 : acChosenConcerns.length === 2 ? 2 : 3;
+                return (
+                  <motion.section
+                    key="acResult"
+                    variants={stageVariants}
+                    initial="hidden"
+                    animate="show"
+                    exit="exit"
+                    className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
+                  >
+                    <AcScreenChrome step={4} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode}>
+                      {isConcern ? <AcStampSeal /> : <AcStampRect />}
+                      <h2 className={acStyles.resultHead}>
+                        {isConcern
+                          ? `'${acChosenConcerns.map((c) => c.label).join(" · ")}' 맞춤 처방`
+                          : acCountryName
+                            ? `${acCountryName} 여행 후 케어`
+                            : "여행지 맞춤 케어"}
+                      </h2>
+                      <p className={acStyles.resultSub}>
+                        {isConcern ? "여행에서 새로 생긴 고민을 위한 처방 루틴이에요." : "큰 변화가 없어도, 여행지 기후에 맞춰 피부를 재정비해요."}
+                      </p>
+                      <p className={acStyles.focusline}>
+                        {isConcern ? (
+                          acChosenConcerns.map((c, i) => (
+                            <span key={c.id}>
+                              <b>{c.label}</b> — {c.focus}
+                              {i < acChosenConcerns.length - 1 && <br />}
+                            </span>
+                          ))
+                        ) : (
+                          <>
+                            <b>{acClimateProfile.label}</b> · {acClimateProfile.focus}
+                          </>
+                        )}
+                      </p>
+                      <div className={acStyles.products}>
+                        {isConcern
+                          ? acChosenConcerns.flatMap((c) => c.products.slice(0, per).map((p, i) => <AcProductCard key={`${c.id}-${i}`} {...p} />))
+                          : acClimateProfile.products.map((p, i) => <AcProductCard key={i} {...p} />)}
+                      </div>
+                      <AcBtnBar>
+                        <AcBtn variant="ghost" onClick={acRestart}>
+                          처음으로
+                        </AcBtn>
+                        <AcBtn onClick={acSave}>맞춤 제품 담기 →</AcBtn>
+                      </AcBtnBar>
+                    </AcScreenChrome>
+                    {acSaved && (
+                      <div className="fixed bottom-7 left-1/2 z-[80] -translate-x-1/2 rounded-full bg-[#111111] px-[22px] py-[13px] text-[13px] font-bold text-white shadow-lg">
+                        여권에 저장되었어요
+                      </div>
+                    )}
+                  </motion.section>
+                );
+              })()}
 
             {/* 3. 여행지 설문 — 나라 → 도시 → 날짜 */}
             {stage === "travel" && (
