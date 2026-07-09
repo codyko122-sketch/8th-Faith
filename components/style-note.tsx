@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import styles from "./style-note.module.css";
 import { MAKEUP_STYLE_NOTES, type MakeupStyleNote } from "@/lib/makeup-style-notes";
 
-const POLAROID_POS = [styles.p1, styles.p3];
+const POLAROID_POS = [styles.p1, styles.p2];
 
 function CountryDetail({ note, onBack }: { note: MakeupStyleNote; onBack: () => void }) {
   return (
