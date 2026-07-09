@@ -209,14 +209,14 @@
 
 .p1 {
   top: 0;
-  left: 4%;
+  left: 6%;
   transform: rotate(-7deg);
   z-index: 2;
 }
 
 .p2 {
   top: 26%;
-  right: 2%;
+  right: 4%;
   transform: rotate(6deg);
   z-index: 3;
 }
