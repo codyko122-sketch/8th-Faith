@@ -16,7 +16,22 @@ import {
 } from "@/lib/products";
 import { MAKEUP_STYLE_NOTES } from "@/lib/makeup-style-notes";
 import { StyleNoteModal } from "@/components/style-note";
-import { signup as authSignup, login as authLogin, findAccount, saveSkinToAccount, daysAgoLabel } from "@/lib/auth";
+import {
+  signup as authSignup,
+  login as authLogin,
+  findAccount,
+  saveSkinToAccount,
+  daysAgoLabel,
+  getSession,
+  clearSession,
+  getRememberedId,
+  setRememberedId,
+  isAutoLoginEnabled,
+  setAutoLogin,
+  findAccountsByName,
+  maskId,
+  resetPassword,
+} from "@/lib/auth";
 import {
   PassportTopBar,
   PassportEyebrow,
@@ -40,6 +55,8 @@ import {
 type Stage =
   | "intro"
   | "login"
+  | "findId"
+  | "findPw"
   | "signup"
   | "member"
   | "checkin"
@@ -665,6 +682,18 @@ export default function BeautyPassportExperience() {
   const [signupAge, setSignupAge] = useState("");
   const [signupGender, setSignupGender] = useState("");
   const [signupError, setSignupError] = useState("");
+  const [rememberId, setRememberId] = useState(false);
+  const [autoLoginChecked, setAutoLoginChecked] = useState(false);
+  const [findIdName, setFindIdName] = useState("");
+  const [findIdResult, setFindIdResult] = useState<string | null>(null);
+  const [findIdError, setFindIdError] = useState("");
+  const [findPwId, setFindPwId] = useState("");
+  const [findPwName, setFindPwName] = useState("");
+  const [findPwVerified, setFindPwVerified] = useState(false);
+  const [findPwNew, setFindPwNew] = useState("");
+  const [findPwNew2, setFindPwNew2] = useState("");
+  const [findPwError, setFindPwError] = useState("");
+  const [findPwDone, setFindPwDone] = useState(false);
   const [journeyPhase, setJourneyPhase] = useState<"before" | "during" | "after" | null>(null);
   // 여행지
   const [countryCode, setCountryCode] = useState<string | null>(null);
@@ -712,9 +741,19 @@ export default function BeautyPassportExperience() {
 
   const timer = useRef<number | null>(null);
 
+  // 아이디 저장/자동 로그인 저장값 복원 (최초 1회)
+  useEffect(() => {
+    const remembered = getRememberedId();
+    if (remembered) {
+      setLoginId(remembered);
+      setRememberId(true);
+    }
+    setAutoLoginChecked(isAutoLoginEnabled());
+  }, []);
+
   useEffect(() => {
     if (stage !== "intro") return;
-    timer.current = window.setTimeout(() => setStage("login"), 5300);
+    timer.current = window.setTimeout(() => setStage(tryAutoLogin() ? "member" : "login"), 5300);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
@@ -751,7 +790,7 @@ export default function BeautyPassportExperience() {
 
   function skipIntro() {
     if (timer.current) clearTimeout(timer.current);
-    setStage("login");
+    setStage(tryAutoLogin() ? "member" : "login");
   }
   function chooseAxis(letter: string) {
     const next = axes.map((a, i) => (i === qIndex ? letter : a));
@@ -838,6 +877,16 @@ export default function BeautyPassportExperience() {
     setCountryCode(code);
     setCityName(null);
   }
+  function tryAutoLogin(): boolean {
+    if (!isAutoLoginEnabled()) return false;
+    const account = getSession();
+    if (!account) return false;
+    setLoggedInId(account.id);
+    setName(account.name);
+    setAge(account.age);
+    setGender(account.gender);
+    return true;
+  }
   function handleLogin() {
     const res = authLogin(loginId, loginPw);
     if (!res.ok) {
@@ -845,6 +894,8 @@ export default function BeautyPassportExperience() {
       return;
     }
     setLoginError("");
+    setRememberedId(rememberId ? res.account.id : null);
+    setAutoLogin(autoLoginChecked);
     setLoggedInId(res.account.id);
     setName(res.account.name);
     setAge(res.account.age);
@@ -869,8 +920,11 @@ export default function BeautyPassportExperience() {
     setStage("checkin");
   }
   function handleLogout() {
+    clearSession();
+    setAutoLogin(false);
+    setAutoLoginChecked(false);
     setLoggedInId(null);
-    setLoginId(""); setLoginPw(""); setLoginError("");
+    setLoginId(getRememberedId() ?? ""); setLoginPw(""); setLoginError("");
     setStage("login");
   }
   function loadSavedSkin() {
@@ -881,8 +935,13 @@ export default function BeautyPassportExperience() {
     setStage("journey");
   }
   function restart() {
-    setLoggedInId(null); setLoginId(""); setLoginPw(""); setLoginError("");
+    clearSession();
+    setAutoLogin(false);
+    setAutoLoginChecked(false);
+    setLoggedInId(null); setLoginId(getRememberedId() ?? ""); setLoginPw(""); setLoginError("");
     setSignupName(""); setSignupId(""); setSignupPw(""); setSignupPw2(""); setSignupAge(""); setSignupGender(""); setSignupError("");
+    setFindIdName(""); setFindIdResult(null); setFindIdError("");
+    setFindPwId(""); setFindPwName(""); setFindPwVerified(false); setFindPwNew(""); setFindPwNew2(""); setFindPwError(""); setFindPwDone(false);
     setJourneyPhase(null);
     setName(""); setAge(""); setGender("");
     setCountryCode(null); setCityName(null);
@@ -1011,10 +1070,62 @@ export default function BeautyPassportExperience() {
                     autoComplete="current-password"
                   />
                   <PassportError>{loginError}</PassportError>
+
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 font-sans text-[12.5px] text-[#3f3f46]">
+                      <input
+                        type="checkbox"
+                        checked={rememberId}
+                        onChange={(e) => setRememberId(e.target.checked)}
+                        className="h-3.5 w-3.5 rounded accent-[#0a0a0a]"
+                      />
+                      아이디 저장
+                    </label>
+                    <label className="flex items-center gap-1.5 font-sans text-[12.5px] text-[#3f3f46]">
+                      <input
+                        type="checkbox"
+                        checked={autoLoginChecked}
+                        onChange={(e) => setAutoLoginChecked(e.target.checked)}
+                        className="h-3.5 w-3.5 rounded accent-[#0a0a0a]"
+                      />
+                      자동 로그인
+                    </label>
+                  </div>
                 </div>
 
                 <div className="mt-5 flex flex-col gap-3">
                   <PassportButton onClick={handleLogin}>로그인 →</PassportButton>
+                  <div className="flex items-center justify-center gap-2 font-sans text-[12.5px] text-[#71717a]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFindIdName("");
+                        setFindIdResult(null);
+                        setFindIdError("");
+                        setStage("findId");
+                      }}
+                      className="font-bold text-[#0a0a0a]"
+                    >
+                      아이디 찾기
+                    </button>
+                    <span>·</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFindPwId("");
+                        setFindPwName("");
+                        setFindPwVerified(false);
+                        setFindPwNew("");
+                        setFindPwNew2("");
+                        setFindPwError("");
+                        setFindPwDone(false);
+                        setStage("findPw");
+                      }}
+                      className="font-bold text-[#0a0a0a]"
+                    >
+                      비밀번호 찾기
+                    </button>
+                  </div>
                   <PassportDivider>또는 · OR</PassportDivider>
                   <PassportButton
                     variant="ghost"
@@ -1028,6 +1139,171 @@ export default function BeautyPassportExperience() {
                 </div>
 
                 <PassportFooter />
+              </motion.section>
+            )}
+
+            {/* 아이디 찾기 */}
+            {stage === "findId" && (
+              <motion.section
+                key="findId"
+                variants={stageVariants}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
+              >
+                <PassportTopBar onBack={() => setStage("login")} />
+                <PassportEyebrow>Recover Passport ID</PassportEyebrow>
+                <PassportTitle>
+                  FIND
+                  <br />
+                  ID
+                </PassportTitle>
+                <PassportKSub>가입할 때 입력한 이름으로 아이디를 찾아드려요</PassportKSub>
+
+                <div className="mt-5 flex flex-col gap-3.5">
+                  <PassportField
+                    label="Name"
+                    labelKo="이름"
+                    value={findIdName}
+                    onChange={(e) => setFindIdName(e.target.value)}
+                    placeholder="가입 시 입력한 이름"
+                    autoComplete="name"
+                  />
+                  <PassportError>{findIdError}</PassportError>
+                  {findIdResult && (
+                    <div className="rounded-[13px] bg-[#f4f4f5] px-4 py-[15px] font-sans text-sm text-[#0a0a0a]">
+                      찾은 아이디: <b className="font-extrabold">{findIdResult}</b>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-5">
+                  <PassportButton
+                    onClick={() => {
+                      const matches = findAccountsByName(findIdName);
+                      if (matches.length === 0) {
+                        setFindIdError("일치하는 계정을 찾을 수 없어요.");
+                        setFindIdResult(null);
+                      } else {
+                        setFindIdError("");
+                        setFindIdResult(matches.map((m) => maskId(m.id)).join(", "));
+                      }
+                    }}
+                  >
+                    아이디 찾기
+                  </PassportButton>
+                </div>
+                <PassportBackLink onClick={() => setStage("login")}>
+                  <b className="font-extrabold text-[#0a0a0a]">로그인</b>으로 돌아가기
+                </PassportBackLink>
+              </motion.section>
+            )}
+
+            {/* 비밀번호 찾기 */}
+            {stage === "findPw" && (
+              <motion.section
+                key="findPw"
+                variants={stageVariants}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
+              >
+                <PassportTopBar onBack={() => setStage("login")} />
+                <PassportEyebrow>Reset Passport Key</PassportEyebrow>
+                <PassportTitle>
+                  FIND
+                  <br />
+                  PASSWORD
+                </PassportTitle>
+                <PassportKSub>{findPwVerified ? "새 비밀번호를 설정해주세요" : "아이디와 이름을 확인해주세요"}</PassportKSub>
+
+                {!findPwVerified ? (
+                  <>
+                    <div className="mt-5 flex flex-col gap-3.5">
+                      <PassportField label="ID" labelKo="아이디" value={findPwId} onChange={(e) => setFindPwId(e.target.value)} placeholder="아이디" autoComplete="username" />
+                      <PassportField
+                        label="Name"
+                        labelKo="이름"
+                        value={findPwName}
+                        onChange={(e) => setFindPwName(e.target.value)}
+                        placeholder="가입 시 입력한 이름"
+                        autoComplete="name"
+                      />
+                      <PassportError>{findPwError}</PassportError>
+                    </div>
+                    <div className="mt-5">
+                      <PassportButton
+                        onClick={() => {
+                          const account = findAccount(findPwId.trim());
+                          if (!account || account.name !== findPwName.trim()) {
+                            setFindPwError("일치하는 계정을 찾을 수 없어요.");
+                            return;
+                          }
+                          setFindPwError("");
+                          setFindPwVerified(true);
+                        }}
+                      >
+                        확인
+                      </PassportButton>
+                    </div>
+                  </>
+                ) : findPwDone ? (
+                  <div className="mt-5 flex flex-col gap-3.5">
+                    <div className="rounded-[13px] bg-[#f4f4f5] px-4 py-[15px] text-center font-sans text-sm font-bold text-[#0a0a0a]">
+                      비밀번호가 재설정됐어요. 새 비밀번호로 로그인해주세요.
+                    </div>
+                    <PassportButton onClick={() => setStage("login")}>로그인하러 가기 →</PassportButton>
+                  </div>
+                ) : (
+                  <>
+                    <div className="mt-5 flex flex-col gap-3.5">
+                      <PassportField
+                        label="New Password"
+                        labelKo="새 비밀번호"
+                        type="password"
+                        value={findPwNew}
+                        onChange={(e) => setFindPwNew(e.target.value)}
+                        placeholder="새 비밀번호"
+                        autoComplete="new-password"
+                      />
+                      <PassportField
+                        label="Confirm"
+                        labelKo="비밀번호 확인"
+                        type="password"
+                        value={findPwNew2}
+                        onChange={(e) => setFindPwNew2(e.target.value)}
+                        placeholder="새 비밀번호 다시 입력"
+                        autoComplete="new-password"
+                      />
+                      <PassportError>{findPwError}</PassportError>
+                    </div>
+                    <div className="mt-5">
+                      <PassportButton
+                        onClick={() => {
+                          if (findPwNew !== findPwNew2) {
+                            setFindPwError("비밀번호가 일치하지 않아요.");
+                            return;
+                          }
+                          const res = resetPassword(findPwId.trim(), findPwName.trim(), findPwNew);
+                          if (!res.ok) {
+                            setFindPwError(res.error);
+                            return;
+                          }
+                          setFindPwError("");
+                          setFindPwDone(true);
+                        }}
+                      >
+                        비밀번호 재설정
+                      </PassportButton>
+                    </div>
+                  </>
+                )}
+
+                <PassportBackLink onClick={() => setStage("login")}>
+                  <b className="font-extrabold text-[#0a0a0a]">로그인</b>으로 돌아가기
+                </PassportBackLink>
               </motion.section>
             )}
 

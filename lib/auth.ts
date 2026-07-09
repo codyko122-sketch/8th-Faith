@@ -14,6 +14,8 @@ export type Account = {
 
 const ACCOUNTS_KEY = "beauty-passport:accounts";
 const SESSION_KEY = "beauty-passport:session";
+const REMEMBER_ID_KEY = "beauty-passport:remember-id";
+const AUTO_LOGIN_KEY = "beauty-passport:auto-login";
 
 function readAccounts(): Account[] {
   if (typeof window === "undefined") return [];
@@ -87,6 +89,49 @@ export function login(id: string, password: string): { ok: true; account: Accoun
   }
   setSession(account.id);
   return { ok: true, account };
+}
+
+export function getRememberedId(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(REMEMBER_ID_KEY);
+}
+
+export function setRememberedId(id: string | null) {
+  if (typeof window === "undefined") return;
+  if (id) window.localStorage.setItem(REMEMBER_ID_KEY, id);
+  else window.localStorage.removeItem(REMEMBER_ID_KEY);
+}
+
+export function isAutoLoginEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(AUTO_LOGIN_KEY) === "1";
+}
+
+export function setAutoLogin(enabled: boolean) {
+  if (typeof window === "undefined") return;
+  if (enabled) window.localStorage.setItem(AUTO_LOGIN_KEY, "1");
+  else window.localStorage.removeItem(AUTO_LOGIN_KEY);
+}
+
+export function findAccountsByName(name: string): Account[] {
+  const q = name.trim();
+  if (!q) return [];
+  return readAccounts().filter((a) => a.name === q);
+}
+
+export function maskId(id: string): string {
+  if (id.length <= 2) return id[0] + "*".repeat(Math.max(0, id.length - 1));
+  return id.slice(0, 2) + "*".repeat(id.length - 2);
+}
+
+export function resetPassword(id: string, name: string, newPassword: string): { ok: true } | { ok: false; error: string } {
+  if (!newPassword) return { ok: false, error: "새 비밀번호를 입력해주세요." };
+  const accounts = readAccounts();
+  const idx = accounts.findIndex((a) => a.id === id.trim() && a.name === name.trim());
+  if (idx === -1) return { ok: false, error: "일치하는 계정을 찾을 수 없어요." };
+  accounts[idx] = { ...accounts[idx], password: newPassword };
+  writeAccounts(accounts);
+  return { ok: true };
 }
 
 export function saveSkinToAccount(id: string, skinCode: string) {
