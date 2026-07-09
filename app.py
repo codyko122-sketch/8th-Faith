@@ -261,17 +261,22 @@ st.markdown(
       @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&display=swap');
 
       :root{
-        --sky1:#f5fbff; --sky2:#e8f5ff; --sky3:#d9f0ff;
-        --mint:#dff7f0; --mint-light:#e8fbf6;
-        --blue:#a8d5f7; --blue-dark:#5ba3d1; --green:#9ae0c0; --green-dark:#6fb896;
-        --ink:#2c4a5e; --muted:#7a95a8; --line:#e5f2f8;
-        --accent:#5ba3d1; --accent-dark:#4a8fb8;
+        --sky1:#fafeff; --sky2:#f0f8ff; --sky3:#e6f3ff;
+        --mint:#f0faf7; --mint-light:#f5fcfa;
+        --blue:#b3dff7; --blue-dark:#6fb3d1; --green:#a8e0c8; --green-dark:#7fb896;
+        --ink:#2c4a5e; --muted:#8a9fb8; --line:#e8f4f8;
+        --accent:#6fb3d1; --accent-dark:#5a9fb8;
       }
       html, body, [class*="css"]{ font-family:'Nunito', sans-serif; color:var(--ink); }
 
       /* ---------- Hero background with floating clouds ---------- */
       [data-testid="stAppViewContainer"]>section:first-child {
-        background: linear-gradient(180deg, var(--sky1) 0%, var(--sky2) 35%, var(--mint) 100%) !important;
+        background: linear-gradient(180deg,
+          #ffffff 0%,
+          #f8fbff 15%,
+          #f0f8ff 35%,
+          #e8f3ff 55%,
+          #e6f5f8 100%) !important;
         position: relative;
         overflow: hidden;
       }
@@ -342,22 +347,22 @@ st.markdown(
 
       /* ---------- Boarding-pass hero ---------- */
       .bp-ticket{
-        position:relative; border-radius:32px; padding:40px 36px;
-        margin-bottom:24px; overflow:visible; color:#fff;
+        position:relative; border-radius:40px; padding:48px 44px;
+        margin:16px 0 32px; overflow:visible; color:#fff;
         background:
-          radial-gradient(circle at 8% 15%, rgba(255,255,255,.65) 0%, rgba(255,255,255,0) 35%),
-          radial-gradient(circle at 92% 20%, rgba(255,255,255,.45) 0%, rgba(255,255,255,0) 40%),
-          linear-gradient(160deg, #9ed6f5 0%, #6fa8d1 50%, #7fb89f 120%);
-        box-shadow:0 20px 50px rgba(80,130,180,.22), inset 0 1px 0 rgba(255,255,255,.35);
-        border: 1px solid rgba(255,255,255,.25);
+          radial-gradient(circle at 6% 12%, rgba(255,255,255,.7) 0%, rgba(255,255,255,0) 38%),
+          radial-gradient(circle at 94% 18%, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 42%),
+          linear-gradient(155deg, #a8dff7 0%, #7ab3d1 45%, #8ec4a0 130%);
+        box-shadow:0 24px 60px rgba(80,130,180,.2), inset 0 1px 0 rgba(255,255,255,.4);
+        border: 1px solid rgba(255,255,255,.3);
       }
       .bp-ticket::before, .bp-ticket::after{
-        content:""; position:absolute; width:40px; height:40px; background:#f5fbff;
+        content:""; position:absolute; width:48px; height:48px; background:#f8fbff;
         border-radius:50%; top:50%; transform:translateY(-50%);
-        box-shadow: inset 0 2px 8px rgba(200,230,250,.4);
+        box-shadow: inset 0 3px 10px rgba(200,230,250,.5), 0 4px 12px rgba(80,130,180,.15);
       }
-      .bp-ticket::before{ left:-20px; }
-      .bp-ticket::after{ right:-20px; }
+      .bp-ticket::before{ left:-24px; }
+      .bp-ticket::after{ right:-24px; }
       .bp-ticket-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:28px}
       .bp-logo{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:16px; letter-spacing:1px; opacity:.95}
       .bp-ticket-badge{font-size:11px; font-weight:700; background:rgba(255,255,255,.3);
@@ -374,6 +379,35 @@ st.markdown(
       .bp-ticket-divider{border-top:2px dashed rgba(255,255,255,.4); margin:22px 0}
       .bp-ticket h1{font-size:32px; margin:0 0 14px; line-height:1.2}
       .bp-ticket p{opacity:.92; max-width:580px; line-height:1.7; margin:0; font-weight:600}
+
+      /* ---------- Hero image placeholder (3D scene area) ---------- */
+      .bp-hero-image{
+        width:100%; height:240px; margin:0 -36px -40px; border-radius:0 0 32px 32px;
+        background: linear-gradient(180deg, #87ceeb 0%, #e0f6ff 40%, #fff9e6 100%);
+        position: relative; overflow: hidden;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: inset 0 -20px 40px rgba(0,0,0,.08);
+      }
+      .bp-hero-image::before, .bp-hero-image::after {
+        content: "";
+        position: absolute;
+        background: radial-gradient(ellipse 40% 100% at 50% 100%, rgba(255,255,255,.8) 0%, rgba(255,255,255,.2) 50%, transparent 100%);
+        filter: blur(12px);
+      }
+      .bp-hero-image::before {
+        width: 180px; height: 100px;
+        bottom: 20px; left: 10%;
+        animation: float 15s infinite ease-in-out;
+      }
+      .bp-hero-image::after {
+        width: 150px; height: 80px;
+        bottom: 30px; right: 15%;
+        animation: float-reverse 18s infinite ease-in-out;
+      }
+      .bp-hero-image-content {
+        position: relative; z-index: 1;
+        text-align: center; color: #fff; font-weight: 700; font-size: 48px;
+      }
 
       /* legacy hero kept for compatibility */
       .bp-hero{background:linear-gradient(135deg,var(--blue),var(--green));color:#fff;
@@ -417,8 +451,8 @@ st.markdown(
       .bp-bar>div{height:100%;border-radius:999px}
 
       /* ---------- Search bar ---------- */
-      .bp-search-label{text-align:center; margin:30px 0 10px;position:relative;z-index:1}
-      div[data-testid="stForm"] .bp-search-form{padding-top:0}
+      .bp-search-label{text-align:center; margin:40px 0 16px;position:relative;z-index:1}
+      div[data-testid="stForm"] .bp-search-form{padding-top:0; margin:0 auto; max-width:560px}
 
       /* ---------- Passport stamps ---------- */
       .bp-stamp-wrap{display:flex; flex-direction:column; align-items:center; margin:8px 0}
@@ -516,10 +550,19 @@ def page_home():
             </div>
           </div>
           <div class="bp-ticket-divider"></div>
-          <h1 class="bp-cloud-text">Stay Glowing<br>Anywhere</h1>
-          <p>바쁜 일정, 잦은 출장. 여행지 기후가 바뀔 때마다 피부는 시행착오를 겪습니다.
-             내 피부 데이터와 여행 맥락을 결합해 <b>딱 필요한 만큼의 소용량 맞춤 루틴</b>을
-             여권처럼 챙겨드립니다.</p>
+          <div style="display:flex;gap:24px;align-items:flex-start">
+            <div style="flex:1">
+              <h1 class="bp-cloud-text" style="font-size:36px;margin:0 0 12px">Stay Glowing<br>Anywhere</h1>
+              <p style="opacity:.92; line-height:1.7; margin:0; font-weight:600">
+                바쁜 일정, 잦은 출장. 여행지 기후가 바뀔 때마다 피부는 시행착오를 겪습니다.
+                <br><br>내 피부 데이터와 여행 맥락을 결합해 <b>딱 필요한 만큼의 소용량 맞춤 루틴</b>을
+                여권처럼 챙겨드립니다.
+              </p>
+            </div>
+            <div class="bp-hero-image" style="width:200px;height:200px;border-radius:50%;flex-shrink:0">
+              <div class="bp-hero-image-content">🏖️</div>
+            </div>
+          </div>
         </div>
         """,
         unsafe_allow_html=True,
