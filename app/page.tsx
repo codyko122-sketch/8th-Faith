@@ -1546,7 +1546,7 @@ export default function BeautyPassportExperience() {
                   <PassportButton
                     disabled={!journeyPhase}
                     onClick={() => {
-                      if (journeyPhase === "before") setStage("travel");
+                      if (journeyPhase === "before" || journeyPhase === "during") setStage("travel");
                       else setAnalyzing(true);
                     }}
                   >
