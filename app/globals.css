@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #fbf7f4;
+  --color-cream-deep: #f5ede6;
+  --color-ink: #2a2320;
+  --color-muted: #8a7d75;
+  --color-line: #ece3dc;
+  --color-accent: #c8795b;
+  --color-accent-dark: #a85f43;
+  --color-accent-soft: #f3e3da;
+  --color-sand: #e0a988;
+  --color-card: #ffffff;
+
+  --font-sans: var(--font-noto-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-noto-serif), ui-serif, Georgia, serif;
+  --font-cute: var(--font-jua), var(--font-noto-sans), ui-rounded, sans-serif;
+
+  /* 여름 하늘/바다 파스텔 팔레트 */
+  --color-sky-1: #bfe9ff;
+  --color-sky-2: #7fd0f5;
+  --color-sky-3: #4fb6ec;
+  --color-sea: #38b6d3;
+  --color-sea-deep: #2b93bf;
+  --color-sand: #ffe9c2;
+  --color-coral: #ff9f7a;
+
+  --shadow-soft: 0 1px 2px rgba(42, 35, 32, 0.04), 0 8px 30px rgba(168, 95, 67, 0.06);
+  --shadow-lift: 0 4px 12px rgba(42, 35, 32, 0.06), 0 20px 50px rgba(168, 95, 67, 0.1);
+
+  --radius-xl: 20px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 은은한 그레인/그라디언트 배경 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(60rem 40rem at 100% -10%, rgba(224, 169, 136, 0.16), transparent 60%),
+    radial-gradient(50rem 40rem at -10% 20%, rgba(200, 121, 91, 0.1), transparent 55%);
+  pointer-events: none;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+/* 몰입 경험 폼 입력 (글래스) */
+.glass-input {
+  width: 100%;
+  margin-top: 8px;
+  border-radius: 16px;
+  border: 1px solid #fff;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 14px 16px;
+  font-size: 15px;
+  color: #2b4b58;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.glass-input::placeholder {
+  color: #9cb6c2;
+}
+.glass-input:focus {
+  border-color: #7fd0f5;
+  box-shadow: 0 0 0 3px #dff3fb;
+}
+
+/* 네이비 보딩패스 입력 */
+.np-input {
+  width: 100%;
+  margin-top: 8px;
+  border-radius: 14px;
+  border: 1px solid #e3e8f0;
+  background: #f6f8fb;
+  padding: 14px 16px;
+  font-size: 15px;
+  color: #1e2a44;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.np-input::placeholder {
+  color: #9aa6bf;
+}
+.np-input:focus {
+  border-color: #22315a;
+  box-shadow: 0 0 0 3px #e5ebf5;
+}
+
+/* 커스텀 스크롤바 (캘린더 등) */
+.scroll-x {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+.scroll-x::-webkit-scrollbar {
+  height: 8px;
+}
+.scroll-x::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 999px;
+}
