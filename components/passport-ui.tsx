@@ -72,7 +72,7 @@ export function PassportButton({
   ...rest
 }: {
   children: ReactNode;
-  variant?: "primary" | "ghost";
+  variant?: "primary" | "ghost" | "muted";
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
@@ -80,7 +80,9 @@ export function PassportButton({
       className={`flex w-full items-center justify-center gap-2 rounded-[14px] px-4 py-[17px] font-sans text-[15px] font-extrabold transition active:scale-[0.985] disabled:cursor-not-allowed ${
         variant === "primary"
           ? "bg-[#0a0a0a] text-white disabled:bg-[#d4d4d8] disabled:text-[#fafafa]"
-          : "border-[1.5px] border-[#e7e7ea] bg-white text-[#0a0a0a] active:bg-[#f4f4f5]"
+          : variant === "muted"
+            ? "bg-[#f4f4f5] text-[#0a0a0a] active:bg-[#e7e7ea]"
+            : "border-[1.5px] border-[#e7e7ea] bg-white text-[#0a0a0a] active:bg-[#f4f4f5]"
       }`}
       {...rest}
     >

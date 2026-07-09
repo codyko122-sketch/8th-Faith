@@ -981,7 +981,7 @@ export default function BeautyPassportExperience() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="absolute inset-0 overflow-y-auto bg-[#e4e4e7] px-7 pb-6 pt-5"
+                className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
               >
                 <PassportTopBar />
                 <PassportEyebrow>Skin Without Borders</PassportEyebrow>
@@ -1039,7 +1039,7 @@ export default function BeautyPassportExperience() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="absolute inset-0 overflow-y-auto bg-[#e4e4e7] px-7 pb-6 pt-5"
+                className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
               >
                 <PassportTopBar onBack={() => setStage("login")} />
                 <PassportEyebrow>Issue New Passport</PassportEyebrow>
@@ -1124,7 +1124,7 @@ export default function BeautyPassportExperience() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="absolute inset-0 overflow-y-auto bg-[#e4e4e7] px-7 pb-6 pt-5"
+                className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
               >
                 <PassportTopBar onBack={() => setStage("login")} />
                 <PassportEyebrow>Your Skin Journey</PassportEyebrow>
@@ -1192,7 +1192,7 @@ export default function BeautyPassportExperience() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="absolute inset-0 overflow-y-auto bg-[#e4e4e7] px-7 pb-6 pt-5"
+                className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
               >
                 <PassportTopBar onBack={() => setStage(loggedInId ? "member" : "login")} />
                 <PassportEyebrow>피부 여권 업데이트</PassportEyebrow>
@@ -1210,7 +1210,7 @@ export default function BeautyPassportExperience() {
                       결과는 <b>여권</b>에 저장, 맞춤 케어로 이어져요.
                     </p>
                   </PassportNote>
-                  <PassportButton onClick={() => setStage("travel")}>설문 페이지로 이동 →</PassportButton>
+                  <PassportButton onClick={() => setStage("skin")}>설문 페이지로 이동 →</PassportButton>
                   <PassportButton variant="ghost" onClick={() => setStage(loggedInId ? "member" : "login")}>
                     나중에 하기
                   </PassportButton>
@@ -1228,7 +1228,7 @@ export default function BeautyPassportExperience() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="absolute inset-0 overflow-y-auto bg-[#e4e4e7] px-7 pb-6 pt-5"
+                className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
               >
                 <PassportTopBar onBack={() => setStage("member")} />
                 <PassportEyebrow>Boarding · 탑승</PassportEyebrow>
@@ -1267,7 +1267,7 @@ export default function BeautyPassportExperience() {
                 </div>
 
                 <div className="mt-5">
-                  <PassportButton disabled={!journeyPhase} onClick={() => setStage("travel")}>
+                  <PassportButton disabled={!journeyPhase} onClick={() => setStage(journeyPhase === "before" ? "travel" : "skin")}>
                     다음 단계 →
                   </PassportButton>
                 </div>
@@ -1276,71 +1276,138 @@ export default function BeautyPassportExperience() {
 
             {/* 3. 여행지 설문 — 나라 → 도시 → 날짜 */}
             {stage === "travel" && (
-              <motion.section key="travel" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto">
-                <Sky />
-                <AmbientClouds />
-                <div className="relative min-h-full px-6 pb-10 pt-14">
-                  <StepBadge step={1} total={2} label="여행 정보" />
-                  <h2 className="mt-3 font-cute text-3xl text-white" style={{ textShadow: "0 3px 14px rgba(43,110,140,0.5)" }}>
-                    어디로 떠나시나요?
-                  </h2>
+              <motion.section
+                key="travel"
+                variants={stageVariants}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="font-sans text-[12px] font-extrabold text-[#3f3f46]">STEP 2 / 2 · 여행 정보</div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/assets/passport-seal.png" alt="" className="h-[42px] w-auto flex-none" />
+                </div>
 
+                <h1
+                  className="mt-3 flex items-center gap-2 text-[28px] font-black leading-tight tracking-[-0.02em] text-[#0a0a0a]"
+                  style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                >
+                  어디로 떠나시나요? <PassportPlaneIcon className="w-9" />
+                </h1>
+                <p className="mt-1.5 font-sans text-sm text-[#71717a]">Select your destination</p>
+
+                <div className="mt-5 flex flex-col gap-4">
                   {/* 나라 */}
-                  <div className="mt-5 rounded-[26px] border border-white/60 bg-white/72 p-5 shadow-[0_20px_50px_rgba(43,120,170,0.2)] backdrop-blur-xl">
+                  <div>
                     <div className="flex items-center justify-between">
-                      <FieldLabel>나라</FieldLabel>
+                      <label className="text-[13px] font-extrabold text-[#0a0a0a]">
+                        Country <span className="ml-1 font-sans text-[12px] font-medium text-[#9ca3af]">· 나라</span>
+                      </label>
                       <button
-                        onClick={() => { setUseCustom((v) => !v); setCountryCode(null); setCityName(null); }}
-                        className="text-xs font-semibold text-[#ff7fa8]"
+                        type="button"
+                        onClick={() => {
+                          setUseCustom((v) => !v);
+                          setCountryCode(null);
+                          setCityName(null);
+                        }}
+                        className="font-sans text-xs font-bold text-[#ec1c24]"
                       >
                         {useCustom ? "목록에서 선택" : "직접 입력"}
                       </button>
                     </div>
                     {useCustom ? (
-                      <div className="mt-3 space-y-2">
-                        <input value={customCountry} onChange={(e) => setCustomCountry(e.target.value)} placeholder="나라 (예: 포르투갈)" className="glass-input" />
-                        <input value={customCity} onChange={(e) => setCustomCity(e.target.value)} placeholder="도시 (예: 리스본)" className="glass-input" />
+                      <div className="mt-2 flex flex-col gap-2.5">
+                        <input
+                          value={customCountry}
+                          onChange={(e) => setCustomCountry(e.target.value)}
+                          placeholder="나라 (예: 포르투갈)"
+                          className="w-full rounded-[13px] border border-transparent bg-[#f4f4f5] px-4 py-[15px] font-sans text-sm text-[#0a0a0a] outline-none transition placeholder:text-[#9ca3af] focus:border-[#0a0a0a] focus:bg-white"
+                        />
+                        <input
+                          value={customCity}
+                          onChange={(e) => setCustomCity(e.target.value)}
+                          placeholder="도시 (예: 리스본)"
+                          className="w-full rounded-[13px] border border-transparent bg-[#f4f4f5] px-4 py-[15px] font-sans text-sm text-[#0a0a0a] outline-none transition placeholder:text-[#9ca3af] focus:border-[#0a0a0a] focus:bg-white"
+                        />
                       </div>
                     ) : (
-                      <div className="mt-3 grid grid-cols-3 gap-2">
-                        {COUNTRIES.map((c) => (
-                          <button
-                            key={c.code}
-                            onClick={() => selectCountry(c.code)}
-                            className={`flex flex-col items-center rounded-2xl border px-2 py-3 text-xs transition ${
-                              countryCode === c.code
-                                ? "border-transparent bg-gradient-to-br from-[#ff9f7a] to-[#ff7fa8] text-white shadow-[0_8px_18px_rgba(255,127,168,0.35)]"
-                                : "border-white/70 bg-white/60 text-[#2b6b86] hover:bg-white/90"
-                            }`}
-                          >
-                            <span className="text-2xl leading-none">{c.flag}</span>
-                            <span className="mt-1 font-semibold">{c.name}</span>
-                          </button>
-                        ))}
+                      <div className="relative mt-2">
+                        <select
+                          value={countryCode ?? ""}
+                          onChange={(e) => selectCountry(e.target.value)}
+                          className="w-full appearance-none rounded-[13px] border border-transparent bg-[#f4f4f5] px-4 py-[15px] font-sans text-sm text-[#0a0a0a] outline-none transition focus:border-[#0a0a0a] focus:bg-white"
+                        >
+                          <option value="" disabled>
+                            나라를 선택하세요
+                          </option>
+                          {COUNTRIES.map((c) => (
+                            <option key={c.code} value={c.code}>
+                              {c.flag} {c.name}
+                            </option>
+                          ))}
+                        </select>
+                        <svg
+                          className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2.5}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M6 9l6 6 6-6" />
+                        </svg>
                       </div>
                     )}
                   </div>
 
                   {/* 도시 (나라 연동) */}
                   {!useCustom && country && (
-                    <div className="mt-4 rounded-[26px] border border-white/60 bg-white/72 p-5 shadow-[0_20px_50px_rgba(43,120,170,0.2)] backdrop-blur-xl">
-                      <FieldLabel>도시</FieldLabel>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {country.cities.map((ci) => (
-                          <Chip key={ci.name} active={cityName === ci.name} onClick={() => setCityName(ci.name)}>
-                            {ci.name}
-                          </Chip>
-                        ))}
+                    <div>
+                      <label className="text-[13px] font-extrabold text-[#0a0a0a]">
+                        City <span className="ml-1 font-sans text-[12px] font-medium text-[#9ca3af]">· 도시</span>
+                      </label>
+                      <div className="relative mt-2">
+                        <select
+                          value={cityName ?? ""}
+                          onChange={(e) => setCityName(e.target.value)}
+                          className="w-full appearance-none rounded-[13px] border border-transparent bg-[#f4f4f5] px-4 py-[15px] font-sans text-sm text-[#0a0a0a] outline-none transition focus:border-[#0a0a0a] focus:bg-white"
+                        >
+                          <option value="" disabled>
+                            도시를 선택하세요
+                          </option>
+                          {country.cities.map((ci) => (
+                            <option key={ci.name} value={ci.name}>
+                              {ci.name}
+                            </option>
+                          ))}
+                        </select>
+                        <svg
+                          className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2.5}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M6 9l6 6 6-6" />
+                        </svg>
                       </div>
                     </div>
                   )}
 
                   {/* 날짜 */}
-                  <div className="mt-4 rounded-[26px] border border-white/60 bg-white/72 p-5 shadow-[0_20px_50px_rgba(43,120,170,0.2)] backdrop-blur-xl">
-                    <FieldLabel>여행 날짜</FieldLabel>
-                    <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[13px] font-extrabold text-[#0a0a0a]">
+                      Travel dates <span className="ml-1 font-sans text-[12px] font-medium text-[#9ca3af]">· 여행 날짜</span>
+                    </label>
+                    <div className="mt-2 grid grid-cols-2 gap-2.5">
                       <DateField
-                        label="출발일"
+                        tone="passport"
+                        label="출발일 · DEPART"
                         value={departDate}
                         min={todayISO()}
                         onChange={(d) => {
@@ -1348,25 +1415,31 @@ export default function BeautyPassportExperience() {
                           if (arriveDate && arriveDate < d) setArriveDate(null);
                         }}
                       />
-                      <DateField label="도착일" value={arriveDate} min={departDate ?? todayISO()} disabled={!departDate} onChange={setArriveDate} />
+                      <DateField
+                        tone="passport"
+                        label="도착일 · RETURN"
+                        value={arriveDate}
+                        min={departDate ?? todayISO()}
+                        disabled={!departDate}
+                        onChange={setArriveDate}
+                      />
                     </div>
                     {departDate && arriveDate && (
-                      <div className="mt-2 text-xs text-[#7aa7ba]">총 {diffDays(departDate, arriveDate)}일 일정</div>
+                      <div className="mt-2 font-sans text-xs text-[#71717a]">총 {diffDays(departDate, arriveDate)}일 일정</div>
                     )}
                   </div>
+                </div>
 
-                  <div className="mt-6 flex gap-3">
-                    <button onClick={() => setStage(loggedInId ? "member" : "login")} className="rounded-full bg-white/70 px-5 py-4 text-sm font-semibold text-[#2b6b86] backdrop-blur">
-                      ← 이전
-                    </button>
-                    <div className="flex-1">
-                      <PrimaryButton onClick={() => setStage("skin")} disabled={!travelDone}>
-                        다음 →
-                      </PrimaryButton>
-                    </div>
+                <div className="mt-6 flex gap-3">
+                  <PassportButton variant="muted" onClick={() => setStage("journey")}>
+                    ← 이전
+                  </PassportButton>
+                  <div className="flex-1">
+                    <PassportButton disabled={!travelDone} onClick={() => setStage("skin")}>
+                      다음 →
+                    </PassportButton>
                   </div>
                 </div>
-                <Grain />
               </motion.section>
             )}
 
@@ -2621,6 +2694,7 @@ function DateField({
   max,
   disabled,
   onChange,
+  tone = "sky",
 }: {
   label: string;
   value: string | null;
@@ -2628,22 +2702,30 @@ function DateField({
   max?: string;
   disabled?: boolean;
   onChange: (d: string) => void;
+  tone?: "sky" | "passport";
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  const passport = tone === "passport";
   return (
     <div className="relative">
       <button
         type="button"
         disabled={disabled}
         onClick={() => setOpen(true)}
-        className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
-          disabled ? "border-white/50 bg-white/40 text-[#9cb6c2]" : "border-white bg-white/80 text-[#2b4b58]"
+        className={`w-full rounded-[13px] border px-4 py-3 text-left transition ${
+          passport
+            ? disabled
+              ? "border-[#e7e7ea] bg-[#f4f4f5] text-[#9ca3af]"
+              : "border-transparent bg-[#f4f4f5] text-[#0a0a0a]"
+            : disabled
+              ? "rounded-2xl border-white/50 bg-white/40 text-[#9cb6c2]"
+              : "rounded-2xl border-white bg-white/80 text-[#2b4b58]"
         }`}
       >
-        <span className="block text-[10px] tracking-widest text-[#7aa7ba]">{label}</span>
-        <span className="text-sm font-semibold">{value ? fmtISO(value) : "날짜 선택"}</span>
+        <span className={`block text-[10px] tracking-widest ${passport ? "text-[#9ca3af]" : "text-[#7aa7ba]"}`}>{label}</span>
+        <span className="font-sans text-sm font-semibold">{value ? fmtISO(value) : "날짜 선택"}</span>
       </button>
       {/* 모달은 document.body로 포털해 상위 backdrop-filter/perspective 스태킹 컨텍스트를 벗어나게 한다.
           (그렇지 않으면 하단 '다음' 버튼이 캘린더 위로 그려져 마지막 주 날짜 클릭이 막힘) */}
@@ -2660,8 +2742,8 @@ function DateField({
                   transition={{ duration: 0.2, ease: EASE }}
                   className="relative w-[288px] rounded-3xl border border-white/70 bg-white p-4 shadow-[0_30px_70px_rgba(43,120,170,0.4)]"
                 >
-                  <div className="mb-2 text-center font-cute text-[#2b4b58]">{label} 선택</div>
-                  <CalendarPopup value={value} min={min} max={max} onPick={(d) => { onChange(d); setOpen(false); }} />
+                  <div className={`mb-2 text-center ${passport ? "font-sans text-[15px] font-extrabold text-[#0a0a0a]" : "font-cute text-[#2b4b58]"}`}>{label} 선택</div>
+                  <CalendarPopup value={value} min={min} max={max} tone={tone} onPick={(d) => { onChange(d); setOpen(false); }} />
                 </motion.div>
               </div>
             )}
@@ -2677,12 +2759,15 @@ function CalendarPopup({
   min,
   max,
   onPick,
+  tone = "sky",
 }: {
   value: string | null;
   min: string;
   max?: string;
   onPick: (d: string) => void;
+  tone?: "sky" | "passport";
 }) {
+  const passport = tone === "passport";
   const base = value ? new Date(value) : new Date(min);
   const [ym, setYm] = useState({ y: base.getFullYear(), m: base.getMonth() });
   const startDow = new Date(ym.y, ym.m, 1).getDay();
@@ -2695,11 +2780,11 @@ function CalendarPopup({
   return (
     <div>
       <div className="flex items-center justify-between px-1">
-        <button onClick={prev} className="px-2 text-xl text-[#7aa7ba]">‹</button>
-        <div className="font-semibold text-[#2b4b58]">{ym.y}. {pad(ym.m + 1)}</div>
-        <button onClick={next} className="px-2 text-xl text-[#7aa7ba]">›</button>
+        <button onClick={prev} className={`px-2 text-xl ${passport ? "text-[#9ca3af]" : "text-[#7aa7ba]"}`}>‹</button>
+        <div className={`font-semibold ${passport ? "font-sans text-[#0a0a0a]" : "text-[#2b4b58]"}`}>{ym.y}. {pad(ym.m + 1)}</div>
+        <button onClick={next} className={`px-2 text-xl ${passport ? "text-[#9ca3af]" : "text-[#7aa7ba]"}`}>›</button>
       </div>
-      <div className="mt-2 grid grid-cols-7 text-center text-[10px] text-[#9cb6c2]">
+      <div className={`mt-2 grid grid-cols-7 text-center text-[10px] ${passport ? "font-sans text-[#9ca3af]" : "text-[#9cb6c2]"}`}>
         {["일", "월", "화", "수", "목", "금", "토"].map((w) => (
           <div key={w}>{w}</div>
         ))}
@@ -2715,12 +2800,18 @@ function CalendarPopup({
               key={i}
               disabled={disabled}
               onClick={() => onPick(iso)}
-              className={`h-8 rounded-lg text-sm transition ${
+              className={`h-8 rounded-lg font-sans text-sm transition ${
                 selected
-                  ? "bg-gradient-to-br from-[#ff9f7a] to-[#ff7fa8] text-white"
+                  ? passport
+                    ? "bg-[#0a0a0a] text-white"
+                    : "bg-gradient-to-br from-[#ff9f7a] to-[#ff7fa8] text-white"
                   : disabled
-                    ? "text-[#d3e0e8]"
-                    : "text-[#2b4b58] hover:bg-[#eef6fb]"
+                    ? passport
+                      ? "text-[#e7e7ea]"
+                      : "text-[#d3e0e8]"
+                    : passport
+                      ? "text-[#0a0a0a] hover:bg-[#f4f4f5]"
+                      : "text-[#2b4b58] hover:bg-[#eef6fb]"
               }`}
             >
               {d}
