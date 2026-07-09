@@ -113,7 +113,7 @@ export function StyleNoteModal({
         onClick={onClose}
       />
       <motion.div
-        className="absolute inset-x-0 bottom-0 z-[71] max-h-[92%] overflow-hidden rounded-t-[28px]"
+        className="absolute inset-x-0 bottom-0 z-[71] max-h-[92%] overflow-y-auto rounded-t-[28px]"
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
         exit={{ y: "100%" }}

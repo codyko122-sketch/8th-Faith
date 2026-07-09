@@ -21,8 +21,6 @@
   color: var(--ink);
   font-family: var(--font-display);
   -webkit-font-smoothing: antialiased;
-  height: 100%;
-  overflow-y: auto;
 }
 
 .topbar {
