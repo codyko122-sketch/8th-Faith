@@ -1,0 +1,336 @@
+.root {
+  --paper: #f7f9f5;
+  --card: #ffffff;
+  --paper-alt: #efe8da;
+  --ink: #1f2a24;
+  --ink-soft: #62716a;
+  --sky: #3e7cb1;
+  --sky-dark: #2b5980;
+  --coral: #e8785a;
+  --mint: #6fae8b;
+  --line: #dce3d8;
+  --line-strong: #b9c4b4;
+  --radius-lg: 22px;
+  --radius-md: 14px;
+  --shadow-card: 0 8px 24px rgba(31, 42, 36, 0.06);
+  --font-display: var(--font-sans, ui-sans-serif, sans-serif);
+  --font-script: var(--font-caveat), cursive;
+  --font-mono-note: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px 6px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--paper);
+}
+
+.back,
+.close {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 16px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.close {
+  margin-left: auto;
+}
+
+.hero {
+  padding: 20px 20px 6px;
+  text-align: center;
+}
+
+.eyebrowScript {
+  font-family: var(--font-script);
+  font-size: 22px;
+  color: var(--sky-dark);
+  font-weight: 700;
+}
+
+.hero h1 {
+  font-size: 24px;
+  margin: 2px 0 8px;
+  font-weight: 800;
+  text-wrap: balance;
+}
+
+.hero p {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.countryGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 18px 20px 24px;
+}
+
+.countryCard {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 16px 14px;
+  color: var(--ink);
+  display: block;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.12s;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.countryCard:active {
+  transform: scale(0.97);
+}
+
+.thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  background: var(--paper-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.countryName {
+  font-size: 15px;
+  font-weight: 800;
+  margin: 4px 0 2px;
+}
+
+.countryCity {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  font-family: var(--font-mono-note);
+}
+
+.footnote {
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-soft);
+  padding: 4px 24px 28px;
+  line-height: 1.6;
+}
+
+/* ---- 상세(Style Note) 뷰 ---- */
+.notebook {
+  background: repeating-linear-gradient(to bottom, transparent 0 27px, var(--line) 27px 28px), var(--paper);
+}
+
+.noteHeader {
+  text-align: center;
+  padding: 22px 24px 4px;
+}
+
+.noteHeader .eyebrowScript {
+  font-size: 20px;
+}
+
+.noteHeader h1 {
+  font-family: var(--font-script);
+  font-size: 40px;
+  font-weight: 700;
+  margin: 0 0 10px;
+  color: var(--ink);
+}
+
+.noteHeader p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+  max-width: 340px;
+  margin: 0 auto;
+}
+
+.collage {
+  position: relative;
+  padding: 30px 30px 40px;
+  min-height: 280px;
+}
+
+.polaroid {
+  position: absolute;
+  background: #fff;
+  padding: 10px 10px 26px;
+  border-radius: 3px;
+  box-shadow: 0 10px 20px rgba(31, 42, 36, 0.15);
+  width: 42%;
+}
+
+.polaroid .frame {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: var(--paper-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  font-size: 28px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.polaroid .cap {
+  position: absolute;
+  bottom: 6px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: var(--font-script);
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+
+.p1 {
+  top: 0;
+  left: 4%;
+  transform: rotate(-7deg);
+  z-index: 2;
+}
+
+.p2 {
+  top: 26%;
+  right: 2%;
+  transform: rotate(6deg);
+  z-index: 3;
+}
+
+.p3 {
+  top: 54%;
+  left: 16%;
+  transform: rotate(-3deg);
+  z-index: 4;
+  width: 48%;
+}
+
+.stickyNote {
+  position: absolute;
+  background: #ffe98f;
+  padding: 8px 12px;
+  font-family: var(--font-script);
+  font-size: 15px;
+  font-weight: 700;
+  color: #5c4a12;
+  box-shadow: 0 6px 14px rgba(31, 42, 36, 0.15);
+  transform: rotate(4deg);
+  line-height: 1.3;
+  top: 8%;
+  right: 6%;
+}
+
+.pointSection {
+  padding: 8px 24px 8px;
+}
+
+.pointBlock {
+  margin-bottom: 32px;
+}
+
+.pointLabel {
+  font-family: var(--font-script);
+  font-size: 24px;
+  color: var(--sky-dark);
+  margin-bottom: 4px;
+}
+
+.pointTitleTag {
+  display: inline-block;
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 4px;
+  margin-bottom: 14px;
+}
+
+.pointPhoto {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius-md);
+  background: var(--paper-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  font-size: 32px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.tipBox {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+}
+
+.tipHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--sky-dark);
+  margin-bottom: 6px;
+}
+
+.tipBox p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
+.shareBar {
+  display: flex;
+  gap: 10px;
+  padding: 4px 24px 28px;
+}
+
+.shareBar button {
+  flex: 1;
+  border: 1px solid var(--line-strong);
+  background: var(--card);
+  border-radius: var(--radius-md);
+  padding: 13px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--font-display);
+}
+
+.shareBar button.primary {
+  background: var(--sky);
+  border-color: var(--sky);
+  color: #fff;
+}

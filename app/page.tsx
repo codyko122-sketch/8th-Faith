@@ -14,6 +14,8 @@ import {
   COSMETICS,
   type Cosmetic,
 } from "@/lib/products";
+import { MAKEUP_STYLE_NOTES } from "@/lib/makeup-style-notes";
+import { StyleNoteModal } from "@/components/style-note";
 
 type Stage = "intro" | "login" | "travel" | "skin" | "result" | "receive" | "delivery" | "pickup" | "done";
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -642,6 +644,8 @@ export default function BeautyPassportExperience() {
   const [deliveryRequested, setDeliveryRequested] = useState(false);
   // [6-2] 장바구니 시트
   const [cartOpen, setCartOpen] = useState(false);
+  // 여행지 대표 메이크업 스타일노트
+  const [makeupOpen, setMakeupOpen] = useState(false);
   // [6-3] 수령 방식
   const [receiveMethod, setReceiveMethod] = useState<"delivery" | "pickup" | null>(null);
   // [6-3A] 배송 신청
@@ -694,6 +698,7 @@ export default function BeautyPassportExperience() {
 
   const country = COUNTRIES.find((c) => c.code === countryCode) ?? null;
   const city = country?.cities.find((ci) => ci.name === cityName) ?? null;
+  const makeupNote = MAKEUP_STYLE_NOTES.find((n) => n.countryCode === countryCode) ?? null;
 
   const loginDone = name.trim() !== "" && age.trim() !== "" && gender !== "";
   const placeDone = useCustom ? customCountry.trim() !== "" && customCity.trim() !== "" : !!city;
@@ -1331,6 +1336,21 @@ export default function BeautyPassportExperience() {
                       ))}
                     </div>
                   </Card>
+                  {makeupNote && (
+                    <Card>
+                      <CardTitle>💄 현지 메이크업</CardTitle>
+                      <p className="mt-2 text-sm leading-relaxed text-[#4a6b78]">
+                        {makeupNote.country}에서 통하는 포인트 메이크업 팁을 사진과 함께 확인해보세요.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setMakeupOpen(true)}
+                        className="mt-3 w-full rounded-full bg-gradient-to-r from-[#ff9f7a] to-[#ff7fa8] px-4 py-3 text-sm font-bold text-white"
+                      >
+                        {makeupNote.country}의 대표메이크업 보기 →
+                      </button>
+                    </Card>
+                  )}
                   <div className="mt-7 text-center font-cute text-2xl text-white" style={{ textShadow: "0 3px 14px rgba(43,110,140,0.5)" }}>
                     🧴 맞춤 스킨케어 추천
                   </div>
@@ -1847,6 +1867,13 @@ export default function BeautyPassportExperience() {
                 onClose={() => setCartOpen(false)}
                 onCheckout={goCheckout}
               />
+            )}
+          </AnimatePresence>
+
+          {/* 여행지 대표 메이크업 스타일노트 */}
+          <AnimatePresence>
+            {makeupOpen && (
+              <StyleNoteModal key="style-note" countryCode={countryCode} onClose={() => setMakeupOpen(false)} />
             )}
           </AnimatePresence>
 

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Sans_KR, Jua } from "next/font/google";
+import { Noto_Sans_KR, Jua, Caveat, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 //
 const notoSans = Noto_Sans_KR({
@@ -13,6 +13,20 @@ const jua = Jua({
   subsets: ["latin"],
   weight: ["400"],
   variable: "--font-jua",
+  display: "swap",
+});
+//
+const caveat = Caveat({
+  subsets: ["latin"],
+  weight: ["600", "700"],
+  variable: "--font-caveat",
+  display: "swap",
+});
+//
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-jetbrains-mono",
   display: "swap",
 });
 //
@@ -35,7 +49,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ko" className={`${notoSans.variable} ${jua.variable}`}>
+    <html lang="ko" className={`${notoSans.variable} ${jua.variable} ${caveat.variable} ${jetbrainsMono.variable}`}>
       <body>{children}</body>
     </html>
   );
