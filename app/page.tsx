@@ -461,7 +461,8 @@ const stageVariants: Variants = {
   exit: { opacity: 0, rotateY: -32, y: -8, transition: { duration: 0.35, ease: EASE } },
 };
 
-function BigChoice({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+// Baumann 축 선택 카드 (A vs B) — 큰 알파벳 배지 + 한글/영문/설명
+function AxisChoice({ option, active, onClick }: { option: AxisOption; active: boolean; onClick: () => void }) {
   return (
     <motion.button
       type="button"
@@ -469,105 +470,128 @@ function BigChoice({ active, onClick, children }: { active: boolean; onClick: ()
       whileTap={{ scale: 0.98 }}
       transition={{ type: "spring", stiffness: 400, damping: 22 }}
       onClick={onClick}
-      className={`w-full rounded-2xl border px-6 py-5 text-left font-cute text-xl transition ${
+      className={`w-full rounded-2xl border px-5 py-4 text-left transition ${
         active
           ? "border-transparent bg-gradient-to-r from-[#ff9f7a] to-[#ff7fa8] text-white shadow-[0_12px_26px_rgba(255,127,168,0.4)]"
-          : "border-white/70 bg-white/75 text-[#2b4b58] backdrop-blur hover:bg-white/90"
+          : "border-white/70 bg-white/80 text-[#2b4b58] backdrop-blur hover:bg-white/90"
       }`}
     >
-      {children}
+      <span className="font-cute text-xl">
+        {option.ko} <span className={`text-xs ${active ? "text-white/80" : "text-[#9cb6c2]"}`}>{option.en}</span>
+      </span>
+      <span className={`mt-0.5 block whitespace-nowrap text-[12px] leading-snug ${active ? "text-white/90" : "text-[#6f909d]"}`}>
+        {option.desc}
+      </span>
     </motion.button>
   );
 }
 
-/* ════════════════════════ 피부 설문 (스모어 방식) ════════════════════════ */
-const SKIN_Q = [
-  "기초 케어를 안 하면 피부가 당긴다",
-  "세안 후 아무것도 안 바르면 건조하다",
-  "얼굴에 피지가 많아 번들거린다",
-  "유분감이 있는 편이다",
-  "속건조가 있다",
-  "얼굴이 간지러울 때가 많다",
-  "덥지 않아도 홍조가 있다",
-  "순한 제품이 아니면 트러블이 난다",
-  "색조 화장이 잘 뜬다",
+/* ════════════════════════ 피부 설문 (Baumann 16-타입) ════════════════════════ */
+// Leslie Baumann, 'The Skin Type Solution' — 4개 축의 조합으로 피부를 16가지로 분류한다.
+//   1) 건성(D) ↔ 지성(O)   2) 민감(S) ↔ 저항(R)   3) 색소(P) ↔ 무색소(N)   4) 주름(W) ↔ 탱탱(T)
+// 각 축을 한 문항씩, 총 4문항으로 물어 MBTI처럼 4글자 코드(예: DSNW)로 타입을 도출한다.
+type AxisOption = { letter: string; ko: string; en: string; desc: string };
+const BAUMANN_AXES: { key: string; icon: string; q: string; hint: string; a: AxisOption; b: AxisOption }[] = [
+  {
+    key: "hydration",
+    icon: "💧",
+    q: "세안 후, 아무것도 안 바르면?",
+    hint: "유·수분 밸런스를 가르는 축이에요",
+    a: { letter: "D", ko: "건조", en: "Dry", desc: "당기고 각질·가려움이 잘 생겨요" },
+    b: { letter: "O", ko: "지성", en: "Oily", desc: "번들거리고 피지·모공이 신경 쓰여요" },
+  },
+  {
+    key: "sensitivity",
+    icon: "🌡️",
+    q: "새 제품이나 환경 변화에?",
+    hint: "장벽이 자극에 반응하는 정도예요",
+    a: { letter: "S", ko: "민감", en: "Sensitive", desc: "붉어짐·따가움·트러블이 쉽게 올라와요" },
+    b: { letter: "R", ko: "저항", en: "Resistant", desc: "웬만해선 자극 없이 튼튼한 편이에요" },
+  },
+  {
+    key: "pigment",
+    icon: "🎨",
+    q: "잡티·기미 같은 색소는?",
+    hint: "햇볕 노출 뒤 흔적이 남는 정도예요",
+    a: { letter: "P", ko: "색소", en: "Pigmented", desc: "기미·잡티·자국이 잘 생기고 오래가요" },
+    b: { letter: "N", ko: "무색소", en: "Non-pigmented", desc: "색소 침착이 적고 톤이 균일해요" },
+  },
+  {
+    key: "wrinkle",
+    icon: "⏳",
+    q: "주름·탄력은 어떤가요?",
+    hint: "광노화·주름 경향을 가르는 축이에요",
+    a: { letter: "W", ko: "주름", en: "Wrinkle-prone", desc: "잔주름·탄력 저하가 보이거나 걱정돼요" },
+    b: { letter: "T", ko: "탱탱", en: "Tight", desc: "아직 주름 걱정은 적고 탄탄해요" },
+  },
 ];
-const SKIN_CONCERNS = ["주름", "기미", "수분", "트러블"];
 
 type SkinResult = {
-  base: string; // 건성/지성/복합성/중성
+  code: string; // Baumann 4글자 코드 (예: DSNW)
+  base: string; // 건성/지성
   sensitivity: string; // 민감/둔감
-  skinTypeForRec: string; // 제품 추천용 (건성/지성/복합성/민감성)
+  skinTypeForRec: string; // 제품 추천용 (건성/지성/민감성)
   displayConcerns: string[];
   recConcerns: string[];
 };
 
-function analyzeSkin(ans: (boolean | null)[], picks: string[]): SkinResult {
-  const a = (i: number) => ans[i] === true;
-  let dry = 0;
-  let oily = 0;
-  let sens = 0;
-  if (a(0)) dry += 2; // 당김
-  if (a(1)) dry += 2; // 세안 후 건조
-  if (a(2)) oily += 2; // 피지
-  if (a(3)) oily += 2; // 유분
-  if (a(4)) dry += 1; // 속건조
-  if (a(5)) { dry += 1; sens += 1; } // 간지러움
-  if (a(6)) sens += 2; // 홍조
-  if (a(7)) { sens += 2; oily += 1; } // 자극 트러블
-  if (a(8)) dry += 2; // 색조 뜸
-
-  const hi = (v: number) => v >= 3;
-  let base: string;
-  if (hi(dry) && hi(oily)) base = "복합성";
-  else if (hi(dry)) base = "건성";
-  else if (hi(oily)) base = "지성";
-  else base = "중성";
-  const sensitivity = sens >= 3 ? "민감" : "둔감";
-  const skinTypeForRec = sensitivity === "민감" ? "민감성" : base === "중성" ? "복합성" : base;
-
-  const map: Record<string, string> = { 주름: "건조", 기미: "색소침착", 수분: "건조", 트러블: "트러블" };
-  const rec = new Set<string>();
-  picks.forEach((p) => map[p] && rec.add(map[p]));
-  if (sensitivity === "민감") rec.add("민감");
-  return { base, sensitivity, skinTypeForRec, displayConcerns: picks, recConcerns: Array.from(rec) };
+// 4글자 코드 → 추천 엔진이 쓰는 값으로 매핑
+function analyzeBaumann(code: string): SkinResult {
+  const dry = code[0] === "D";
+  const sensitive = code[1] === "S";
+  const pigmented = code[2] === "P";
+  const wrinkled = code[3] === "W";
+  const base = dry ? "건성" : "지성";
+  const sensitivity = sensitive ? "민감" : "둔감";
+  const skinTypeForRec = sensitive ? "민감성" : base;
+  const displayConcerns: string[] = [dry ? "수분" : "트러블"];
+  if (pigmented) displayConcerns.push("기미");
+  if (wrinkled) displayConcerns.push("주름");
+  const recConcerns = [...displayConcerns];
+  if (sensitive) recConcerns.push("민감");
+  return { code, base, sensitivity, skinTypeForRec, displayConcerns, recConcerns };
 }
 
-// 피부 타입 설명 + 추천/주의 성분
-const SKIN_INFO: Record<string, { paras: string[]; good: string[]; avoid: string[] }> = {
-  건성: {
-    paras: [
-      "피부의 유·수분이 모두 부족한 편이에요. 세안 후 당김이 빠르게 오고 각질이나 잔주름이 도드라질 수 있습니다.",
-      "여행 중에는 기내·냉방·낯선 물 때문에 장벽이 더 쉽게 무너져요. 가벼운 수분층 위에 유분으로 잠그는 '수분→유분' 순서가 핵심입니다.",
-    ],
-    good: ["히알루론산", "세라마이드", "스쿠알란", "판테놀"],
-    avoid: ["고농도 알코올", "강한 각질제거", "클레이팩 남용"],
-  },
-  지성: {
-    paras: [
-      "피지 분비가 많아 번들거림과 모공, 트러블이 고민이 되기 쉬운 타입이에요.",
-      "덥고 습한 여행지에서는 피지가 더 늘어요. 세정은 과하지 않게, 가벼운 수분으로 유수분 밸런스를 맞추는 게 좋습니다.",
-    ],
-    good: ["나이아신아마이드", "살리실산(BHA)", "아연", "티트리"],
-    avoid: ["무거운 오일", "코코넛 오일", "과도한 스크럽"],
-  },
-  복합성: {
-    paras: [
-      "T존은 번들거리고 볼(U존)은 건조한, 부위별로 성질이 다른 타입이에요.",
-      "부위별로 다른 케어가 필요해요. 볼은 수분 집중, T존은 산뜻하게 관리하면 균형이 잡힙니다.",
-    ],
-    good: ["히알루론산", "나이아신아마이드", "판테놀"],
-    avoid: ["부위 구분 없는 강한 제품", "과한 유분"],
-  },
-  민감성: {
-    paras: [
-      "외부 자극에 붉어지거나 따가움·간지러움이 잘 나타나는 예민한 장벽을 가졌어요.",
-      "여행지의 환경 변화(자외선·건조·미세먼지)에 특히 취약합니다. 성분 수를 줄인 저자극 진정 케어가 안전해요.",
-    ],
-    good: ["센텔라(시카)", "마데카소사이드", "판테놀", "알란토인"],
-    avoid: ["인공향료", "에센셜오일", "고농도 산·레티놀"],
-  },
+// 축(letter)별 특성 설명 + 추천/주의 성분 (Baumann 관리법 기반). 코드 4글자를 조합해 맞춤 솔루션 생성.
+const AXIS_INFO: Record<string, { para: string; good: string[]; avoid: string[] }> = {
+  D: { para: "유·수분이 쉽게 빠져나가는 건성 경향이에요. 여행 중 기내·냉방에 장벽이 더 마르기 쉬우니 '수분→유분' 순서로 잠가주세요.", good: ["히알루론산", "세라마이드", "스쿠알란"], avoid: ["고농도 알코올", "강한 각질제거"] },
+  O: { para: "피지 분비가 많은 지성 경향이에요. 덥고 습한 여행지에서 번들거림·모공이 늘기 쉬우니 가벼운 수분과 피지 관리로 밸런스를 잡으세요.", good: ["나이아신아마이드", "살리실산(BHA)", "아연"], avoid: ["무거운 오일", "코코넛 오일"] },
+  S: { para: "외부 자극에 붉어지거나 따가움이 잘 나타나는 민감 경향이에요. 성분 수를 줄인 저자극 진정 케어가 안전합니다.", good: ["센텔라(시카)", "마데카소사이드", "판테놀"], avoid: ["인공향료", "에센셜오일", "고농도 산"] },
+  R: { para: "장벽이 튼튼한 저항성 피부예요. 레티놀·비타민C·AHA 같은 활성 성분도 비교적 잘 견디니 목표에 맞춰 적극 활용할 수 있어요.", good: ["비타민C", "레티놀", "AHA"], avoid: [] },
+  P: { para: "자외선·자극 뒤 색소 침착이 잘 남는 타입이에요. 미백·톤 케어와 함께 '자외선 차단'이 가장 중요합니다.", good: ["비타민C", "나이아신아마이드", "알부틴", "트라넥삼산"], avoid: ["무방비 햇볕 노출"] },
+  N: { para: "색소 침착이 적어 톤이 비교적 균일한 타입이에요. 지금의 맑은 톤은 꾸준한 자외선 차단만으로 충분히 지킬 수 있어요.", good: ["나이아신아마이드", "자외선차단"], avoid: [] },
+  W: { para: "잔주름·탄력 저하가 나타나기 쉬운 타입이에요. 항산화·재생 성분과 자외선 차단으로 광노화를 늦춰주세요.", good: ["레티놀", "펩타이드", "항산화제"], avoid: ["자외선 방치"] },
+  T: { para: "아직 탄력이 좋은 타입이에요. 항산화 성분과 자외선 차단으로 지금 상태를 오래 지키는 '예방 케어'가 핵심이에요.", good: ["항산화제", "자외선차단"], avoid: [] },
 };
+
+// 16타입 닉네임 + 한 줄 설명 + 대표 컬러 (매트릭스 이미지 기준)
+const BAUMANN_TYPES: Record<string, { nick: string; tagline: string; color: string }> = {
+  DRPT: { nick: "잡티 관리형 도자기", tagline: "건조하지만 튼튼한 장벽, 색소만 잡으면 매끈", color: "#5b7ea3" },
+  DRNT: { nick: "물만 주면 되는 순둥이", tagline: "가장 관리 쉬운 타입, 수분 보충이 전부", color: "#8089ad" },
+  DSPT: { nick: "예민한 백조", tagline: "건조·민감·색소, 진정하며 톤까지 챙겨야", color: "#b85a86" },
+  DSNT: { nick: "여린 순둥이", tagline: "건조하고 예민하지만 색소·주름 걱정은 적어요", color: "#dd90ac" },
+  DRPW: { nick: "관록의 그을림", tagline: "건조·색소·주름, 미백과 안티에이징 동시에", color: "#6d7a94" },
+  DRNW: { nick: "우아한 세월", tagline: "건조하고 주름 관리가 필요한 튼튼 피부", color: "#9a8dc2" },
+  DSPW: { nick: "종합 케어 장인", tagline: "네 가지 모두 신경 써야 하는 섬세한 타입", color: "#c17d9c" },
+  DSNW: { nick: "섬세한 시간", tagline: "건조·민감·주름, 저자극 재생 케어가 핵심", color: "#d3a1a1" },
+  ORPT: { nick: "생기 넘치는 구릿빛", tagline: "튼튼한 지성, 색소만 잡으면 완벽", color: "#a7bd57" },
+  ORNT: { nick: "철벽 피부", tagline: "가장 튼튼한 타입, 피지·자외선 관리면 끝", color: "#b7d091" },
+  OSPT: { nick: "번들 예민러", tagline: "지성·민감·색소, 진정과 피지 밸런스가 관건", color: "#e89355" },
+  OSNT: { nick: "촉촉 지성 순둥이", tagline: "지성이지만 예민한 편, 색소·주름은 여유", color: "#f2b689" },
+  ORPW: { nick: "관리형 오일리", tagline: "튼튼한 지성, 색소·주름을 함께 케어", color: "#7cbf9f" },
+  ORNW: { nick: "여유로운 오일리", tagline: "튼튼한 지성, 주름 예방에 집중", color: "#a3c9ac" },
+  OSPW: { nick: "복합 고민러", tagline: "지성·민감·색소·주름, 균형 잡힌 진정 케어", color: "#f0a544" },
+  OSNW: { nick: "예민한 오일리 타임", tagline: "지성·민감·주름, 자극 없는 안티에이징", color: "#f6cba6" },
+};
+
+// 코드 4글자를 조합해 설명 문단 + 추천/주의 성분(중복 제거) 생성
+function baumannCare(code: string) {
+  const letters = code.split("");
+  const paras = letters.map((l) => AXIS_INFO[l]?.para).filter(Boolean) as string[];
+  const good = Array.from(new Set(letters.flatMap((l) => AXIS_INFO[l]?.good ?? [])));
+  const avoid = Array.from(new Set(letters.flatMap((l) => AXIS_INFO[l]?.avoid ?? [])));
+  return { paras, good, avoid };
+}
 
 function comboComment(p: { temp: number; humidity: number; uv: number; dust: number }, type: string) {
   const bits: string[] = [];
@@ -604,8 +628,7 @@ export default function BeautyPassportExperience() {
   const [arriveDate, setArriveDate] = useState<string | null>(null);
   // 피부 설문 (스모어 방식)
   const [qIndex, setQIndex] = useState(0);
-  const [answers, setAnswers] = useState<(boolean | null)[]>(Array(SKIN_Q.length).fill(null));
-  const [picks, setPicks] = useState<string[]>([]);
+  const [axes, setAxes] = useState<(string | null)[]>(Array(BAUMANN_AXES.length).fill(null));
   const [analyzing, setAnalyzing] = useState(false);
   const [skin, setSkin] = useState<SkinResult | null>(null);
   const [weather, setWeather] = useState<WeatherResult | null>(null);
@@ -680,20 +703,16 @@ export default function BeautyPassportExperience() {
     if (timer.current) clearTimeout(timer.current);
     setStage("login");
   }
-  function togglePick(c: string) {
-    setPicks((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]));
-  }
-  function answerYesNo(val: boolean) {
-    setAnswers((prev) => {
-      const next = [...prev];
-      next[qIndex] = val;
-      return next;
-    });
-    if (qIndex < SKIN_Q.length) setQIndex((i) => i + 1); // 자동 슬라이드
-  }
-  function finishSkin() {
-    setSkin(analyzeSkin(answers, picks));
-    setAnalyzing(true);
+  function chooseAxis(letter: string) {
+    const next = axes.map((a, i) => (i === qIndex ? letter : a));
+    setAxes(next);
+    if (qIndex < BAUMANN_AXES.length - 1) {
+      setQIndex((i) => i + 1); // 다음 축으로 자동 슬라이드
+    } else {
+      // 마지막 축까지 선택 → 4글자 코드 완성 후 분석
+      setSkin(analyzeBaumann(next.join("")));
+      setAnalyzing(true);
+    }
   }
   function cartQty(id: string, ml: number) {
     return cart.find((x) => x.id === id && x.ml === ml)?.qty ?? 0;
@@ -772,7 +791,7 @@ export default function BeautyPassportExperience() {
     setCountryCode(null); setCityName(null);
     setUseCustom(false); setCustomCountry(""); setCustomCity("");
     setDepartDate(null); setArriveDate(null);
-    setQIndex(0); setAnswers(Array(SKIN_Q.length).fill(null)); setPicks([]);
+    setQIndex(0); setAxes(Array(BAUMANN_AXES.length).fill(null));
     setAnalyzing(false); setSkin(null);
     setWeather(null); setDetailId(null); setCart([]); setVolumeSel({});
     setChecklist(Array(CHECKLIST_ITEMS.length).fill(false)); setDeliveryRequested(false);
@@ -1076,74 +1095,40 @@ export default function BeautyPassportExperience() {
                       <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/50">
                         <motion.div
                           className="h-full rounded-full bg-gradient-to-r from-[#ff9f7a] to-[#ff7fa8]"
-                          animate={{ width: `${((qIndex + 1) / (SKIN_Q.length + 1)) * 100}%` }}
+                          animate={{ width: `${((qIndex + 1) / BAUMANN_AXES.length) * 100}%` }}
                           transition={{ duration: 0.4, ease: EASE }}
                         />
                       </div>
                       <div className="text-xs font-semibold text-white">
-                        {Math.min(qIndex + 1, SKIN_Q.length + 1)}/{SKIN_Q.length + 1}
+                        {Math.min(qIndex + 1, BAUMANN_AXES.length)}/{BAUMANN_AXES.length}
                       </div>
                     </div>
 
                     <AnimatePresence mode="wait">
-                      {qIndex < SKIN_Q.length ? (
-                        <motion.div
-                          key={qIndex}
-                          initial={{ opacity: 0, x: 40 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -40 }}
-                          transition={{ duration: 0.35, ease: EASE }}
-                          className="flex min-h-[60vh] flex-col justify-center"
-                        >
-                          <div className="text-sm font-semibold text-white/80">Q{qIndex + 1}</div>
-                          <h2 className="mt-2 font-cute text-3xl leading-snug text-white" style={{ textShadow: "0 3px 14px rgba(43,110,140,0.5)" }}>
-                            {SKIN_Q[qIndex]}
-                          </h2>
-                          <div className="mt-8 space-y-3">
-                            <BigChoice active={answers[qIndex] === true} onClick={() => answerYesNo(true)}>
-                              그렇다
-                            </BigChoice>
-                            <BigChoice active={answers[qIndex] === false} onClick={() => answerYesNo(false)}>
-                              아니다
-                            </BigChoice>
-                          </div>
-                        </motion.div>
-                      ) : (
-                        <motion.div
-                          key="q10"
-                          initial={{ opacity: 0, x: 40 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -40 }}
-                          transition={{ duration: 0.35, ease: EASE }}
-                          className="flex min-h-[60vh] flex-col justify-center"
-                        >
-                          <div className="text-sm font-semibold text-white/80">Q{SKIN_Q.length + 1}</div>
-                          <h2 className="mt-2 font-cute text-3xl leading-snug text-white" style={{ textShadow: "0 3px 14px rgba(43,110,140,0.5)" }}>
-                            내 피부 고민은?
-                          </h2>
-                          <p className="mt-1 text-sm text-white/85">복수 선택 가능</p>
-                          <div className="mt-6 grid grid-cols-2 gap-3">
-                            {SKIN_CONCERNS.map((c) => (
-                              <button
-                                key={c}
-                                onClick={() => togglePick(c)}
-                                className={`rounded-2xl border px-4 py-5 font-cute text-lg transition ${
-                                  picks.includes(c)
-                                    ? "border-transparent bg-gradient-to-br from-[#ff9f7a] to-[#ff7fa8] text-white shadow-[0_10px_22px_rgba(255,127,168,0.4)]"
-                                    : "border-white/70 bg-white/70 text-[#2b6b86] backdrop-blur"
-                                }`}
-                              >
-                                {c}
-                              </button>
-                            ))}
-                          </div>
-                          <div className="mt-8">
-                            <PrimaryButton onClick={finishSkin} disabled={picks.length === 0}>
-                              결과 분석하기 ✨
-                            </PrimaryButton>
-                          </div>
-                        </motion.div>
-                      )}
+                      {qIndex < BAUMANN_AXES.length && (() => {
+                        const ax = BAUMANN_AXES[qIndex];
+                        return (
+                          <motion.div
+                            key={qIndex}
+                            initial={{ opacity: 0, x: 40 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -40 }}
+                            transition={{ duration: 0.35, ease: EASE }}
+                            className="flex min-h-[62vh] flex-col justify-center"
+                          >
+                            <div className="text-sm font-semibold tracking-[0.15em] text-white/80">STEP {qIndex + 1}</div>
+                            <h2 className="mt-2 whitespace-nowrap font-cute text-[22px] leading-snug text-white" style={{ textShadow: "0 3px 14px rgba(43,110,140,0.5)" }}>
+                              {ax.icon} {ax.q}
+                            </h2>
+                            <p className="mt-2 text-sm text-white/85">{ax.hint}</p>
+                            <div className="mt-7 space-y-3">
+                              <AxisChoice option={ax.a} active={axes[qIndex] === ax.a.letter} onClick={() => chooseAxis(ax.a.letter)} />
+                              <div className="text-center text-xs font-bold tracking-[0.2em] text-white/70">VS</div>
+                              <AxisChoice option={ax.b} active={axes[qIndex] === ax.b.letter} onClick={() => chooseAxis(ax.b.letter)} />
+                            </div>
+                          </motion.div>
+                        );
+                      })()}
                     </AnimatePresence>
                   </div>
                 )}
@@ -1221,36 +1206,69 @@ export default function BeautyPassportExperience() {
                           <Metric icon="😷" label="미세먼지" value={`${result.profile.dust}`} />
                         </div>
 
-                        {/* 피부 타입 */}
-                        <div className="mt-5 border-t border-dashed border-[#dbe8ef] pt-4">
-                          <div className="text-[10px] tracking-widest text-[#9cb6c2]">SKIN TYPE</div>
-                          <div className="font-cute text-2xl text-[#2b4b58]">
-                            {skin.base}
-                            {skin.sensitivity === "민감" && <span className="text-[#ff7fa8]"> · 민감성</span>}
-                          </div>
-                          {(SKIN_INFO[skin.skinTypeForRec]?.paras ?? []).map((para, i) => (
-                            <p key={i} className="mt-2 text-[13px] leading-relaxed text-[#5b7683]">{para}</p>
-                          ))}
+                        {/* 피부 타입 — Baumann 16-타입 */}
+                        {(() => {
+                          const bt = BAUMANN_TYPES[skin.code];
+                          const care = baumannCare(skin.code);
+                          return (
+                            <div className="mt-5 border-t border-dashed border-[#dbe8ef] pt-4">
+                              <div className="text-[10px] tracking-widest text-[#9cb6c2]">BAUMANN SKIN TYPE</div>
+                              <div className="mt-1.5 flex items-center gap-3">
+                                <div
+                                  className="flex h-14 items-center rounded-2xl px-4 font-cute text-3xl tracking-[0.12em] text-white shadow-[0_8px_18px_rgba(43,120,170,0.28)]"
+                                  style={{ background: bt?.color ?? "#8aa7bd" }}
+                                >
+                                  {skin.code}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="font-cute text-xl leading-tight text-[#2b4b58]">{bt?.nick ?? skin.code}</div>
+                                  <div className="text-[12px] leading-snug text-[#6f909d]">{bt?.tagline}</div>
+                                </div>
+                              </div>
 
-                          <div className="mt-4 grid grid-cols-2 gap-3">
-                            <div>
-                              <div className="text-xs font-bold text-[#2fae74]">👍 추천 성분</div>
-                              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                                {(SKIN_INFO[skin.skinTypeForRec]?.good ?? []).map((g) => (
-                                  <span key={g} className="rounded-full bg-[#e9f8f0] px-2.5 py-0.5 text-[11px] text-[#268a5b]">{g}</span>
-                                ))}
+                              {/* 4축 요약 배지 */}
+                              <div className="mt-3 grid grid-cols-2 gap-2">
+                                {BAUMANN_AXES.map((ax, i) => {
+                                  const opt = skin.code[i] === ax.a.letter ? ax.a : ax.b;
+                                  return (
+                                    <div key={ax.key} className="flex items-center gap-2 rounded-xl bg-[#f2f8fb] px-3 py-2">
+                                      <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white font-cute text-sm text-[#ff7fa8]">{opt.letter}</span>
+                                      <span className="text-[13px] font-semibold text-[#2b4b58]">{opt.ko}</span>
+                                      <span className="ml-auto text-[10px] text-[#9cb6c2]">{opt.en}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              {care.paras.map((para, i) => (
+                                <p key={i} className="mt-2 text-[13px] leading-relaxed text-[#5b7683]">{para}</p>
+                              ))}
+
+                              <div className="mt-4 grid grid-cols-2 gap-3">
+                                <div>
+                                  <div className="text-xs font-bold text-[#2fae74]">👍 추천 성분</div>
+                                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                    {care.good.map((g) => (
+                                      <span key={g} className="rounded-full bg-[#e9f8f0] px-2.5 py-0.5 text-[11px] text-[#268a5b]">{g}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-xs font-bold text-[#e5804d]">⚠️ 주의 성분</div>
+                                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                    {care.avoid.length ? (
+                                      care.avoid.map((g) => (
+                                        <span key={g} className="rounded-full bg-[#fdeee6] px-2.5 py-0.5 text-[11px] text-[#c9622f]">{g}</span>
+                                      ))
+                                    ) : (
+                                      <span className="text-[11px] text-[#9cb6c2]">특별히 피할 성분은 없어요</span>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                            <div>
-                              <div className="text-xs font-bold text-[#e5804d]">⚠️ 주의 성분</div>
-                              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                                {(SKIN_INFO[skin.skinTypeForRec]?.avoid ?? []).map((g) => (
-                                  <span key={g} className="rounded-full bg-[#fdeee6] px-2.5 py-0.5 text-[11px] text-[#c9622f]">{g}</span>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                          );
+                        })()}
 
                         {/* 날씨+피부 한 줄 코멘트 */}
                         <div className="mt-4 rounded-2xl bg-gradient-to-r from-[#fff2ea] to-[#ffe9f0] px-4 py-3 text-[13px] leading-relaxed text-[#8a4b52]">
