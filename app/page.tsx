@@ -1,6 +1,7 @@
 "use client";
 //
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { skinIssueIndexP, buildCalendarP, buildCalendarFromDaily } from "@/lib/logic";
 import { COUNTRIES, FALLBACK_CLIMATE } from "@/lib/places";
@@ -2284,6 +2285,8 @@ function DateField({
   onChange: (d: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   return (
     <div className="relative">
       <button
@@ -2297,23 +2300,29 @@ function DateField({
         <span className="block text-[10px] tracking-widest text-[#7aa7ba]">{label}</span>
         <span className="text-sm font-semibold">{value ? fmtISO(value) : "날짜 선택"}</span>
       </button>
-      <AnimatePresence>
-        {open && !disabled && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
-            <div className="absolute inset-0 bg-black/30" onClick={() => setOpen(false)} />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2, ease: EASE }}
-              className="relative w-[288px] rounded-3xl border border-white/70 bg-white p-4 shadow-[0_30px_70px_rgba(43,120,170,0.4)]"
-            >
-              <div className="mb-2 text-center font-cute text-[#2b4b58]">{label} 선택</div>
-              <CalendarPopup value={value} min={min} max={max} onPick={(d) => { onChange(d); setOpen(false); }} />
-            </motion.div>
-          </div>
+      {/* 모달은 document.body로 포털해 상위 backdrop-filter/perspective 스태킹 컨텍스트를 벗어나게 한다.
+          (그렇지 않으면 하단 '다음' 버튼이 캘린더 위로 그려져 마지막 주 날짜 클릭이 막힘) */}
+      {mounted &&
+        createPortal(
+          <AnimatePresence>
+            {open && !disabled && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+                <div className="absolute inset-0 bg-black/30" onClick={() => setOpen(false)} />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.92 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2, ease: EASE }}
+                  className="relative w-[288px] rounded-3xl border border-white/70 bg-white p-4 shadow-[0_30px_70px_rgba(43,120,170,0.4)]"
+                >
+                  <div className="mb-2 text-center font-cute text-[#2b4b58]">{label} 선택</div>
+                  <CalendarPopup value={value} min={min} max={max} onPick={(d) => { onChange(d); setOpen(false); }} />
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>,
+          document.body,
         )}
-      </AnimatePresence>
     </div>
   );
 }
