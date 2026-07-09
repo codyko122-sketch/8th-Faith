@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import styles from "./style-note.module.css";
 import { MAKEUP_STYLE_NOTES, type MakeupStyleNote } from "@/lib/makeup-style-notes";
 
-const POLAROID_POS = [styles.p1, styles.p2, styles.p3];
+const POLAROID_POS = [styles.p1, styles.p3];
 
 function CountryDetail({ note, onBack }: { note: MakeupStyleNote; onBack: () => void }) {
   return (
@@ -22,10 +22,13 @@ function CountryDetail({ note, onBack }: { note: MakeupStyleNote; onBack: () => 
       </div>
 
       <div className={styles.collage}>
-        {note.coverCaptions.map((cap, i) => (
-          <div key={cap + i} className={`${styles.polaroid} ${POLAROID_POS[i % POLAROID_POS.length]}`}>
-            <div className={styles.frame}>{note.flag}</div>
-            <div className={styles.cap}>{cap}</div>
+        {note.covers.map((cover, i) => (
+          <div key={cover.image} className={`${styles.polaroid} ${POLAROID_POS[i % POLAROID_POS.length]}`}>
+            <div className={styles.frame}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={cover.image} alt="" className="h-full w-full object-cover" />
+            </div>
+            <div className={styles.cap}>{cover.caption}</div>
           </div>
         ))}
         <div className={styles.stickyNote}>{note.country} TRIP</div>
@@ -38,7 +41,10 @@ function CountryDetail({ note, onBack }: { note: MakeupStyleNote; onBack: () => 
             <div className={styles.pointTitleTag}>
               {p.title} · {p.tagline}
             </div>
-            <div className={styles.pointPhoto}>{note.flag}</div>
+            <div className={styles.pointPhoto}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={p.image} alt="" className="h-full w-full object-cover" />
+            </div>
             <div className={styles.tipBox}>
               <div className={styles.tipHead}>💡 TIP</div>
               <p>{p.tip}</p>
