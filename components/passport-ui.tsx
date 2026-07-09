@@ -6,9 +6,9 @@ import { useState, type InputHTMLAttributes, type ReactNode } from "react";
 // 색상: bg #e4e4e7 · card #fff · ink #0a0a0a · ink-70 #3f3f46 · fill #f4f4f5
 // line #e7e7ea · muted #9ca3af · sub #71717a · stamp(브랜드 레드) #ec1c24
 
-export function PassportTopBar({ onBack }: { onBack?: () => void }) {
+export function PassportTopBar({ onBack, compact }: { onBack?: () => void; compact?: boolean }) {
   return (
-    <div className="mb-2.5 flex h-9 items-center justify-between">
+    <div className={`flex h-9 items-center justify-between ${compact ? "mb-0.5" : "mb-2.5"}`}>
       <button
         type="button"
         onClick={onBack}
@@ -31,10 +31,10 @@ export function PassportEyebrow({ children }: { children: ReactNode }) {
   return <div className="font-sans text-[10px] font-bold uppercase tracking-[0.28em] text-[#71717a]">{children}</div>;
 }
 
-export function PassportTitle({ children }: { children: ReactNode }) {
+export function PassportTitle({ children, compact }: { children: ReactNode; compact?: boolean }) {
   return (
     <h1
-      className="mt-3.5 text-[clamp(30px,8.4vw,37px)] font-black leading-[0.92] tracking-[-0.02em] text-[#0a0a0a]"
+      className={`text-[clamp(30px,8.4vw,37px)] font-black leading-[0.92] tracking-[-0.02em] text-[#0a0a0a] ${compact ? "mt-1.5" : "mt-3.5"}`}
       style={{ fontFamily: "var(--font-inter), sans-serif" }}
     >
       {children}
@@ -91,9 +91,9 @@ export function PassportButton({
   );
 }
 
-export function PassportDivider({ children }: { children: ReactNode }) {
+export function PassportDivider({ children, compact }: { children: ReactNode; compact?: boolean }) {
   return (
-    <div className="my-3 flex items-center gap-3 font-sans text-[11px] font-semibold tracking-[0.1em] text-[#9ca3af]">
+    <div className={`flex items-center gap-3 font-sans text-[11px] font-semibold tracking-[0.1em] text-[#9ca3af] ${compact ? "mt-[13px] mb-0.5" : "my-3"}`}>
       <span className="h-px flex-1 bg-[#e7e7ea]" />
       {children}
       <span className="h-px flex-1 bg-[#e7e7ea]" />
@@ -101,9 +101,9 @@ export function PassportDivider({ children }: { children: ReactNode }) {
   );
 }
 
-export function PassportBackLink({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+export function PassportBackLink({ onClick, children, compact }: { onClick: () => void; children: ReactNode; compact?: boolean }) {
   return (
-    <button type="button" onClick={onClick} className="mt-4 w-full text-center font-sans text-[13px] text-[#71717a]">
+    <button type="button" onClick={onClick} className={`w-full text-center font-sans text-[13px] text-[#71717a] ${compact ? "mt-3" : "mt-4"}`}>
       {children}
     </button>
   );
@@ -154,10 +154,10 @@ export function PassportOptionCard({
   );
 }
 
-export function PassportBarcode() {
-  const [widths] = useState(() => Array.from({ length: 46 }, () => Math.round(Math.random() * 18 + 26)));
+export function PassportBarcode({ compact }: { compact?: boolean } = {}) {
+  const [widths] = useState(() => Array.from({ length: 46 }, () => Math.round(Math.random() * (compact ? 14 : 18) + (compact ? 20 : 26))));
   return (
-    <div className="my-3 flex h-11 items-end justify-center gap-[1.5px]">
+    <div className={`flex items-end justify-center gap-[1.5px] ${compact ? "my-[9px] h-[34px]" : "my-3 h-11"}`}>
       {widths.map((h, i) => (
         <span key={i} className="w-[2px] bg-[#0a0a0a]" style={{ height: h }} />
       ))}
@@ -165,11 +165,11 @@ export function PassportBarcode() {
   );
 }
 
-export function PassportFooter() {
+export function PassportFooter({ compact }: { compact?: boolean } = {}) {
   return (
-    <footer className="mt-5 border-t-[1.5px] border-dashed border-[#e7e7ea] pt-4 text-center">
+    <footer className={`border-t-[1.5px] border-dashed border-[#e7e7ea] text-center ${compact ? "mt-3.5 pt-3" : "mt-5 pt-4"}`}>
       <div className="font-sans text-[11px] font-extrabold tracking-[0.32em] text-[#0a0a0a]">BEAUTY PASSPORT</div>
-      <PassportBarcode />
+      <PassportBarcode compact={compact} />
       <div className="font-sans text-xs font-bold tracking-[0.28em] text-[#ec1c24]">BP 000 23 040 07</div>
     </footer>
   );

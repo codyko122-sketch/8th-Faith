@@ -802,7 +802,7 @@ export default function BeautyPassportExperience() {
       const code = next.join("");
       setSkin(analyzeBaumann(code));
       if (loggedInId) saveSkinToAccount(loggedInId, code);
-      setAnalyzing(true);
+      setStage("journey");
     }
   }
   function cartQty(id: string, ml: number) {
@@ -1042,16 +1042,16 @@ export default function BeautyPassportExperience() {
                 exit="exit"
                 className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
               >
-                <PassportTopBar />
+                <PassportTopBar compact />
                 <PassportEyebrow>Skin Without Borders</PassportEyebrow>
-                <PassportTitle>
+                <PassportTitle compact>
                   BEAUTY
                   <br />
                   PASSPORT <PassportPlaneIcon className="ml-1 inline-block w-11 -translate-y-1 align-middle" />
                 </PassportTitle>
                 <PassportKSub>나만의 뷰티 여권으로 로그인</PassportKSub>
 
-                <div className="mt-5 flex flex-col gap-3.5">
+                <div className="mt-4 flex flex-col gap-2.5">
                   <PassportField
                     label="ID"
                     labelKo="아이디"
@@ -1072,7 +1072,7 @@ export default function BeautyPassportExperience() {
                   <PassportError>{loginError}</PassportError>
 
                   <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-1.5 font-sans text-[12.5px] text-[#3f3f46]">
+                    <label className="flex items-center gap-1.5 font-sans text-[12px] text-[#3f3f46]">
                       <input
                         type="checkbox"
                         checked={rememberId}
@@ -1081,7 +1081,7 @@ export default function BeautyPassportExperience() {
                       />
                       아이디 저장
                     </label>
-                    <label className="flex items-center gap-1.5 font-sans text-[12.5px] text-[#3f3f46]">
+                    <label className="flex items-center gap-1.5 font-sans text-[12px] text-[#3f3f46]">
                       <input
                         type="checkbox"
                         checked={autoLoginChecked}
@@ -1093,9 +1093,9 @@ export default function BeautyPassportExperience() {
                   </div>
                 </div>
 
-                <div className="mt-5 flex flex-col gap-3">
+                <div className="mt-4 flex flex-col gap-2">
                   <PassportButton onClick={handleLogin}>로그인 →</PassportButton>
-                  <div className="flex items-center justify-center gap-2 font-sans text-[12.5px] text-[#71717a]">
+                  <div className="flex items-center justify-center gap-2 font-sans text-[12px] text-[#71717a]">
                     <button
                       type="button"
                       onClick={() => {
@@ -1126,7 +1126,7 @@ export default function BeautyPassportExperience() {
                       비밀번호 찾기
                     </button>
                   </div>
-                  <PassportDivider>또는 · OR</PassportDivider>
+                  <PassportDivider compact>또는 · OR</PassportDivider>
                   <PassportButton
                     variant="ghost"
                     onClick={() => {
@@ -1138,7 +1138,7 @@ export default function BeautyPassportExperience() {
                   </PassportButton>
                 </div>
 
-                <PassportFooter />
+                <PassportFooter compact />
               </motion.section>
             )}
 
@@ -1402,9 +1402,9 @@ export default function BeautyPassportExperience() {
                 exit="exit"
                 className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
               >
-                <PassportTopBar onBack={() => setStage("login")} />
+                <PassportTopBar compact onBack={() => setStage("login")} />
                 <PassportEyebrow>Your Skin Journey</PassportEyebrow>
-                <PassportTitle>
+                <PassportTitle compact>
                   WELCOME
                   <br />
                   BACK
@@ -1415,8 +1415,8 @@ export default function BeautyPassportExperience() {
                   const account = loggedInId ? findAccount(loggedInId) : null;
                   const bt = account?.skinCode ? BAUMANN_TYPES[account.skinCode] : null;
                   return (
-                    <div className="mt-5 flex flex-col gap-3.5">
-                      <div className="flex flex-col gap-3.5 rounded-2xl border-[1.5px] border-[#0a0a0a] p-[18px]">
+                    <div className="mt-4 flex flex-col gap-2.5">
+                      <div className="flex flex-col gap-2.5 rounded-2xl border-[1.5px] border-[#0a0a0a] p-[15px]">
                         <div className="flex items-center justify-between">
                           <div className="font-sans text-[17px] font-black text-[#0a0a0a]">{account?.name ?? name} 님</div>
                           <PassportStampChip>VERIFIED</PassportStampChip>
@@ -1452,11 +1452,11 @@ export default function BeautyPassportExperience() {
                   );
                 })()}
 
-                <PassportBackLink onClick={handleLogout}>
+                <PassportBackLink compact onClick={handleLogout}>
                   다른 계정으로 <b className="font-extrabold text-[#0a0a0a]">로그인</b>
                 </PassportBackLink>
 
-                <PassportFooter />
+                <PassportFooter compact />
               </motion.section>
             )}
 
@@ -1543,7 +1543,13 @@ export default function BeautyPassportExperience() {
                 </div>
 
                 <div className="mt-5">
-                  <PassportButton disabled={!journeyPhase} onClick={() => setStage(journeyPhase === "before" ? "travel" : "skin")}>
+                  <PassportButton
+                    disabled={!journeyPhase}
+                    onClick={() => {
+                      if (journeyPhase === "before") setStage("travel");
+                      else setAnalyzing(true);
+                    }}
+                  >
                     다음 단계 →
                   </PassportButton>
                 </div>
@@ -1711,7 +1717,7 @@ export default function BeautyPassportExperience() {
                     ← 이전
                   </PassportButton>
                   <div className="flex-1">
-                    <PassportButton disabled={!travelDone} onClick={() => setStage("skin")}>
+                    <PassportButton disabled={!travelDone} onClick={() => setAnalyzing(true)}>
                       다음 →
                     </PassportButton>
                   </div>
@@ -1724,69 +1730,80 @@ export default function BeautyPassportExperience() {
               <motion.section key="skin" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto">
                 <Sky />
                 <AmbientClouds />
-                {analyzing ? (
-                  <div className="relative flex min-h-full flex-col items-center justify-center px-8 text-center">
-                    <motion.div
-                      className="h-16 w-16 rounded-full border-[3px] border-white/50 border-t-[#ff7fa8]"
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    />
-                    <div className="mt-6 font-cute text-2xl text-white" style={{ textShadow: "0 3px 14px rgba(43,110,140,0.5)" }}>
-                      결과 분석중…
+                <div className="relative min-h-full px-7 pb-10 pt-14">
+                  {/* 진행바 */}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => (qIndex === 0 ? setStage("checkin") : setQIndex((i) => i - 1))}
+                      className="rounded-full bg-white/70 px-3 py-1.5 text-xs font-semibold text-[#2b6b86] backdrop-blur"
+                    >
+                      ← 이전
+                    </button>
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/50">
+                      <motion.div
+                        className="h-full rounded-full bg-gradient-to-r from-[#ff9f7a] to-[#ff7fa8]"
+                        animate={{ width: `${((qIndex + 1) / BAUMANN_AXES.length) * 100}%` }}
+                        transition={{ duration: 0.4, ease: EASE }}
+                      />
                     </div>
-                    <p className="mt-2 text-sm text-white/90">당신의 피부와 여행지를 매칭하고 있어요</p>
+                    <div className="text-xs font-semibold text-white">
+                      {Math.min(qIndex + 1, BAUMANN_AXES.length)}/{BAUMANN_AXES.length}
+                    </div>
                   </div>
-                ) : (
-                  <div className="relative min-h-full px-7 pb-10 pt-14">
-                    {/* 진행바 */}
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => (qIndex === 0 ? setStage("travel") : setQIndex((i) => i - 1))}
-                        className="rounded-full bg-white/70 px-3 py-1.5 text-xs font-semibold text-[#2b6b86] backdrop-blur"
-                      >
-                        ← 이전
-                      </button>
-                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/50">
-                        <motion.div
-                          className="h-full rounded-full bg-gradient-to-r from-[#ff9f7a] to-[#ff7fa8]"
-                          animate={{ width: `${((qIndex + 1) / BAUMANN_AXES.length) * 100}%` }}
-                          transition={{ duration: 0.4, ease: EASE }}
-                        />
-                      </div>
-                      <div className="text-xs font-semibold text-white">
-                        {Math.min(qIndex + 1, BAUMANN_AXES.length)}/{BAUMANN_AXES.length}
-                      </div>
-                    </div>
 
-                    <AnimatePresence mode="wait">
-                      {qIndex < BAUMANN_AXES.length && (() => {
-                        const ax = BAUMANN_AXES[qIndex];
-                        return (
-                          <motion.div
-                            key={qIndex}
-                            initial={{ opacity: 0, x: 40 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -40 }}
-                            transition={{ duration: 0.35, ease: EASE }}
-                            className="flex min-h-[62vh] flex-col justify-center"
-                          >
-                            <div className="text-sm font-semibold tracking-[0.15em] text-white/80">STEP {qIndex + 1}</div>
-                            <h2 className="mt-2 whitespace-nowrap font-cute text-[22px] leading-snug text-white" style={{ textShadow: "0 3px 14px rgba(43,110,140,0.5)" }}>
-                              {ax.icon} {ax.q}
-                            </h2>
-                            <p className="mt-2 text-sm text-white/85">{ax.hint}</p>
-                            <div className="mt-7 space-y-3">
-                              <AxisChoice option={ax.a} active={axes[qIndex] === ax.a.letter} onClick={() => chooseAxis(ax.a.letter)} />
-                              <div className="text-center text-xs font-bold tracking-[0.2em] text-white/70">VS</div>
-                              <AxisChoice option={ax.b} active={axes[qIndex] === ax.b.letter} onClick={() => chooseAxis(ax.b.letter)} />
-                            </div>
-                          </motion.div>
-                        );
-                      })()}
-                    </AnimatePresence>
-                  </div>
-                )}
+                  <AnimatePresence mode="wait">
+                    {qIndex < BAUMANN_AXES.length && (() => {
+                      const ax = BAUMANN_AXES[qIndex];
+                      return (
+                        <motion.div
+                          key={qIndex}
+                          initial={{ opacity: 0, x: 40 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -40 }}
+                          transition={{ duration: 0.35, ease: EASE }}
+                          className="flex min-h-[62vh] flex-col justify-center"
+                        >
+                          <div className="text-sm font-semibold tracking-[0.15em] text-white/80">STEP {qIndex + 1}</div>
+                          <h2 className="mt-2 whitespace-nowrap font-cute text-[22px] leading-snug text-white" style={{ textShadow: "0 3px 14px rgba(43,110,140,0.5)" }}>
+                            {ax.icon} {ax.q}
+                          </h2>
+                          <p className="mt-2 text-sm text-white/85">{ax.hint}</p>
+                          <div className="mt-7 space-y-3">
+                            <AxisChoice option={ax.a} active={axes[qIndex] === ax.a.letter} onClick={() => chooseAxis(ax.a.letter)} />
+                            <div className="text-center text-xs font-bold tracking-[0.2em] text-white/70">VS</div>
+                            <AxisChoice option={ax.b} active={axes[qIndex] === ax.b.letter} onClick={() => chooseAxis(ax.b.letter)} />
+                          </div>
+                        </motion.div>
+                      );
+                    })()}
+                  </AnimatePresence>
+                </div>
                 <Grain />
+              </motion.section>
+            )}
+
+            {/* 결과 분석중 (피부설문 또는 여행지설문 완료 후) */}
+            {analyzing && (
+              <motion.section
+                key="analyzing"
+                variants={stageVariants}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="absolute inset-0 z-40 overflow-y-auto"
+                style={{ background: "linear-gradient(180deg,#3a4d7a 0%,#2b3a63 45%,#22315a 100%)" }}
+              >
+                <div className="relative flex min-h-full flex-col items-center justify-center px-8 text-center">
+                  <motion.div
+                    className="h-16 w-16 rounded-full border-[3px] border-white/50 border-t-[#ff7fa8]"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  />
+                  <div className="mt-6 font-cute text-2xl text-white" style={{ textShadow: "0 3px 14px rgba(43,110,140,0.5)" }}>
+                    결과 분석중…
+                  </div>
+                  <p className="mt-2 text-sm text-white/90">당신의 피부와 여행지를 매칭하고 있어요</p>
+                </div>
               </motion.section>
             )}
 
