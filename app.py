@@ -261,60 +261,119 @@ st.markdown(
       @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&display=swap');
 
       :root{
-        --sky1:#eaf7ff; --sky2:#d7f0f7; --sky3:#cdeee0;
-        --blue:#7ec4e8; --blue-dark:#4fa3d1; --green:#8fd9b6; --green-dark:#5fbf94;
-        --ink:#2c4a5e; --muted:#6f8a97; --line:#d9ecec;
-        --accent:#4fa3d1; --accent-dark:#3a86b3;
+        --sky1:#f5fbff; --sky2:#e8f5ff; --sky3:#d9f0ff;
+        --mint:#dff7f0; --mint-light:#e8fbf6;
+        --blue:#a8d5f7; --blue-dark:#5ba3d1; --green:#9ae0c0; --green-dark:#6fb896;
+        --ink:#2c4a5e; --muted:#7a95a8; --line:#e5f2f8;
+        --accent:#5ba3d1; --accent-dark:#4a8fb8;
       }
       html, body, [class*="css"]{ font-family:'Nunito', sans-serif; color:var(--ink); }
 
-      /* ---------- Cloud 3D typography ---------- */
+      /* ---------- Hero background with floating clouds ---------- */
+      [data-testid="stAppViewContainer"]>section:first-child {
+        background: linear-gradient(180deg, var(--sky1) 0%, var(--sky2) 35%, var(--mint) 100%) !important;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Floating cloud elements */
+      [data-testid="stAppViewContainer"]>section:first-child::before,
+      [data-testid="stAppViewContainer"]>section:first-child::after {
+        content: "";
+        position: fixed;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* Cloud 1 - top left */
+      [data-testid="stAppViewContainer"]>section:first-child::before {
+        top: 5%;
+        left: -10%;
+        width: 320px;
+        height: 160px;
+        background: radial-gradient(ellipse 50% 100% at 50% 100%, rgba(255,255,255,.85) 0%, rgba(255,255,255,.4) 40%, transparent 70%);
+        border-radius: 50% 50% 40% 40%;
+        filter: blur(8px);
+        animation: float 20s infinite ease-in-out;
+      }
+
+      /* Cloud 2 - top right */
+      [data-testid="stAppViewContainer"]>section:first-child::after {
+        top: 15%;
+        right: -5%;
+        width: 280px;
+        height: 140px;
+        background: radial-gradient(ellipse 50% 100% at 50% 100%, rgba(255,255,255,.75) 0%, rgba(255,255,255,.3) 45%, transparent 75%);
+        border-radius: 50% 50% 50% 50%;
+        filter: blur(10px);
+        animation: float-reverse 25s infinite ease-in-out;
+      }
+
+      @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-30px); }
+      }
+
+      @keyframes float-reverse {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(25px); }
+      }
+
+      /* Cloud 3D typography */
       .bp-cloud-text{
         font-family:'Baloo 2','Nunito',sans-serif;
         font-weight:800; color:#fff; letter-spacing:.5px;
         text-shadow:
-          -2px -2px 0 #dff2fb, 2px -2px 0 #dff2fb, -2px 2px 0 #dff2fb, 2px 2px 0 #dff2fb,
-          0 1px 0 #eafaf3, 0 10px 18px rgba(60,120,160,.35);
+          -2px -2px 0 rgba(200,230,245,.6), 2px -2px 0 rgba(200,230,245,.6),
+          -2px 2px 0 rgba(200,230,245,.6), 2px 2px 0 rgba(200,230,245,.6),
+          0 2px 0 rgba(180,220,240,.4), 0 12px 22px rgba(80,130,180,.25);
       }
       .bp-cloud-pill{
         display:inline-block; font-family:'Baloo 2','Nunito',sans-serif; font-weight:700;
-        color:var(--blue-dark); background:#fff; border-radius:999px; padding:6px 18px;
-        box-shadow:0 6px 0 #d3ecf5, 0 10px 16px rgba(90,160,200,.25);
+        color:#6fa8c8; background:#fff; border-radius:999px; padding:8px 22px;
+        box-shadow:0 4px 0 #e8f4fa, 0 8px 18px rgba(100,160,210,.18);
         font-size:13px; letter-spacing:.3px;
+        transition: all .2s ease;
+      }
+      .bp-cloud-pill:hover{
+        transform: translateY(-2px);
+        box-shadow:0 6px 0 #e0eff8, 0 12px 24px rgba(100,160,210,.25);
       }
 
       /* ---------- Boarding-pass hero ---------- */
       .bp-ticket{
-        position:relative; border-radius:26px; padding:34px 32px 30px;
-        margin-bottom:18px; overflow:hidden; color:#fff;
+        position:relative; border-radius:32px; padding:40px 36px;
+        margin-bottom:24px; overflow:visible; color:#fff;
         background:
-          radial-gradient(circle at 12% 20%, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 40%),
-          radial-gradient(circle at 85% 15%, rgba(255,255,255,.35) 0%, rgba(255,255,255,0) 35%),
-          linear-gradient(150deg, var(--blue) 0%, var(--blue-dark) 55%, var(--green-dark) 130%);
-        box-shadow:0 18px 36px rgba(79,163,209,.28);
+          radial-gradient(circle at 8% 15%, rgba(255,255,255,.65) 0%, rgba(255,255,255,0) 35%),
+          radial-gradient(circle at 92% 20%, rgba(255,255,255,.45) 0%, rgba(255,255,255,0) 40%),
+          linear-gradient(160deg, #9ed6f5 0%, #6fa8d1 50%, #7fb89f 120%);
+        box-shadow:0 20px 50px rgba(80,130,180,.22), inset 0 1px 0 rgba(255,255,255,.35);
+        border: 1px solid rgba(255,255,255,.25);
       }
       .bp-ticket::before, .bp-ticket::after{
-        content:""; position:absolute; width:34px; height:34px; background:#fff;
+        content:""; position:absolute; width:40px; height:40px; background:#f5fbff;
         border-radius:50%; top:50%; transform:translateY(-50%);
+        box-shadow: inset 0 2px 8px rgba(200,230,250,.4);
       }
-      .bp-ticket::before{ left:-17px; }
-      .bp-ticket::after{ right:-17px; }
-      .bp-ticket-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:22px}
-      .bp-logo{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:16px; letter-spacing:1px}
-      .bp-ticket-badge{font-size:11px; font-weight:700; background:rgba(255,255,255,.25);
-               padding:4px 12px; border-radius:999px; letter-spacing:.5px}
-      .bp-ticket-route{display:flex; align-items:center; gap:14px; margin-bottom:18px}
+      .bp-ticket::before{ left:-20px; }
+      .bp-ticket::after{ right:-20px; }
+      .bp-ticket-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:28px}
+      .bp-logo{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:16px; letter-spacing:1px; opacity:.95}
+      .bp-ticket-badge{font-size:11px; font-weight:700; background:rgba(255,255,255,.3);
+               padding:5px 14px; border-radius:999px; letter-spacing:.5px; opacity:.9}
+      .bp-ticket-route{display:flex; align-items:center; gap:16px; margin-bottom:22px}
       .bp-route-point{flex:0 0 auto}
-      .bp-route-label{display:block; font-size:11px; opacity:.85; letter-spacing:1px}
-      .bp-route-city{display:block; font-weight:800; font-size:18px}
+      .bp-route-label{display:block; font-size:10px; opacity:.8; letter-spacing:1.2px; font-weight:600}
+      .bp-route-city{display:block; font-weight:800; font-size:20px; opacity:.98}
       .bp-route-line{flex:1; position:relative; height:2px;
-               background:repeating-linear-gradient(90deg,#fff 0 8px,transparent 8px 14px);
-               opacity:.85}
-      .bp-route-line .plane{position:absolute; top:-11px; left:50%; transform:translateX(-50%);
-               font-size:20px}
-      .bp-ticket-divider{border-top:2px dashed rgba(255,255,255,.5); margin:18px 0}
-      .bp-ticket h1{font-size:30px; margin:0 0 12px; line-height:1.25}
-      .bp-ticket p{opacity:.95; max-width:560px; line-height:1.6; margin:0; font-weight:600}
+               background:repeating-linear-gradient(90deg,rgba(255,255,255,.9) 0 10px,transparent 10px 16px);
+               opacity:.75}
+      .bp-route-line .plane{position:absolute; top:-10px; left:50%; transform:translateX(-50%);
+               font-size:20px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.1))}
+      .bp-ticket-divider{border-top:2px dashed rgba(255,255,255,.4); margin:22px 0}
+      .bp-ticket h1{font-size:32px; margin:0 0 14px; line-height:1.2}
+      .bp-ticket p{opacity:.92; max-width:580px; line-height:1.7; margin:0; font-weight:600}
 
       /* legacy hero kept for compatibility */
       .bp-hero{background:linear-gradient(135deg,var(--blue),var(--green));color:#fff;
@@ -323,66 +382,95 @@ st.markdown(
       .bp-hero p{opacity:.95;max-width:560px;line-height:1.6;margin:0}
 
       /* ---------- Cards ---------- */
-      .bp-card{background:#fff;border:1px solid var(--line);border-radius:20px;
-               padding:22px 22px;margin:14px 0;
-               box-shadow:0 10px 22px rgba(120,170,190,.14)}
-      .bp-card h3{margin:0 0 10px;font-size:18px}
-      .bp-cal{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
-      .bp-day{border:1px solid var(--line);border-radius:14px;padding:10px;
-              text-align:center;background:#fff}
-      .bp-day .d{font-weight:700;font-size:13px}
-      .bp-day .e{font-size:22px;margin:6px 0;line-height:1.2}
-      .bp-day .m{font-size:11px;color:var(--muted)}
-      .bp-step{display:flex;gap:14px;align-items:flex-start;padding:14px 0;
-               border-bottom:1px solid var(--line)}
+      .bp-card{
+        background: rgba(255,255,255,.92);
+        border: 1px solid rgba(200,230,250,.4);
+        border-radius: 24px;
+        padding: 26px 24px;
+        margin: 16px 0;
+        box-shadow: 0 8px 28px rgba(100,150,190,.12), inset 0 1px 0 rgba(255,255,255,.6);
+        backdrop-filter: blur(2px);
+      }
+      .bp-card h3{margin:0 0 12px;font-size:18px;font-weight:700}
+      .bp-cal{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:12px}
+      .bp-day{
+        border: 1px solid rgba(200,230,250,.5);
+        border-radius: 16px;
+        padding: 12px;
+        text-align: center;
+        background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(220,245,255,.4));
+        box-shadow: 0 4px 12px rgba(100,150,190,.08);
+      }
+      .bp-day .d{font-weight:700;font-size:13px;color:var(--ink)}
+      .bp-day .e{font-size:24px;margin:8px 0;line-height:1.2}
+      .bp-day .m{font-size:11px;color:var(--muted);margin-top:4px}
+      .bp-step{display:flex;gap:16px;align-items:flex-start;padding:16px 0;
+               border-bottom:1px solid rgba(200,230,250,.3)}
       .bp-step:last-child{border-bottom:none}
-      .bp-step .no{flex:0 0 34px;height:34px;border-radius:50%;background:var(--accent);
-               color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
-      .bp-tag{display:inline-block;font-size:12px;color:var(--muted);background:#eef7f3;
-              padding:2px 10px;border-radius:999px;margin:4px 6px 0 0}
-      .bp-muted{color:var(--muted);font-size:14px}
-      .bp-bar{height:14px;border-radius:999px;background:var(--line);overflow:hidden;margin:10px 0}
-      .bp-bar>div{height:100%}
+      .bp-step .no{flex:0 0 36px;height:36px;border-radius:50%;background:linear-gradient(135deg, #7ec8e8, #5ba3d1);
+               color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;
+               box-shadow:0 4px 12px rgba(100,150,190,.25)}
+      .bp-tag{display:inline-block;font-size:12px;color:#5ba3d1;background:rgba(200,230,250,.3);
+              padding:4px 12px;border-radius:999px;margin:6px 8px 0 0;font-weight:600}
+      .bp-muted{color:var(--muted);font-size:14px;line-height:1.5}
+      .bp-bar{height:12px;border-radius:999px;background:rgba(200,230,250,.3);overflow:hidden;margin:12px 0;box-shadow:inset 0 2px 4px rgba(100,150,190,.1)}
+      .bp-bar>div{height:100%;border-radius:999px}
 
       /* ---------- Search bar ---------- */
-      .bp-search-label{text-align:center; margin:26px 0 8px}
+      .bp-search-label{text-align:center; margin:30px 0 10px;position:relative;z-index:1}
       div[data-testid="stForm"] .bp-search-form{padding-top:0}
 
       /* ---------- Passport stamps ---------- */
-      .bp-stamp-wrap{display:flex; flex-direction:column; align-items:center; margin:6px 0 4px}
+      .bp-stamp-wrap{display:flex; flex-direction:column; align-items:center; margin:8px 0}
       .bp-stamp{
         --rot:-4deg;
-        width:118px; height:118px; border-radius:50%;
+        width:130px; height:130px; border-radius:50%;
         display:flex; flex-direction:column; align-items:center; justify-content:center;
         border:3px dashed var(--stamp-color, var(--blue-dark));
         transform:rotate(var(--rot));
-        background:radial-gradient(circle, #fff 60%, rgba(255,255,255,0) 100%);
-        box-shadow:0 8px 16px rgba(90,150,180,.18), inset 0 0 0 6px rgba(255,255,255,.6);
+        background: radial-gradient(circle, rgba(255,255,255,.95) 55%, rgba(255,255,255,.3) 100%);
+        box-shadow:0 10px 24px rgba(100,150,190,.16), inset 0 0 0 8px rgba(255,255,255,.5);
         margin:0 auto;
+        transition: transform .3s ease;
       }
-      .bp-stamp .icon{font-size:38px; transform:rotate(calc(var(--rot) * -1))}
+      .bp-stamp:hover {
+        transform: rotate(var(--rot)) scale(1.05);
+      }
+      .bp-stamp .icon{font-size:42px; transform:rotate(calc(var(--rot) * -1))}
       .bp-stamp .country{
-        font-size:10px; font-weight:800; letter-spacing:1px; margin-top:2px;
+        font-size:10px; font-weight:800; letter-spacing:1.1px; margin-top:4px;
         color:var(--stamp-color, var(--blue-dark)); transform:rotate(calc(var(--rot) * -1));
+        opacity:.9;
       }
-      .bp-stamp-city{margin-top:8px; font-weight:800; font-size:14px; text-align:center}
-      .bp-stamp-tag{margin-top:2px; font-size:11px; color:var(--muted); text-align:center}
+      .bp-stamp-city{margin-top:10px; font-weight:800; font-size:15px; text-align:center; letter-spacing:.3px}
+      .bp-stamp-tag{margin-top:4px; font-size:12px; color:var(--muted); text-align:center; font-weight:600}
 
       /* ---------- Native Streamlit buttons re-skinned ---------- */
       div[data-testid="stButton"] > button, div[data-testid="stFormSubmitButton"] > button{
-        border-radius:999px !important; font-weight:800 !important; border:none !important;
+        border-radius:999px !important; font-weight:700 !important; border:none !important;
+        text-transform: none !important; font-size:14px !important;
+        transition: all .25s ease !important;
       }
       div[data-testid="stButton"] > button[kind="secondary"]{
-        background:#eef8f6 !important; color:var(--blue-dark) !important;
-        border:1px solid var(--line) !important; font-size:12px !important;
+        background:rgba(255,255,255,.8) !important; color:#5ba3d1 !important;
+        border:1.5px solid rgba(200,230,250,.6) !important;
+        box-shadow:0 4px 12px rgba(100,150,190,.12) !important;
       }
       div[data-testid="stButton"] > button[kind="secondary"]:hover{
         background:var(--green) !important; color:#fff !important;
+        border-color:var(--green) !important;
+        box-shadow:0 6px 18px rgba(100,150,190,.2) !important;
       }
       div[data-testid="stFormSubmitButton"] > button[kind="primary"],
       div[data-testid="stButton"] > button[kind="primary"]{
-        background:linear-gradient(135deg,var(--blue),var(--green-dark)) !important;
-        box-shadow:0 6px 14px rgba(79,163,209,.35) !important;
+        background:linear-gradient(135deg, #7ec8e8 0%, #6fb896 100%) !important;
+        color:#fff !important;
+        box-shadow:0 6px 18px rgba(100,150,190,.25) !important;
+      }
+      div[data-testid="stFormSubmitButton"] > button[kind="primary"]:hover,
+      div[data-testid="stButton"] > button[kind="primary"]:hover{
+        box-shadow:0 8px 24px rgba(100,150,190,.35) !important;
+        transform:translateY(-1px) !important;
       }
     </style>
     """,
