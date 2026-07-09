@@ -16,8 +16,41 @@ import {
 } from "@/lib/products";
 import { MAKEUP_STYLE_NOTES } from "@/lib/makeup-style-notes";
 import { StyleNoteModal } from "@/components/style-note";
+import { signup as authSignup, login as authLogin, findAccount, saveSkinToAccount, daysAgoLabel } from "@/lib/auth";
+import {
+  PassportTopBar,
+  PassportEyebrow,
+  PassportTitle,
+  PassportKSub,
+  PassportField,
+  PassportButton,
+  PassportDivider,
+  PassportBackLink,
+  PassportError,
+  PassportNote,
+  PassportOptionCard,
+  PassportFooter,
+  PassportStampChip,
+  PassportTag,
+  PassportPlaneIcon,
+  PassportBeachIcon,
+  PassportSurveyIcon,
+} from "@/components/passport-ui";
 
-type Stage = "intro" | "login" | "travel" | "skin" | "result" | "receive" | "delivery" | "pickup" | "done";
+type Stage =
+  | "intro"
+  | "login"
+  | "signup"
+  | "member"
+  | "checkin"
+  | "journey"
+  | "travel"
+  | "skin"
+  | "result"
+  | "receive"
+  | "delivery"
+  | "pickup"
+  | "done";
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 /* ════════════════════════ [6-1] 여정 타임라인 ════════════════════════ */
@@ -620,6 +653,19 @@ export default function BeautyPassportExperience() {
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
+  // 계정 (localStorage 기반 — lib/auth.ts)
+  const [loggedInId, setLoggedInId] = useState<string | null>(null);
+  const [loginId, setLoginId] = useState("");
+  const [loginPw, setLoginPw] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [signupName, setSignupName] = useState("");
+  const [signupId, setSignupId] = useState("");
+  const [signupPw, setSignupPw] = useState("");
+  const [signupPw2, setSignupPw2] = useState("");
+  const [signupAge, setSignupAge] = useState("");
+  const [signupGender, setSignupGender] = useState("");
+  const [signupError, setSignupError] = useState("");
+  const [journeyPhase, setJourneyPhase] = useState<"before" | "during" | "after" | null>(null);
   // 여행지
   const [countryCode, setCountryCode] = useState<string | null>(null);
   const [cityName, setCityName] = useState<string | null>(null);
@@ -700,7 +746,6 @@ export default function BeautyPassportExperience() {
   const city = country?.cities.find((ci) => ci.name === cityName) ?? null;
   const makeupNote = MAKEUP_STYLE_NOTES.find((n) => n.countryCode === countryCode) ?? null;
 
-  const loginDone = name.trim() !== "" && age.trim() !== "" && gender !== "";
   const placeDone = useCustom ? customCountry.trim() !== "" && customCity.trim() !== "" : !!city;
   const travelDone = placeDone && !!departDate && !!arriveDate;
 
@@ -715,7 +760,9 @@ export default function BeautyPassportExperience() {
       setQIndex((i) => i + 1); // 다음 축으로 자동 슬라이드
     } else {
       // 마지막 축까지 선택 → 4글자 코드 완성 후 분석
-      setSkin(analyzeBaumann(next.join("")));
+      const code = next.join("");
+      setSkin(analyzeBaumann(code));
+      if (loggedInId) saveSkinToAccount(loggedInId, code);
       setAnalyzing(true);
     }
   }
@@ -791,7 +838,52 @@ export default function BeautyPassportExperience() {
     setCountryCode(code);
     setCityName(null);
   }
+  function handleLogin() {
+    const res = authLogin(loginId, loginPw);
+    if (!res.ok) {
+      setLoginError(res.error);
+      return;
+    }
+    setLoginError("");
+    setLoggedInId(res.account.id);
+    setName(res.account.name);
+    setAge(res.account.age);
+    setGender(res.account.gender);
+    setStage("member");
+  }
+  function handleSignup() {
+    if (signupPw !== signupPw2) {
+      setSignupError("비밀번호가 일치하지 않아요.");
+      return;
+    }
+    const res = authSignup({ id: signupId, password: signupPw, name: signupName, age: signupAge, gender: signupGender });
+    if (!res.ok) {
+      setSignupError(res.error);
+      return;
+    }
+    setSignupError("");
+    setLoggedInId(res.account.id);
+    setName(res.account.name);
+    setAge(res.account.age);
+    setGender(res.account.gender);
+    setStage("checkin");
+  }
+  function handleLogout() {
+    setLoggedInId(null);
+    setLoginId(""); setLoginPw(""); setLoginError("");
+    setStage("login");
+  }
+  function loadSavedSkin() {
+    if (!loggedInId) return;
+    const account = findAccount(loggedInId);
+    if (!account?.skinCode) return;
+    setSkin(analyzeBaumann(account.skinCode));
+    setStage("journey");
+  }
   function restart() {
+    setLoggedInId(null); setLoginId(""); setLoginPw(""); setLoginError("");
+    setSignupName(""); setSignupId(""); setSignupPw(""); setSignupPw2(""); setSignupAge(""); setSignupGender(""); setSignupError("");
+    setJourneyPhase(null);
     setName(""); setAge(""); setGender("");
     setCountryCode(null); setCityName(null);
     setUseCustom(false); setCustomCountry(""); setCustomCity("");
@@ -889,87 +981,295 @@ export default function BeautyPassportExperience() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="absolute inset-0 overflow-y-auto"
-                style={{ background: "linear-gradient(180deg,#3a4d7a 0%,#2b3a63 45%,#22315a 100%)" }}
+                className="absolute inset-0 overflow-y-auto bg-[#e4e4e7] px-7 pb-6 pt-5"
               >
-                <div className="relative flex min-h-full flex-col items-center px-6 py-10">
-                  {/* 헤더: 비행기 + 타이틀 */}
-                  <motion.div
-                    className="w-40"
-                    animate={{ y: [0, -10, 0], rotate: [-4, -2, -4] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                    style={{ filter: "drop-shadow(0 22px 26px rgba(0,0,0,0.35))" }}
+                <PassportTopBar />
+                <PassportEyebrow>Skin Without Borders</PassportEyebrow>
+                <PassportTitle>
+                  BEAUTY
+                  <br />
+                  PASSPORT <PassportPlaneIcon className="ml-1 inline-block w-11 -translate-y-1 align-middle" />
+                </PassportTitle>
+                <PassportKSub>나만의 뷰티 여권으로 로그인</PassportKSub>
+
+                <div className="mt-5 flex flex-col gap-3.5">
+                  <PassportField
+                    label="ID"
+                    labelKo="아이디"
+                    value={loginId}
+                    onChange={(e) => setLoginId(e.target.value)}
+                    placeholder="아이디를 입력하세요"
+                    autoComplete="username"
+                  />
+                  <PassportField
+                    label="Password"
+                    labelKo="비밀번호"
+                    type="password"
+                    value={loginPw}
+                    onChange={(e) => setLoginPw(e.target.value)}
+                    placeholder="비밀번호를 입력하세요"
+                    autoComplete="current-password"
+                  />
+                  <PassportError>{loginError}</PassportError>
+                </div>
+
+                <div className="mt-5 flex flex-col gap-3">
+                  <PassportButton onClick={handleLogin}>로그인 →</PassportButton>
+                  <PassportDivider>또는 · OR</PassportDivider>
+                  <PassportButton
+                    variant="ghost"
+                    onClick={() => {
+                      setSignupError("");
+                      setStage("signup");
+                    }}
                   >
-                    <Jet className="w-full" />
-                  </motion.div>
-                  <h1 className="mt-5 font-cute text-3xl text-white">나만의 뷰티 여권</h1>
-                  <p className="mt-1 text-sm text-white/70">여권을 만들고 여름 여행을 시작해요</p>
+                    회원가입
+                  </PassportButton>
+                </div>
 
-                  {/* 보딩패스 카드 */}
-                  <div className="relative mt-7 w-full overflow-hidden rounded-[26px] bg-white shadow-[0_30px_70px_rgba(0,0,0,0.35)]">
-                    {/* 폼 영역 */}
-                    <div className="p-6">
-                      <label className="block text-sm font-bold text-[#22315a]">이름</label>
-                      <input
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="여권에 새길 이름"
-                        className="np-input"
-                      />
-                      <label className="mt-4 block text-sm font-bold text-[#22315a]">나이</label>
-                      <input
-                        value={age}
-                        onChange={(e) => setAge(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
-                        inputMode="numeric"
-                        placeholder="예: 27"
-                        className="np-input"
-                      />
-                      <label className="mt-4 block text-sm font-bold text-[#22315a]">성별</label>
-                      <div className="mt-2 flex gap-2">
-                        {["여성", "남성", "기타"].map((g) => (
-                          <button
-                            key={g}
-                            onClick={() => setGender(g)}
-                            className={`flex-1 rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
-                              gender === g
-                                ? "border-transparent bg-[#22315a] text-white"
-                                : "border-[#e3e8f0] bg-[#f6f8fb] text-[#5a6b8c] hover:bg-[#eef2f8]"
-                            }`}
-                          >
-                            {g}
-                          </button>
-                        ))}
-                      </div>
-                      <motion.button
-                        onClick={() => setStage("travel")}
-                        disabled={!loginDone}
-                        whileHover={loginDone ? { scale: 1.02, y: -1 } : undefined}
-                        whileTap={{ scale: 0.98 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 22 }}
-                        className="mt-5 w-full rounded-2xl bg-[#22315a] py-4 font-cute text-lg text-white shadow-[0_12px_24px_rgba(34,49,90,0.35)] disabled:opacity-40"
-                      >
-                        여행 시작하기
-                      </motion.button>
-                    </div>
+                <PassportFooter />
+              </motion.section>
+            )}
 
-                    {/* 절취선 + 양쪽 노치 */}
-                    <div className="relative">
-                      <div className="absolute left-0 top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#2b3a63]" />
-                      <div className="absolute right-0 top-1/2 h-7 w-7 translate-x-1/2 -translate-y-1/2 rounded-full bg-[#2b3a63]" />
-                      <div className="mx-6 border-t-2 border-dashed border-[#d7deea]" />
-                    </div>
+            {/* 회원가입 */}
+            {stage === "signup" && (
+              <motion.section
+                key="signup"
+                variants={stageVariants}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="absolute inset-0 overflow-y-auto bg-[#e4e4e7] px-7 pb-6 pt-5"
+              >
+                <PassportTopBar onBack={() => setStage("login")} />
+                <PassportEyebrow>Issue New Passport</PassportEyebrow>
+                <PassportTitle>
+                  SIGN
+                  <br />
+                  UP
+                </PassportTitle>
+                <PassportKSub>뷰티 여권을 새로 발급받아요</PassportKSub>
 
-                    {/* 스텁: FLIGHT / SEAT / GATE + 바코드 */}
-                    <div className="p-6 pt-5">
-                      <div className="grid grid-cols-2 gap-y-4">
-                        <StubField label="FLIGHT" value="COSMAX" />
-                        <StubField label="SEAT" value="23A" />
-                        <StubField label="GATE" value="6" />
-                        <StubField label="CLASS" value="BEAUTY" />
-                      </div>
-                      <Barcode />
+                <div className="mt-5 flex flex-col gap-3.5">
+                  <PassportField label="Name" labelKo="이름" value={signupName} onChange={(e) => setSignupName(e.target.value)} placeholder="여권에 새길 이름" autoComplete="name" />
+                  <PassportField label="ID" labelKo="아이디" value={signupId} onChange={(e) => setSignupId(e.target.value)} placeholder="사용할 아이디" autoComplete="username" />
+                  <PassportField
+                    label="Password"
+                    labelKo="비밀번호"
+                    type="password"
+                    value={signupPw}
+                    onChange={(e) => setSignupPw(e.target.value)}
+                    placeholder="비밀번호"
+                    autoComplete="new-password"
+                  />
+                  <PassportField
+                    label="Confirm"
+                    labelKo="비밀번호 확인"
+                    type="password"
+                    value={signupPw2}
+                    onChange={(e) => setSignupPw2(e.target.value)}
+                    placeholder="비밀번호 다시 입력"
+                    autoComplete="new-password"
+                  />
+                  <div>
+                    <label className="mb-2 block text-[13px] font-extrabold text-[#0a0a0a]">
+                      Age <span className="ml-1 font-sans text-[12px] font-medium text-[#9ca3af]">· 나이</span>
+                    </label>
+                    <input
+                      value={signupAge}
+                      onChange={(e) => setSignupAge(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
+                      inputMode="numeric"
+                      placeholder="예: 27"
+                      className="w-full rounded-[13px] border border-transparent bg-[#f4f4f5] px-4 py-[15px] font-sans text-sm text-[#0a0a0a] outline-none transition placeholder:text-[#9ca3af] focus:border-[#0a0a0a] focus:bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-[13px] font-extrabold text-[#0a0a0a]">
+                      Gender <span className="ml-1 font-sans text-[12px] font-medium text-[#9ca3af]">· 성별</span>
+                    </label>
+                    <div className="flex gap-2">
+                      {["여성", "남성"].map((g) => (
+                        <button
+                          key={g}
+                          type="button"
+                          onClick={() => setSignupGender(g)}
+                          className={`flex-1 rounded-[13px] border-[1.5px] px-3 py-2.5 text-sm font-semibold transition ${
+                            signupGender === g ? "border-[#0a0a0a] bg-[#0a0a0a] text-white" : "border-[#e7e7ea] bg-[#f4f4f5] text-[#3f3f46]"
+                          }`}
+                        >
+                          {g}
+                        </button>
+                      ))}
                     </div>
                   </div>
+                  <PassportError>{signupError}</PassportError>
+                </div>
+
+                <div className="mt-5">
+                  <PassportButton onClick={handleSignup}>가입하고 피부 설문 시작하기 →</PassportButton>
+                </div>
+                <PassportBackLink onClick={() => setStage("login")}>
+                  이미 여권이 있나요? <b className="font-extrabold text-[#0a0a0a]">로그인</b>
+                </PassportBackLink>
+
+                <PassportFooter />
+              </motion.section>
+            )}
+
+            {/* 회원 (재로그인) */}
+            {stage === "member" && (
+              <motion.section
+                key="member"
+                variants={stageVariants}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="absolute inset-0 overflow-y-auto bg-[#e4e4e7] px-7 pb-6 pt-5"
+              >
+                <PassportTopBar onBack={() => setStage("login")} />
+                <PassportEyebrow>Your Skin Journey</PassportEyebrow>
+                <PassportTitle>
+                  WELCOME
+                  <br />
+                  BACK
+                </PassportTitle>
+                <PassportKSub>피부 여권을 확인해 주세요</PassportKSub>
+
+                {(() => {
+                  const account = loggedInId ? findAccount(loggedInId) : null;
+                  const bt = account?.skinCode ? BAUMANN_TYPES[account.skinCode] : null;
+                  return (
+                    <div className="mt-5 flex flex-col gap-3.5">
+                      <div className="flex flex-col gap-3.5 rounded-2xl border-[1.5px] border-[#0a0a0a] p-[18px]">
+                        <div className="flex items-center justify-between">
+                          <div className="font-sans text-[17px] font-black text-[#0a0a0a]">{account?.name ?? name} 님</div>
+                          <PassportStampChip>VERIFIED</PassportStampChip>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {bt ? (
+                            <>
+                              <PassportTag>피부타입 · {bt.nick}</PassportTag>
+                              {account?.skinUpdatedAt && <PassportTag>최근 업데이트 · {daysAgoLabel(account.skinUpdatedAt)}</PassportTag>}
+                            </>
+                          ) : (
+                            <PassportTag>아직 진단 기록이 없어요</PassportTag>
+                          )}
+                        </div>
+                        <PassportButton onClick={loadSavedSkin} disabled={!account?.skinCode}>
+                          피부 정보 불러오기 →
+                        </PassportButton>
+                      </div>
+
+                      <PassportOptionCard
+                        selected={false}
+                        onClick={() => setStage("checkin")}
+                        icon={
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 5v14M5 12h14" />
+                          </svg>
+                        }
+                        en="NEW SURVEY"
+                        ko="새로 설문 시작하기"
+                        desc="피부 상태가 바뀌었다면 다시 진단해요"
+                      />
+                    </div>
+                  );
+                })()}
+
+                <PassportBackLink onClick={handleLogout}>
+                  다른 계정으로 <b className="font-extrabold text-[#0a0a0a]">로그인</b>
+                </PassportBackLink>
+
+                <PassportFooter />
+              </motion.section>
+            )}
+
+            {/* SKIN CHECK-IN 안내 */}
+            {stage === "checkin" && (
+              <motion.section
+                key="checkin"
+                variants={stageVariants}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="absolute inset-0 overflow-y-auto bg-[#e4e4e7] px-7 pb-6 pt-5"
+              >
+                <PassportTopBar onBack={() => setStage(loggedInId ? "member" : "login")} />
+                <PassportEyebrow>피부 여권 업데이트</PassportEyebrow>
+                <PassportTitle>
+                  SKIN
+                  <br />
+                  CHECK-IN <PassportSurveyIcon className="ml-1 inline-block w-14 -translate-y-1 align-middle" />
+                </PassportTitle>
+                <PassportKSub>몇 가지 질문으로 피부 여권을 채워요</PassportKSub>
+
+                <div className="mt-5 flex flex-col gap-3.5">
+                  <PassportNote>
+                    <p>몇 가지 질문으로 피부를 진단해요.</p>
+                    <p>
+                      결과는 <b>여권</b>에 저장, 맞춤 케어로 이어져요.
+                    </p>
+                  </PassportNote>
+                  <PassportButton onClick={() => setStage("travel")}>설문 페이지로 이동 →</PassportButton>
+                  <PassportButton variant="ghost" onClick={() => setStage(loggedInId ? "member" : "login")}>
+                    나중에 하기
+                  </PassportButton>
+                </div>
+
+                <PassportFooter />
+              </motion.section>
+            )}
+
+            {/* YOUR JOURNEY — 여행 전/중/후 */}
+            {stage === "journey" && (
+              <motion.section
+                key="journey"
+                variants={stageVariants}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="absolute inset-0 overflow-y-auto bg-[#e4e4e7] px-7 pb-6 pt-5"
+              >
+                <PassportTopBar onBack={() => setStage("member")} />
+                <PassportEyebrow>Boarding · 탑승</PassportEyebrow>
+                <PassportTitle>
+                  YOUR
+                  <br />
+                  JOURNEY <PassportBeachIcon className="ml-1 inline-block w-16 -translate-y-1 align-middle" />
+                </PassportTitle>
+                <PassportKSub>지금 어디쯤인가요?</PassportKSub>
+
+                <div className="mt-5 flex flex-col gap-3.5">
+                  <PassportOptionCard
+                    selected={journeyPhase === "before"}
+                    onClick={() => setJourneyPhase("before")}
+                    icon={<PassportPlaneIcon selected={journeyPhase === "before"} />}
+                    en="BEFORE"
+                    ko="여행 전이에요"
+                    desc="떠나기 전, 미리 준비하는 케어"
+                  />
+                  <PassportOptionCard
+                    selected={journeyPhase === "during"}
+                    onClick={() => setJourneyPhase("during")}
+                    icon={<PassportPlaneIcon selected={journeyPhase === "during"} />}
+                    en="DURING"
+                    ko="여행 중이에요"
+                    desc="여행지 환경에 맞춘 실시간 케어"
+                  />
+                  <PassportOptionCard
+                    selected={journeyPhase === "after"}
+                    onClick={() => setJourneyPhase("after")}
+                    icon={<PassportPlaneIcon selected={journeyPhase === "after"} />}
+                    en="AFTER"
+                    ko="여행이 끝났어요"
+                    desc="돌아온 뒤, 지친 피부 회복 케어"
+                  />
+                </div>
+
+                <div className="mt-5">
+                  <PassportButton disabled={!journeyPhase} onClick={() => setStage("travel")}>
+                    다음 단계 →
+                  </PassportButton>
                 </div>
               </motion.section>
             )}
@@ -1056,7 +1356,7 @@ export default function BeautyPassportExperience() {
                   </div>
 
                   <div className="mt-6 flex gap-3">
-                    <button onClick={() => setStage("login")} className="rounded-full bg-white/70 px-5 py-4 text-sm font-semibold text-[#2b6b86] backdrop-blur">
+                    <button onClick={() => setStage(loggedInId ? "member" : "login")} className="rounded-full bg-white/70 px-5 py-4 text-sm font-semibold text-[#2b6b86] backdrop-blur">
                       ← 이전
                     </button>
                     <div className="flex-1">
