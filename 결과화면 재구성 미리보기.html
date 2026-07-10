@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>결과화면 재구성 미리보기 v3 · Beauty Passport</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
+
+<style>
+  :root{
+    --ink:#0a0a0a; --ink2:#3f3f46; --muted:#71717a; --muted2:#9ca3af;
+    --line:#e7e7ea; --fill:#f4f4f5; --red:#ec1c24; --white:#ffffff;
+    --sans:"Noto Sans KR",-apple-system,BlinkMacSystemFont,sans-serif;
+    --disp:"Inter",var(--sans);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{font-family:var(--sans);color:var(--ink);line-height:1.6;background:#eef2f5;-webkit-font-smoothing:antialiased;}
+
+  /* ---------- 리뷰용 상단 안내 패널 ---------- */
+  .review-note{max-width:900px;margin:0 auto;padding:22px 20px 4px;}
+  .review-note h1{font-size:18px;margin:0 0 6px;}
+  .review-note p{font-size:13px;color:#555;margin:2px 0;}
+  .review-note .warn{margin-top:10px;background:#fff8e6;border:1px solid #f0dca0;color:#7a5b00;border-radius:10px;padding:10px 14px;font-size:12.5px;}
+  .review-note ul{font-size:13px;color:#333;margin:10px 0 0;padding-left:20px;}
+  .review-note li{margin:3px 0;}
+  .review-note .v3{margin-top:12px;background:#eef6ff;border:1px solid #bfe0ff;color:#0a4a7a;border-radius:10px;padding:10px 14px;font-size:12.5px;}
+  .review-note .qa{margin-top:10px;background:#f3f0ff;border:1px solid #d9cdfc;color:#4c2d99;border-radius:10px;padding:10px 14px;font-size:12.5px;}
+
+  /* ---------- 폰 목업 프레임 ---------- */
+  .stage{display:flex;justify-content:center;padding:20px 12px 60px;}
+  .frame{width:100%;max-width:480px;border-radius:38px;background:linear-gradient(180deg,#c6dcec,#aecbe2);box-shadow:0 40px 90px rgba(43,120,170,.4);padding:14px;}
+  .sheet{position:relative;background:#fff;border-radius:28px;overflow:hidden;min-height:600px;padding:20px 20px 0;}
+  .page{display:none;padding-bottom:24px;}
+  .page.active{display:block;}
+  .eyebrow-top{text-align:center;font-size:10px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+  .eyebrow{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;color:var(--muted2);display:block;}
+  .card-title{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;letter-spacing:-.01em;color:var(--ink);margin:0;}
+
+  /* ---------- 통합 카드 (보딩패스~AI써머리) ---------- */
+  .unified{border-radius:16px;border:1px solid var(--line);overflow:hidden;box-shadow:0 8px 24px rgba(20,30,50,.06);background:#fff;}
+  .bp-head{display:flex;justify-content:space-between;align-items:center;background:var(--ink);color:#fff;padding:12px 18px;}
+  .bp-head span:first-child{font-size:12px;font-weight:800;letter-spacing:.18em;}
+  .bp-head span:last-child{font-size:12px;font-weight:700;letter-spacing:.06em;color:rgba(255,255,255,.7);}
+  .u-body{padding:18px;}
+  .usec{padding:17px 0;border-top:1px dashed var(--line);}
+  .usec:first-child{border-top:0;padding-top:0;}
+  .bp-row{display:flex;justify-content:space-between;align-items:flex-end;}
+  .bp-row .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;color:var(--muted2);}
+  .bp-row .val{margin-top:2px;font-size:22px;font-weight:900;letter-spacing:-.02em;}
+  .bp-route{margin-top:16px;display:flex;justify-content:space-between;align-items:center;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);padding:12px 0;}
+  .bp-route .plane{font-size:15px;color:var(--red);}
+  .bp-dates{margin-top:12px;display:flex;justify-content:space-between;align-items:center;font-size:14px;}
+  .bp-nights{border:1px solid var(--red);color:var(--red);border-radius:99px;padding:2px 10px;font-size:11px;font-weight:800;}
+  .bp-code-row{margin-top:6px;display:flex;align-items:center;gap:12px;}
+  .bp-pill{flex:none;height:56px;display:flex;align-items:center;border-radius:12px;background:var(--ink);color:#fff;padding:0 16px;font-family:var(--disp);font-weight:900;font-size:24px;letter-spacing:.06em;}
+  .bp-nick{font-size:17px;font-weight:900;line-height:1.2;}
+  .bp-tag{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4;}
+
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:0;cursor:pointer;border-radius:14px;padding:13px;font-family:var(--sans);font-weight:800;font-size:14px;letter-spacing:.01em;background:var(--ink);color:#fff;transition:.15s;}
+  .btn:active{transform:scale(.985);}
+  .btn:disabled{background:#d4d4d8;color:#fafafa;cursor:not-allowed;}
+  .btn.ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line);}
+  .btn.sm{padding:11px;font-size:13.5px;border-radius:12px;}
+  .btn.big{margin-top:16px;font-size:14.5px;padding:15px;}
+
+  /* ---------- 게이지 + 세부지표 ---------- */
+  .idx-wrap{display:flex;gap:16px;align-items:center;margin-top:14px;flex-wrap:wrap;}
+  .gauge{--val:0;position:relative;width:88px;height:88px;border-radius:50%;flex:none;background:conic-gradient(var(--red) calc(var(--val)*1%), var(--fill) 0);display:grid;place-items:center;transition:background 1s cubic-bezier(.22,1,.36,1);}
+  .gauge::before{content:"";position:absolute;width:68px;height:68px;border-radius:50%;background:#fff;}
+  .g-inner{position:relative;text-align:center;line-height:1;}
+  .g-num{font-family:var(--disp);font-weight:900;font-size:26px;}
+  .g-max{font-size:9px;color:var(--muted2);}
+  .g-tag{margin-top:3px;font-size:9px;font-weight:800;letter-spacing:.06em;color:var(--red);}
+  .subindex{flex:1;min-width:200px;display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;}
+  .si-head{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;color:var(--ink2);}
+  .si-head .v{font-weight:800;}
+  .si-row.high .si-head .v{color:var(--red);}
+  .bar-track{height:6px;background:var(--fill);border-radius:99px;overflow:hidden;}
+  .bar-fill{height:100%;width:0;border-radius:99px;background:var(--ink);transition:width 1s cubic-bezier(.22,1,.36,1);}
+  .si-row.high .bar-fill{background:var(--red);}
+  .idx-formula{margin-top:12px;font-size:11px;color:#7a5b00;background:#fff8e6;border:1px dashed #e8c774;border-radius:10px;padding:9px 11px;line-height:1.55;}
+  .idx-formula b{display:block;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px;}
+
+  /* ---------- 날씨 캘린더 ---------- */
+  .cal-meta{font-size:12.5px;color:var(--muted);margin:4px 0 0;}
+  .cal-strip{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 6px;margin:0 -2px;-webkit-overflow-scrolling:touch;}
+  .cal-strip::-webkit-scrollbar{height:0;}
+  .day{flex:0 0 82px;position:relative;overflow:hidden;border:1px solid var(--line);border-radius:12px;padding:8px 6px;text-align:center;background:#fff;}
+  .day .uvbar{position:absolute;top:0;left:0;right:0;height:3px;background:#9ca3af;}
+  .day.hot{border-color:#f6d0d0;background:linear-gradient(180deg,#fff,#fef6f6);}
+  .day.hot .uvbar{background:var(--red);}
+  .day .d-head{display:flex;align-items:baseline;justify-content:center;gap:5px;margin-top:2px;}
+  .day .dow{font-size:9.5px;color:var(--muted);font-weight:700;letter-spacing:.04em;}
+  .day .date{font-family:var(--disp);font-weight:800;font-size:15px;}
+  .day .d-mid{display:flex;align-items:center;justify-content:center;gap:5px;margin:3px 0 2px;}
+  .day .ico{font-size:16px;}
+  .day .temp{font-size:11px;font-weight:700;}
+  .day .temp .lo{color:var(--muted2);font-weight:600;font-size:10px;}
+  .day .meta{font-size:9px;color:var(--muted);white-space:nowrap;}
+  .day .meta .uvn{font-weight:700;}
+  .day.hot .meta .uvn{color:var(--red);}
+  .cal-legend{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:4px;}
+  .cal-legend span{display:inline-flex;align-items:center;gap:5px;}
+  .cal-legend i{width:14px;height:3px;border-radius:2px;display:inline-block;}
+
+  /* ---------- AI 써머리 ---------- */
+  .ai-tags{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px;}
+  .ai-tag{font-family:var(--disp);font-size:10.5px;font-weight:700;letter-spacing:.02em;background:var(--fill);color:var(--ink2);padding:4px 9px;border-radius:99px;}
+  .ai-p{font-size:13.5px;color:#444;margin:10px 0 0;line-height:1.6;}
+  .ai-p b{color:var(--ink);box-shadow:inset 0 -7px 0 rgba(236,28,36,.14);}
+
+  /* ---------- 카드(추천/케어플랜용) ---------- */
+  .card{margin-top:14px;border-radius:16px;border:1px solid var(--line);background:#fff;padding:18px;box-shadow:0 8px 24px rgba(20,30,50,.05);}
+
+  /* ---------- 추천 제품 ---------- */
+  .rec-summary{margin-top:10px;border-radius:12px;background:var(--fill);padding:11px 14px;text-align:center;font-size:12.5px;font-weight:600;color:var(--ink2);}
+  .rec-tabs{display:flex;gap:6px;background:var(--fill);border-radius:14px;padding:5px;margin-top:14px;}
+  .rec-tab{flex:1;border:0;background:transparent;cursor:pointer;padding:10px 8px;border-radius:10px;font-family:var(--sans);font-weight:800;font-size:13px;color:var(--muted);}
+  .rec-tab.active{background:#fff;color:var(--ink);box-shadow:0 2px 8px -2px rgba(0,0,0,.14);}
+  .rec-pane{margin-top:16px;}
+  .rec-pane[hidden]{display:none;}
+  .swipe-hint{font-size:11.5px;color:var(--muted);margin:0 0 8px;}
+  .set-swipe{display:flex;gap:10px;overflow-x:auto;padding:2px 20px 12px 2px;margin:0 -2px;-webkit-overflow-scrolling:touch;}
+  .set-swipe::-webkit-scrollbar{height:0;}
+
+  /* 실제 앱 정보량을 유지한 카드 (스와이프 비율만 Boarding Pass식) */
+  .pcard{flex:0 0 240px;border:1px solid var(--line);border-radius:16px;background:#fff;padding:13px;}
+  .pcard.list-row{flex:none;width:100%;}
+  .pc-top{display:flex;align-items:flex-start;gap:10px;}
+  .pc-thumb{width:44px;height:44px;flex:none;border-radius:12px;background:var(--fill);display:grid;place-items:center;font-size:19px;}
+  .pc-brand{font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;}
+  .pc-name{font-size:13px;font-weight:800;line-height:1.25;margin-top:1px;}
+  .pc-rating{margin-left:auto;flex:none;font-size:11px;font-weight:800;color:var(--red);white-space:nowrap;}
+  .pc-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+  .pc-tag{font-size:9.5px;font-weight:700;background:var(--fill);color:var(--ink2);padding:3px 7px;border-radius:99px;}
+  .pc-tag.safety{background:#eaf6ee;color:#1f9d57;}
+  .pc-reason{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.5;}
+  .pc-buy{margin-top:10px;display:flex;align-items:center;gap:6px;border-top:1px dashed var(--line);padding-top:9px;}
+  .ml-select{flex:1;min-width:0;border:1px solid var(--line);background:#fff;border-radius:9px;padding:6px 5px;font-size:11px;color:var(--ink);}
+  .fly-tag{font-size:9px;font-weight:700;background:var(--fill);color:var(--ink2);padding:4px 6px;border-radius:99px;white-space:nowrap;}
+  .price-val{font-size:12.5px;font-weight:800;white-space:nowrap;}
+  .qty-area{flex:none;}
+  .add-btn{border:0;background:var(--ink);color:#fff;font-weight:800;font-size:11px;border-radius:99px;padding:6px 12px;cursor:pointer;}
+  .stepper{display:flex;align-items:center;gap:6px;background:var(--fill);border-radius:99px;padding:3px 8px;}
+  .stepper button{border:0;background:none;font-weight:800;color:var(--ink);cursor:pointer;font-size:13px;width:16px;}
+  .stepper span{font-size:11.5px;font-weight:800;min-width:12px;text-align:center;}
+
+  .cat-tabs{display:flex;gap:7px;overflow-x:auto;padding-bottom:8px;margin:2px -2px 4px;}
+  .cat-tabs::-webkit-scrollbar{height:0;}
+  .cat-tab{flex:none;border:1px solid var(--line);background:#fff;cursor:pointer;padding:7px 13px;border-radius:99px;font-family:var(--sans);font-weight:700;font-size:12px;color:var(--muted);white-space:nowrap;}
+  .cat-tab.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+  .pick-list{display:grid;gap:10px;}
+
+  .cam-drop{border:1.5px dashed #d7dbe0;border-radius:16px;padding:22px 16px;text-align:center;background:#fafbfc;}
+  .cam-ico{font-size:30px;}
+  .cam-lead{font-size:13.5px;color:var(--ink);margin:8px 0 2px;}
+  .cam-lead b{color:var(--red);}
+  .cam-sub{font-size:11.5px;color:var(--muted);margin:0 0 14px;}
+  .cam-btn{margin-top:8px;}
+  .cam-note{margin-top:10px;font-size:11px;color:var(--muted2);}
+
+  /* 플로팅 장바구니 */
+  .cart-fab{position:absolute;right:18px;bottom:18px;z-index:40;display:none;align-items:center;gap:8px;border:0;border-radius:99px;background:var(--ink);color:#fff;padding:13px 18px;font-weight:800;box-shadow:0 16px 36px rgba(10,10,10,.28);cursor:pointer;}
+  .cart-fab.show{display:flex;}
+  .cart-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:60;display:none;}
+  .cart-overlay.open{display:block;}
+  .cart-sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;max-height:82%;overflow-y:auto;background:#fff;border-radius:26px 26px 0 0;transform:translateY(100%);transition:transform .3s cubic-bezier(.22,1,.36,1);visibility:hidden;}
+  .cart-sheet.open{transform:translateY(0);visibility:visible;}
+
+  /* 간단 미니카드 (추천세트) */
+  .mcard{flex:0 0 108px;border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden;}
+  .mc-thumb{height:52px;display:grid;place-items:center;font-size:22px;background:var(--fill);}
+  .mc-body{padding:8px;}
+  .mc-name{font-weight:800;font-size:11.5px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .mc-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
+
+  /* 반입 규제 배지 */
+  .comp-wrap{margin-top:8px;}
+  .comp-badge{display:inline-flex;align-items:center;gap:5px;border:1px solid;border-radius:99px;padding:4px 9px;font-size:10.5px;font-weight:800;cursor:pointer;background:#fff;}
+  .comp-chev{font-size:8px;transition:transform .15s;}
+  .comp-badge.open .comp-chev{transform:rotate(180deg);}
+  .comp-chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);background:var(--fill);color:var(--muted);border-radius:99px;padding:4px 9px;font-size:10.5px;font-weight:700;margin-left:5px;}
+  .comp-detail{margin-top:7px;border:1px solid var(--line);border-radius:12px;padding:10px 11px;font-size:11px;line-height:1.55;background:#fff;}
+  .comp-detail[hidden]{display:none;}
+  .comp-flags{list-style:none;margin:0;padding:0;}
+  .comp-flags li{border-bottom:1px dashed var(--line);padding-bottom:8px;margin-bottom:8px;}
+  .comp-flags li:last-child{border-bottom:0;margin-bottom:0;padding-bottom:0;}
+  .comp-concern{color:var(--muted2);font-weight:600;}
+  .comp-msg{margin-top:3px;color:var(--ink2);}
+  .comp-src{margin-top:4px;font-size:10px;color:var(--muted2);}
+  .comp-none{color:var(--ink2);}
+  .comp-foot{margin-top:8px;display:grid;gap:5px;font-size:10px;color:var(--muted);}
+
+  /* 클릭 가능한 제품 정보 영역 */
+  .pc-info{cursor:pointer;}
+  .mcard{cursor:pointer;}
+
+  /* 추천세트: 전체담기 + 직접고르기 한 줄 */
+  .rec-btn-row{display:flex;gap:8px;margin-top:4px;}
+  .rec-btn-row .btn{margin-top:0;}
+
+  /* ---------- 제품 상세 바텀시트 (실제 앱 ProductDetail 그대로) ---------- */
+  .pd-overlay{position:fixed;inset:0;background:rgba(20,24,30,.55);backdrop-filter:blur(3px);display:none;align-items:flex-end;justify-content:center;z-index:90;}
+  .pd-overlay.open{display:flex;}
+  .pd-sheet{background:#fff;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;border-radius:24px 24px 0 0;}
+  @media(min-width:560px){ .pd-overlay{align-items:center;padding:18px;} .pd-sheet{border-radius:20px;} }
+  .pd-top{position:sticky;top:0;z-index:2;background:rgba(255,255,255,.95);backdrop-filter:blur(6px);display:flex;align-items:center;gap:8px;padding:13px 20px;border-bottom:1px solid var(--line);}
+  .pd-back{font-size:13px;font-weight:700;color:var(--muted);background:none;border:0;cursor:pointer;}
+  .pd-grip{margin:0 auto;height:4px;width:40px;border-radius:99px;background:var(--line);}
+  .pd-body{padding:16px 20px 28px;}
+  .pd-thumb{width:100%;max-width:220px;aspect-ratio:1/1;margin:0 auto;border-radius:16px;background:var(--fill);display:grid;place-items:center;font-size:52px;}
+  .pd-row{display:flex;align-items:center;gap:8px;margin-top:16px;}
+  .pd-brand{font-size:13px;font-weight:800;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;}
+  .pd-rating{margin-left:auto;font-size:13px;font-weight:800;color:var(--red);}
+  .pd-name{font-size:20px;font-weight:900;margin-top:2px;letter-spacing:-.01em;}
+  .pd-meta{font-size:13px;color:var(--muted);margin-top:4px;}
+  .pd-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
+  .pd-badge{font-size:11px;font-weight:700;background:var(--fill);color:var(--ink);padding:4px 10px;border-radius:99px;}
+  .pd-tag{font-size:11px;color:var(--ink2);background:var(--fill);padding:4px 10px;border-radius:99px;}
+  .pd-typetag{font-size:11px;color:#52525b;border:1px solid var(--line);padding:4px 10px;border-radius:99px;background:#fff;}
+  .pd-concerntag{font-size:11px;color:var(--red);border:1px solid var(--red);background:#fff;padding:4px 10px;border-radius:99px;}
+  .pd-tagrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .pd-desc{font-size:13.5px;color:#52525b;margin-top:12px;line-height:1.6;}
+  .pd-reason{margin-top:12px;border-radius:12px;background:var(--fill);padding:12px 14px;font-size:13px;color:var(--ink2);line-height:1.6;}
+  .pd-volume{margin-top:18px;border:1px solid var(--line);border-radius:16px;background:#fafafa;padding:15px;}
+  .pd-volume .lbl{font-size:13px;font-weight:800;}
+  .pd-volume select{width:100%;margin-top:8px;border-radius:12px;border:1px solid var(--line);background:#fff;padding:12px 14px;font-size:14px;color:var(--ink);font-family:var(--sans);}
+  .pd-volume .row{display:flex;justify-content:space-between;align-items:center;margin-top:8px;}
+  .pd-volume .row .note{font-size:11.5px;color:var(--muted);}
+  .pd-volume .row .price{font-size:19px;font-weight:900;}
+  .pd-actions{margin-top:14px;display:grid;gap:8px;}
+  .pd-instock{display:flex;align-items:center;justify-content:space-between;border-radius:14px;background:var(--fill);padding:10px 16px;}
+  .pd-instock button{border:0;background:none;font-size:20px;color:var(--ink);cursor:pointer;}
+  .cart-head{position:sticky;top:0;background:rgba(255,255,255,.95);backdrop-filter:blur(6px);display:flex;align-items:center;gap:8px;padding:14px 18px;border-bottom:1px solid var(--line);}
+  .cart-head .t{font-size:16px;font-weight:900;}
+  .cart-head .x{margin-left:auto;font-size:13px;font-weight:700;color:var(--muted);background:none;border:0;cursor:pointer;}
+  .cart-body{padding:14px 18px 30px;}
+  .cline{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:16px;padding:10px;margin-bottom:10px;}
+  .cline .pc-thumb{width:48px;height:48px;}
+  .cline .info{min-width:0;flex:1;}
+  .cline .badges{display:flex;gap:5px;margin-top:4px;}
+  .cline .badges span{font-size:9.5px;font-weight:700;background:var(--fill);color:var(--ink2);padding:2px 7px;border-radius:99px;}
+  .cline .right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+  .cline .del{font-size:11px;color:var(--muted2);text-decoration:underline;background:none;border:0;cursor:pointer;}
+  .cart-empty{padding:32px 0;text-align:center;font-size:13px;color:var(--muted2);}
+  .cart-sum{margin-top:6px;border-radius:16px;background:var(--fill);padding:14px;font-size:13px;}
+  .cart-sum .row{display:flex;justify-content:space-between;color:var(--muted);padding:2px 0;}
+  .cart-sum .row b{color:var(--ink);font-weight:700;}
+  .cart-sum .row.total{border-top:1px dashed var(--line);margin-top:5px;padding-top:7px;font-weight:800;color:var(--ink);}
+  .liquid-note{margin-top:10px;border-radius:12px;padding:10px 13px;font-size:11.5px;line-height:1.5;background:var(--fill);color:var(--ink2);}
+
+  /* ---------- 여행 케어 플랜 진입 버튼 ---------- */
+  /* ---------- PAGE 2: 여행 전/중/후 ---------- */
+  .page2-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding-top:2px;}
+  .nav-back{width:34px;height:34px;border-radius:11px;border:1px solid var(--line);background:#fff;display:grid;place-items:center;cursor:pointer;font-size:16px;color:var(--ink);}
+  .page-ind{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.06em;}
+  .page2-title{font-family:var(--disp);font-weight:900;font-size:24px;margin:10px 0 2px;letter-spacing:-.02em;}
+  .page2-sub{font-size:12.5px;color:var(--muted);margin:0 0 16px;}
+  .phase-tabs{display:flex;gap:8px;}
+  .phase-tab{flex:1;border:1px solid var(--line);background:#fff;cursor:pointer;border-radius:14px;padding:11px 6px;text-align:center;font-family:var(--sans);transition:.2s;}
+  .phase-tab b{display:block;font-size:13.5px;color:var(--ink);}
+  .phase-tab span{display:block;font-size:9.5px;color:var(--muted);margin-top:2px;}
+  .phase-tab.active{background:var(--ink);border-color:var(--ink);}
+  .phase-tab.active b{color:#fff;}
+  .phase-tab.active span{color:rgba(255,255,255,.65);}
+  .phase-pane{margin-top:16px;}
+  .phase-pane[hidden]{display:none;}
+  .dday-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--ink2);}
+  .dday-val{font-size:19px;font-weight:900;color:var(--red);}
+  .kit-note{margin-top:10px;background:var(--fill);border-radius:10px;padding:9px 11px;font-size:12px;color:var(--ink2);}
+  .checklist{border:1px solid var(--line);border-radius:14px;padding:15px;background:#fafafa;margin-bottom:14px;}
+  .chk{display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:var(--ink2);padding:6px 0;line-height:1.4;}
+  .chk input{width:16px;height:16px;margin-top:1px;accent-color:var(--ink);flex:none;}
+  .care-card{border:1px solid var(--line);border-left:3px solid var(--ink);border-radius:14px;padding:15px;}
+  .step-no{font-family:var(--disp);font-size:11px;color:var(--red);font-weight:700;letter-spacing:.06em;}
+  .step-h{font-family:var(--disp);font-weight:900;font-size:19px;margin:4px 0 10px;}
+  .step-list{list-style:none;margin:0;padding:0;display:grid;gap:8px;}
+  .step-list li{position:relative;padding-left:20px;font-size:13px;color:#444;}
+  .step-list li::before{content:"";position:absolute;left:2px;top:7px;width:6px;height:6px;border-radius:50%;background:var(--ink);}
+  .makeup-card{margin-top:14px;border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;gap:0;background:#fff;}
+  .makeup-card img{width:76px;height:76px;object-fit:cover;flex:none;}
+  .makeup-body{padding:11px 13px;display:flex;flex-direction:column;justify-content:center;gap:2px;}
+  .makeup-body .mk-flag{font-size:11px;color:var(--muted);}
+  .makeup-body .mk-title{font-size:13.5px;font-weight:800;}
+  .makeup-body .mk-cta{font-size:11.5px;font-weight:700;color:var(--ink);margin-top:2px;}
+  .new-badge{display:inline-block;font-size:9.5px;font-weight:800;color:#a85f00;background:#fff3df;border-radius:99px;padding:2px 8px;margin-left:6px;vertical-align:middle;}
+  .recovery-row{display:flex;align-items:center;gap:10px;background:var(--fill);border-radius:12px;padding:9px 10px;margin-top:12px;}
+  .recovery-row .prod-thumb{width:40px;height:40px;border-radius:10px;font-size:16px;flex:none;background:#fff;display:grid;place-items:center;}
+  .issue-summary{margin-top:10px;display:flex;justify-content:space-between;align-items:center;background:var(--fill);border-radius:12px;padding:11px 14px;}
+  .bottom-actions{display:flex;gap:10px;margin-top:22px;}
+  .footer{margin-top:24px;border-top:1.5px dashed var(--line);padding-top:16px;text-align:center;}
+  .footer .brand{font-family:var(--sans);font-weight:800;font-size:11px;letter-spacing:.32em;}
+  .barcode{display:flex;justify-content:center;align-items:flex-end;gap:1.5px;height:44px;margin:12px 0;}
+  .barcode i{display:block;width:2px;background:var(--ink);}
+  .footer .code{font-family:var(--sans);font-weight:700;font-size:12px;letter-spacing:.28em;color:var(--red);}
+
+  /* ---------- 수령/배송/픽업/완료 ---------- */
+  .fld{display:block;margin-top:12px;}
+  .fld .flbl{font-size:13px;font-weight:800;margin-bottom:6px;display:block;}
+  .fld input,.fld select{width:100%;border-radius:13px;border:1px solid transparent;background:var(--fill);padding:14px 15px;font-size:14px;color:var(--ink);outline:none;font-family:var(--sans);}
+  .fld input:focus,.fld select:focus{border-color:var(--ink);background:#fff;}
+  .method-card{width:100%;text-align:left;border:1px solid var(--line);border-radius:16px;background:#fff;padding:18px;box-shadow:0 8px 24px rgba(20,30,50,.05);cursor:pointer;margin-top:14px;}
+  .method-card .m-ico{font-size:28px;}
+  .method-card .m-title{margin-top:8px;font-size:16px;font-weight:900;}
+  .method-card .m-desc{margin-top:3px;font-size:12.5px;color:var(--muted);}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:13px;padding:12px 14px;margin-top:8px;}
+  .toggle-row .t-title{font-size:13px;font-weight:700;}
+  .toggle-row .t-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .toggle-row input{width:19px;height:19px;accent-color:var(--ink);}
+  .order-line{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink2);margin-bottom:4px;}
+  .order-line b{color:var(--ink);font-weight:700;}
+  .order-total{display:flex;justify-content:space-between;border-top:1px dashed var(--line);margin-top:6px;padding-top:8px;font-size:13.5px;font-weight:800;}
+  .done-emoji{font-size:46px;text-align:center;margin-top:20px;}
+  .done-title{font-family:var(--disp);font-weight:900;font-size:21px;text-align:center;margin-top:10px;}
+  .done-sub{text-align:center;font-size:12.5px;color:var(--muted);margin-top:4px;}
+  .locker-box{margin-top:10px;border-radius:14px;background:var(--fill);padding:16px;text-align:center;}
+  .locker-box .l-code{font-family:var(--disp);font-weight:900;font-size:30px;color:var(--red);letter-spacing:.04em;}
+
+  /* ---------- 상세보기 모달 (AI 판단) ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(20,24,30,.55);backdrop-filter:blur(3px);display:none;align-items:flex-end;justify-content:center;z-index:80;}
+  .overlay.open{display:flex;}
+  .modal{background:#fff;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;border-radius:22px 22px 0 0;padding:20px 20px 28px;}
+  @media(min-width:560px){ .overlay{align-items:center;padding:18px;} .modal{border-radius:20px;} }
+  .modal-top{display:flex;justify-content:space-between;align-items:flex-start;position:sticky;top:-20px;background:#fff;padding-top:2px;padding-bottom:6px;}
+  .modal-close{border:0;background:var(--fill);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:15px;color:var(--ink);}
+  .modal h3{font-family:var(--disp);font-weight:900;font-size:21px;margin:4px 0 2px;}
+  .detail-block{margin-top:22px;}
+  .detail-block > .eyebrow{margin-bottom:12px;}
+  .dt-p{font-size:13px;color:#444;line-height:1.65;margin:0 0 9px;}
+  .dt-p b{color:var(--ink);}
+  .wtable{width:100%;border-collapse:collapse;font-size:12px;}
+  .wtable th{font-size:10px;font-weight:700;color:var(--muted);text-align:left;padding:6px 6px;border-bottom:1px solid var(--line);}
+  .wtable td{padding:7px 6px;border-bottom:1px solid var(--line);color:var(--ink2);}
+  .wtable tr.hot td:last-child{color:var(--red);font-weight:700;}
+  .axis-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .axis{border:1px solid var(--line);border-radius:14px;padding:12px;background:#fff;}
+  .axis .a-top{display:flex;align-items:center;gap:8px;}
+  .axis .a-ico{font-size:15px;}
+  .axis .a-kr{font-weight:800;font-size:13.5px;}
+  .axis .a-en{font-size:9px;color:var(--muted);letter-spacing:.08em;font-weight:700;text-transform:uppercase;}
+  .axis .a-desc{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5;}
+  .ing-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .ing-h{font-size:12px;font-weight:800;margin-bottom:9px;}
+  .ing-list{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:12px;color:var(--ink2);}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;}
+  .tag{font-size:10.5px;font-weight:700;background:#fbe7e5;color:var(--red);padding:4px 9px;border-radius:99px;}
+  .routine{display:grid;gap:10px;}
+  .rt{border:1px solid var(--line);border-radius:14px;padding:13px;}
+  .rt-h{font-weight:800;font-size:12.5px;display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+  .rt-h .dot{width:8px;height:8px;border-radius:50%;background:var(--ink);}
+  .rt-flow{font-size:12px;color:var(--ink2);line-height:1.7;}
+  .rt-flow b{color:var(--red);}
+</style>
+</head>
+<body>
+
+  <div class="review-note">
+    <h1>결과화면 재구성 미리보기 v3 (정적 목업 · 실제 앱 미반영)</h1>
+    <p>기준: 색·폰트·컴포넌트 디자인은 <code>app/page.tsx</code> 그대로, 화면 구성 순서·페이지 전환은 <code>Boarding pass.html</code>을 따랐습니다.</p>
+    <div class="warn">⚠️ 실제 코드(app/page.tsx)는 아직 수정하지 않았고 커밋/푸시도 하지 않았습니다.</div>
+    <div class="v3">
+      <b>이번(v3) 반영:</b>
+      <ul>
+        <li>보딩패스 카드 ~ AI 써머리까지 카드 4개로 나뉘어 있던 걸 <b>흰 카드 1개</b>로 통합(내부는 Boarding Pass처럼 점선 구분선만 사용)</li>
+        <li>"계산 로직(안)" 메모는 <b>미리보기 전용 주석</b>입니다 — 노란 점선 박스로 표시했고, 실제 앱 화면에는 나타나지 않습니다.</li>
+        <li>"AI가 고른 여행 스킨케어"에 실제 앱 정보량(브랜드·평점·성분태그·안전배지·이유·용량선택·가격·담기)을 전부 살리고, 카드 폭·가로 스와이프 비율만 Boarding Pass 스타일 적용</li>
+        <li>추천 세트 위에 실제 앱의 회색 요약 박스(근거 흐름 요약)를 그대로 추가</li>
+        <li>"직접 고르기" 탭에 실제 제품 데이터(lib/products.ts) 전체를 카테고리 탭과 함께 노출</li>
+        <li>장바구니 담기/수량조절/플로팅 버튼/바텀시트/"신청하기" → 수령방식 → 배송신청·공항픽업 폼 → 완료 화면까지 실제 앱 플로우를 전부 동작하는 형태로 구현</li>
+      </ul>
+    </div>
+    <div class="qa">
+      <b>미확인 채 진행한 부분(다르면 말씀해주세요):</b> "내 제품과 비교" 탭은 실제 카메라 스캔 로직과 연결되어 있어 이 정적 목업에선 화면만 재현했습니다(클릭해도 동작 없음). 실제 적용 시엔 기존 스캔 기능 그대로 연결하면 됩니다.
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="frame">
+      <div class="sheet" id="sheet">
+
+        <!-- ======================= PAGE 1 · 결과 ======================= -->
+        <div class="page active" id="page-1">
+          <div class="eyebrow-top">여행자님의 뷰티 여권</div>
+
+          <!-- 보딩패스 ~ AI 써머리 통합 카드 -->
+          <div class="unified">
+            <div class="bp-head"><span>BOARDING PASS</span><span>BP-2608</span></div>
+            <div class="u-body">
+
+              <div class="usec">
+                <div class="bp-row">
+                  <div><div class="lbl">Passenger</div><div class="val">여행자</div></div>
+                  <div style="text-align:right;font-size:12px;color:var(--muted);">만 28세 · 여성</div>
+                </div>
+                <div class="bp-route">
+                  <div><div class="lbl">From</div><div style="margin-top:2px;font-size:15px;font-weight:800;">일상</div></div>
+                  <div class="plane">✈</div>
+                  <div style="text-align:right;"><div class="lbl">To</div><div style="margin-top:2px;font-size:15px;font-weight:800;">발리 · 인도네시아</div></div>
+                </div>
+                <div class="bp-dates">
+                  <span style="color:var(--ink2);">2026.08.03 ~ 2026.08.09</span>
+                  <span class="bp-nights">6박 7일</span>
+                </div>
+                <div style="margin-top:16px;">
+                  <span class="eyebrow">Baumann Skin Type</span>
+                  <div class="bp-code-row">
+                    <div class="bp-pill">OSPW</div>
+                    <div><div class="bp-nick">복합 고민러</div><div class="bp-tag">지성·민감·색소·주름, 균형 잡힌 진정 케어</div></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="usec">
+                <span class="eyebrow">Skin Issue Index</span>
+                <h3 class="card-title" style="margin-top:2px;">📊 피부 이슈 지수</h3>
+                <div class="idx-wrap">
+                  <div class="gauge" id="gauge" style="--val:71;">
+                    <div class="g-inner"><div class="g-num">71</div><div class="g-max">/ 100</div><div class="g-tag">주의</div></div>
+                  </div>
+                  <div class="subindex">
+                    <div class="si-row high"><div class="si-head"><span>자외선 노출</span><span class="v">88</span></div><div class="bar-track"><div class="bar-fill" data-w="88"></div></div></div>
+                    <div class="si-row high"><div class="si-head"><span>색소 침착</span><span class="v">75</span></div><div class="bar-track"><div class="bar-fill" data-w="75"></div></div></div>
+                    <div class="si-row"><div class="si-head"><span>수분 손실</span><span class="v">32</span></div><div class="bar-track"><div class="bar-fill" data-w="32"></div></div></div>
+                    <div class="si-row high"><div class="si-head"><span>트러블·유수분</span><span class="v">80</span></div><div class="bar-track"><div class="bar-fill" data-w="80"></div></div></div>
+                  </div>
+                </div>
+                <div class="idx-formula">
+                  <b>PREVIEW ONLY · 실제 화면엔 안 보임</b>
+                  자외선노출=UV×8 · 색소침착=UV×5+(P축 +20) · 수분손실=(100−습도)×0.6+(D축 +25 / 아니면 +10)+(기온≥30 +10) · 트러블·유수분=(O축 +30)+(습도≥70 +20)+(기온≥28 +15)+(트러블 고민 +15)
+                </div>
+              </div>
+
+              <div class="usec">
+                <span class="eyebrow">Weather Calendar</span>
+                <h3 class="card-title" style="margin-top:2px;">📅 여행 날씨 캘린더</h3>
+                <p class="cal-meta">발리 · 08.03 – 08.09 · 좌우로 넘겨보세요</p>
+                <div class="cal-strip">
+                  <div class="day hot"><i class="uvbar"></i><div class="d-head"><span class="dow">월</span><span class="date">03</span></div><div class="d-mid"><span class="ico">☀️</span><span class="temp">31°<span class="lo">/25°</span></span></div><div class="meta">습도 80% · UV <span class="uvn">11</span></div></div>
+                  <div class="day"><i class="uvbar"></i><div class="d-head"><span class="dow">화</span><span class="date">04</span></div><div class="d-mid"><span class="ico">⛅</span><span class="temp">30°<span class="lo">/24°</span></span></div><div class="meta">습도 78% · UV <span class="uvn">9</span></div></div>
+                  <div class="day hot"><i class="uvbar"></i><div class="d-head"><span class="dow">수</span><span class="date">05</span></div><div class="d-mid"><span class="ico">☀️</span><span class="temp">32°<span class="lo">/25°</span></span></div><div class="meta">습도 76% · UV <span class="uvn">11</span></div></div>
+                  <div class="day"><i class="uvbar"></i><div class="d-head"><span class="dow">목</span><span class="date">06</span></div><div class="d-mid"><span class="ico">🌦️</span><span class="temp">29°<span class="lo">/24°</span></span></div><div class="meta">습도 84% · UV <span class="uvn">7</span></div></div>
+                  <div class="day hot"><i class="uvbar"></i><div class="d-head"><span class="dow">금</span><span class="date">07</span></div><div class="d-mid"><span class="ico">☀️</span><span class="temp">31°<span class="lo">/25°</span></span></div><div class="meta">습도 79% · UV <span class="uvn">11</span></div></div>
+                  <div class="day"><i class="uvbar"></i><div class="d-head"><span class="dow">토</span><span class="date">08</span></div><div class="d-mid"><span class="ico">⛅</span><span class="temp">30°<span class="lo">/24°</span></span></div><div class="meta">습도 80% · UV <span class="uvn">9</span></div></div>
+                  <div class="day hot"><i class="uvbar"></i><div class="d-head"><span class="dow">일</span><span class="date">09</span></div><div class="d-mid"><span class="ico">☀️</span><span class="temp">32°<span class="lo">/26°</span></span></div><div class="meta">습도 75% · UV <span class="uvn">12</span></div></div>
+                </div>
+                <div class="cal-legend"><span><i style="background:var(--red)"></i>자외선 강함</span><span><i style="background:#9ca3af"></i>보통</span></div>
+              </div>
+
+              <div class="usec">
+                <span class="eyebrow">AI Summary</span>
+                <h3 class="card-title" style="margin-top:2px;">🤖 AI가 이렇게 판단했어요</h3>
+                <div class="ai-tags">
+                  <span class="ai-tag">28세</span><span class="ai-tag">OSPW</span><span class="ai-tag">고온다습</span><span class="ai-tag">UV 12</span><span class="ai-tag">바다 물놀이</span>
+                </div>
+                <p class="ai-p"><b>발리</b>는 자외선 12·습도 75%대 고온다습에 바다 물놀이 위주라, <b>워터프루프 선크림(SPF50+ PA++++)</b>이 1순위예요.</p>
+                <p class="ai-p">지성·민감 피부엔 무거운 제형이 트러블을 키우니, 전부 <b>가벼운 수분 + 진정</b> 조합으로 잡았어요.</p>
+                <button class="btn" id="openDetail" style="margin-top:14px;">📋 상세보기 — AI 판단 · 날씨 · 성분 · 루틴</button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- 추천 제품 -->
+          <div class="card">
+            <span class="eyebrow">Recommended</span>
+            <h3 class="card-title" style="margin-top:2px;">🧴 AI가 고른 여행 스킨케어</h3>
+            <div class="rec-summary" id="recSummary">지성·민감 피부 + 발리 고온다습·강자외선 데이터를 반영해 가벼운 텍스처 5종을 우선순위로 골랐어요.</div>
+
+            <div class="rec-tabs">
+              <button class="rec-tab active" data-rtab="set">추천 세트</button>
+              <button class="rec-tab" data-rtab="compare">내 제품과 비교</button>
+            </div>
+
+            <div class="rec-pane" data-rpane="set">
+              <p class="swipe-hint">카테고리별 대표 1개 · 좌우로 넘겨보세요</p>
+              <div class="set-swipe" id="recSwipe"></div>
+              <div class="rec-btn-row">
+                <button class="btn sm" id="addAllBtn" style="flex:1;">전체 담기 →</button>
+                <button class="btn ghost sm" id="goPickBtn" style="flex:1;">직접 고르기 →</button>
+              </div>
+            </div>
+
+            <div class="rec-pane" data-rpane="compare" hidden>
+              <div class="cam-drop">
+                <div class="cam-ico">📷</div>
+                <p class="cam-lead">내 화장품을 촬영하면 <b>AI가 자동으로 인식</b>해요.</p>
+                <p class="cam-sub">패키지 앞면이 잘 보이게 찍어 주세요.</p>
+                <button class="btn cam-btn">카메라로 촬영</button>
+                <button class="btn ghost cam-btn" style="margin-top:8px;">사진 업로드</button>
+                <p class="cam-note">※ 이 목업에서는 화면만 재현 — 실제 스캔 로직은 기존 기능 그대로 연결</p>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn big" id="toPlan">여행 케어 플랜 보기 →</button>
+
+          <div class="footer">
+            <div class="brand">BEAUTY PASSPORT</div>
+            <div class="barcode"></div>
+            <div class="code">BP 2608 08 09</div>
+          </div>
+        </div><!-- /page1 -->
+
+        <!-- ======================= PAGE PICK · 직접 고르기 ======================= -->
+        <div class="page" id="page-pick">
+          <div class="page2-top">
+            <button class="nav-back" data-goto="page-1">‹</button>
+            <span class="page-ind">직접 고르기</span>
+          </div>
+          <div class="page2-title" style="font-size:22px;">전체 제품에서 고르기</div>
+          <p class="page2-sub">카테고리별로 모든 제품을 둘러보고 담을 수 있어요.</p>
+          <div class="cat-tabs" id="catTabs"></div>
+          <div class="pick-list" id="pickList"></div>
+        </div><!-- /page-pick -->
+
+        <!-- ======================= PAGE 2 · 여행 케어 플랜 ======================= -->
+        <div class="page" id="page-2">
+          <div class="page2-top">
+            <button class="nav-back" data-goto="page-1">‹</button>
+            <span class="page-ind">PAGE 2 / 2</span>
+          </div>
+          <div class="page2-title">여행 전 · 중 · 후</div>
+          <p class="page2-sub">시점을 고르면 체크리스트와 타임라인 케어가 나와요.</p>
+
+          <div class="phase-tabs" id="phaseTabs">
+            <button class="phase-tab active" data-phase="0"><b>여행 전</b><span>D-7 ~ D-1</span></button>
+            <button class="phase-tab" data-phase="1"><b>여행 중</b><span>현지 케어</span></button>
+            <button class="phase-tab" data-phase="2"><b>여행 후</b><span>회복</span></button>
+          </div>
+
+          <div class="phase-pane" data-phase="0">
+            <div class="dday-row"><span>출발까지</span><span class="dday-val">D-12</span></div>
+            <div class="kit-note">📦 소용량 키트 도착 예정일 <b>2026.07.29</b> (출발 2일 전)</div>
+            <div class="checklist" style="margin-top:14px;">
+              <span class="eyebrow" style="margin-bottom:10px;display:block;">Checklist · 출발 전 준비</span>
+              <label class="chk"><input type="checkbox"> 여권 유효기간 6개월 이상 · 비자(도착비자) 확인</label>
+              <label class="chk"><input type="checkbox"> 기내 액체류 100ml 미만 용기로 소분 + 투명 지퍼백</label>
+              <label class="chk"><input type="checkbox"> 발리는 한국과 같은 220V·C/F 플러그 → 어댑터 불필요(멀티탭만)</label>
+              <label class="chk"><input type="checkbox"> 50Hz라 드라이기·고데기·에어랩은 두고 프리볼트 충전기만</label>
+              <label class="chk"><input type="checkbox"> 여행자보험 · eSIM/유심 · 항공권/숙소 바우처</label>
+            </div>
+            <div class="care-card">
+              <div class="step-no">STEP 01 · 여행 전</div>
+              <div class="step-h">피부 장벽 준비</div>
+              <ul class="step-list">
+                <li>세라마이드 · 판테놀로 피부 장벽을 미리 강화</li>
+                <li>각질 정리는 출발 3일 전까지만 마무리</li>
+                <li>새 제품 도입 금지 — 여행 중 트러블 예방</li>
+                <li>자외선 차단 습관을 지금부터 몸에 익히기</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="phase-pane" data-phase="1" hidden>
+            <div class="checklist">
+              <span class="eyebrow" style="margin-bottom:10px;display:block;">Checklist · 현지에서</span>
+              <label class="chk"><input type="checkbox"> 발리 관광 부담금(약 IDR 150,000) 결제 확인</label>
+              <label class="chk"><input type="checkbox"> 콘센트 220V·50Hz — 고전력 기기 사용 자제</label>
+              <label class="chk"><input type="checkbox"> 루피아 소액 현금 + 카드/모바일 결제 준비</label>
+              <label class="chk"><input type="checkbox"> 수돗물 대신 생수 · 얼음 주의</label>
+              <label class="chk"><input type="checkbox"> 모기기피제 사용(뎅기열 대비) · 강한 자외선 차단</label>
+            </div>
+            <div class="care-card">
+              <div class="step-no">STEP 02 · 여행 중</div>
+              <div class="step-h">차단 · 수분 · 진정</div>
+              <ul class="step-list">
+                <li>2~3시간마다 선크림 재도포 (스틱 타입 활용)</li>
+                <li>냉장 미스트로 수시로 수분 · 쿨링</li>
+                <li>저녁 진정 마스크로 하루 열감 완화</li>
+                <li>물놀이 후 즉시 재세정 + 수분 보충</li>
+              </ul>
+            </div>
+            <button class="btn ghost sm" style="margin-top:14px;">현지/추가 배송 요청 →</button>
+            <div style="margin-top:16px;">
+              <span class="eyebrow">현지 메이크업 <span class="new-badge">이동됨 — 기존엔 캘린더 아래 독립 카드였음</span></span>
+              <div class="makeup-card">
+                <img src="public/assets/makeup/id/card.jpg" alt="인도네시아 메이크업" onerror="this.style.display='none'" />
+                <div class="makeup-body">
+                  <div class="mk-flag">🇮🇩 인도네시아 · 발리</div>
+                  <div class="mk-title">현지 대표 메이크업 확인하기</div>
+                  <div class="mk-cta">사진과 함께 포인트 팁 보기 →</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="phase-pane" data-phase="2" hidden>
+            <div class="checklist">
+              <span class="eyebrow" style="margin-bottom:10px;display:block;">Checklist · 돌아와서</span>
+              <label class="chk"><input type="checkbox"> 남은 루피아 환전 · 영수증/카드 내역 정리</label>
+              <label class="chk"><input type="checkbox"> 바닷물·모래 닿은 전자기기/옷 세척·건조</label>
+              <label class="chk"><input type="checkbox"> 여행 사진 백업 · eSIM/유심 원상 복구</label>
+              <label class="chk"><input type="checkbox"> 햇볕에 지친 피부 진정·수분 회복(아래 케어 참고)</label>
+            </div>
+            <div class="care-card">
+              <div class="step-no">STEP 03 · 여행 후</div>
+              <div class="step-h">색소 진정 · 장벽 회복</div>
+              <ul class="step-list">
+                <li>비타민C · 나이아신아마이드로 색소 진정</li>
+                <li>세라마이드 크림으로 손상된 장벽 회복</li>
+                <li>딥 수분 마스크 3일 집중 케어</li>
+                <li>트러블이 심하면 전문가 상담 권장</li>
+              </ul>
+            </div>
+            <div class="recovery-row">
+              <div class="prod-thumb">🫙</div>
+              <div><div style="font-size:10.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;">에스트라</div><div style="font-size:12.5px;font-weight:800;">아토베리어365 크림</div></div>
+            </div>
+            <div class="issue-summary">
+              <span style="font-size:13px;color:var(--ink2);">이번 여행 피부 이슈 지수</span>
+              <span style="font-size:16px;font-weight:900;">71 · 주의</span>
+            </div>
+          </div>
+
+          <div class="bottom-actions">
+            <button class="btn ghost" style="flex:1;">다시하기 ↺</button>
+            <button class="btn" style="flex:1;">공유하기 🔗</button>
+          </div>
+
+          <div class="footer">
+            <div class="brand">BEAUTY PASSPORT</div>
+            <div class="barcode"></div>
+            <div class="code">BP 2608 08 09</div>
+          </div>
+        </div><!-- /page2 -->
+
+        <!-- ======================= PAGE R · 수령 방식 ======================= -->
+        <div class="page" id="page-receive">
+          <button class="nav-back" data-goto="page-1" style="margin-top:2px;">‹</button>
+          <div class="page2-title" style="font-size:22px;margin-top:10px;">어떻게 받으실래요?</div>
+          <p class="page2-sub" id="receiveSub">담긴 샘플 0개 · 0원</p>
+
+          <button class="method-card" data-goto="page-delivery">
+            <div class="m-ico">📦</div>
+            <div class="m-title">배송으로 받기</div>
+            <div class="m-desc">출발 전 미리 집(또는 원하는 곳)에서 받아보세요.</div>
+          </button>
+          <button class="method-card" data-goto="page-pickup">
+            <div class="m-ico">🛄</div>
+            <div class="m-title">공항에서 픽업</div>
+            <div class="m-desc">출국 당일 공항 보관함에서 바로 찾아가세요.</div>
+          </button>
+        </div>
+
+        <!-- ======================= PAGE D · 배송 신청 ======================= -->
+        <div class="page" id="page-delivery">
+          <button class="nav-back" data-goto="page-receive" style="margin-top:2px;">‹</button>
+          <div class="page2-title" style="font-size:22px;margin-top:10px;">배송 신청</div>
+
+          <div class="card">
+            <h3 class="card-title">배송 시점</h3>
+            <label class="toggle-row"><div><div class="t-title">출국 전 배송</div><div class="t-sub" id="dvBeforeSub">예상 도착 2026.07.29 (출발 2일 전)</div></div><input type="checkbox" id="dvBefore" checked /></label>
+            <label class="toggle-row"><div><div class="t-title">여행 후 케어 배송</div><div class="t-sub" id="dvAfterSub">예상 도착 2026.08.12 (귀국 후)</div></div><input type="checkbox" id="dvAfter" /></label>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">배송 정보</h3>
+            <label class="fld"><span class="flbl">받는 사람</span><input id="dvName" placeholder="이름" /></label>
+            <label class="fld"><span class="flbl">연락처</span><input id="dvPhone" placeholder="010-0000-0000" inputmode="tel" /></label>
+            <label class="fld"><span class="flbl">배송지</span><input id="dvAddr" placeholder="주소를 입력하세요" /></label>
+            <label class="fld"><span class="flbl">요청사항 (선택)</span><input id="dvNote" placeholder="예: 부재 시 경비실에 맡겨주세요" /></label>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">주문 요약</h3>
+            <div id="dvOrderLines" style="margin-top:8px;"></div>
+            <div class="order-total"><span>합계</span><span id="dvTotal">0원</span></div>
+          </div>
+
+          <button class="btn big" id="dvSubmit" disabled>주문 완료</button>
+        </div>
+
+        <!-- ======================= PAGE P · 공항 픽업 ======================= -->
+        <div class="page" id="page-pickup">
+          <button class="nav-back" data-goto="page-receive" style="margin-top:2px;">‹</button>
+          <div class="page2-title" style="font-size:22px;margin-top:10px;">공항 픽업 신청</div>
+
+          <div class="card">
+            <h3 class="card-title">픽업 정보</h3>
+            <label class="fld"><span class="flbl">픽업 공항</span>
+              <select id="pkAirport">
+                <option value="">공항을 선택하세요</option>
+                <option>인천공항 T1</option><option>인천공항 T2</option><option>김포공항</option><option>김해공항</option><option>제주공항</option>
+              </select>
+            </label>
+            <label class="fld"><span class="flbl">픽업 날짜</span><input id="pkDate" type="date" /></label>
+            <p style="font-size:11.5px;color:var(--muted);margin-top:4px;">출발일(2026.08.03) 이후는 선택할 수 없어요 · 출발 당일 픽업을 권장해요.</p>
+            <label class="fld"><span class="flbl">픽업 시간</span>
+              <select id="pkTime">
+                <option value="">시간을 선택하세요</option>
+                <option>09:00</option><option>10:00</option><option>11:00</option><option>13:00</option><option>15:00</option>
+              </select>
+            </label>
+            <p style="font-size:11.5px;color:var(--muted);margin-top:4px;">✈️ 출발 시각 최소 2시간 전 픽업을 권장해요.</p>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">신청자 정보</h3>
+            <label class="fld"><span class="flbl">이름</span><input value="여행자" disabled style="opacity:.6;" /></label>
+            <label class="fld"><span class="flbl">연락처</span><input id="pkPhone" placeholder="010-0000-0000" inputmode="tel" /></label>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">주문 요약</h3>
+            <div id="pkOrderLines" style="margin-top:8px;"></div>
+            <div class="order-total"><span>합계</span><span id="pkTotal">0원</span></div>
+          </div>
+
+          <button class="btn big" id="pkSubmit" disabled>예약 완료</button>
+        </div>
+
+        <!-- ======================= PAGE C · 완료 ======================= -->
+        <div class="page" id="page-done">
+          <div class="done-emoji" id="doneEmoji">📦</div>
+          <div class="done-title" id="doneTitle">주문이 완료되었습니다!</div>
+          <div class="done-sub" id="doneOrderNo">주문번호 BP000000</div>
+
+          <div class="card">
+            <h3 class="card-title">주문 요약</h3>
+            <div id="doneOrderLines" style="margin-top:8px;"></div>
+            <div class="order-total"><span>합계</span><span id="doneTotal">0원</span></div>
+            <div style="margin-top:8px;font-size:11.5px;color:var(--muted);">✈️ 전 제품 100ml 이하 · 기내 반입 가능</div>
+          </div>
+
+          <div class="card" id="doneDeliveryCard">
+            <h3 class="card-title">📦 배송 안내</h3>
+            <p style="font-size:13px;color:var(--ink2);margin-top:8px;">여행 일정에 맞춰 소용량 키트를 준비해 배송합니다.</p>
+            <div id="doneDeliveryLines" style="margin-top:6px;font-size:11.5px;color:var(--muted);"></div>
+          </div>
+
+          <div class="card" id="donePickupCard" style="display:none;">
+            <h3 class="card-title">🛄 픽업 안내</h3>
+            <div style="font-size:13px;color:var(--ink2);margin-top:8px;" id="donePickupInfo"></div>
+            <div class="locker-box"><div style="font-size:11px;color:var(--muted);" id="doneAirport">인천공항 T1 보관함</div><div class="l-code" id="doneLocker">A-42</div><div style="font-size:11px;color:var(--muted);">번 보관함에서 찾아가세요</div></div>
+          </div>
+
+          <button class="btn ghost big" data-goto="page-1">처음으로 ↺</button>
+        </div>
+
+        <div class="cart-fab" id="cartFab"><span>🧳</span><span id="cartFabCount">0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= 장바구니 바텀시트 ======= -->
+  <div class="cart-overlay" id="cartOverlay"></div>
+  <div class="cart-sheet" id="cartSheet">
+    <div class="cart-head"><span class="t">🧳 여행 샘플 장바구니</span><button class="x" id="cartClose">닫기</button></div>
+    <div class="cart-body" id="cartBody"></div>
+  </div>
+
+  <!-- ======= 제품 상세 바텀시트 (실제 앱 ProductDetail 컴포넌트 그대로) ======= -->
+  <div class="pd-overlay" id="pdOverlay">
+    <div class="pd-sheet">
+      <div class="pd-top">
+        <button class="pd-back" id="pdClose">← 목록으로</button>
+        <span class="pd-grip"></span>
+      </div>
+      <div class="pd-body" id="pdBody"></div>
+    </div>
+  </div>
+
+  <!-- ======= 상세보기 모달 (AI 판단) ======= -->
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <div class="modal-top">
+        <div><span class="eyebrow" style="margin-bottom:4px;">Detail · 상세 리포트</span><h3>OSPW · 복합 고민러</h3></div>
+        <button class="modal-close" id="closeDetail">&times;</button>
+      </div>
+      <div class="detail-block">
+        <span class="eyebrow">AI Reasoning · AI 판단 상세</span>
+        <p class="dt-p">지성 분비가 많은 <b>지성(O)</b> 경향이에요. 덥고 습한 발리에서 번들거림·모공이 늘기 쉬우니 가벼운 수분과 피지 관리로 밸런스를 잡으세요.</p>
+        <p class="dt-p">외부 자극에 붉어지거나 따가움이 잘 나타나는 <b>민감(S)</b> 경향이에요. 성분 수를 줄인 저자극 진정 케어가 안전합니다.</p>
+        <p class="dt-p">자외선·자극 뒤 색소 침착이 잘 남는 <b>색소(P)</b> 타입이에요. 미백·톤 케어와 함께 '자외선 차단'이 가장 중요합니다.</p>
+        <p class="dt-p">잔주름·탄력 저하가 나타나기 쉬운 <b>주름(W)</b> 타입이에요. 항산화·재생 성분과 자외선 차단으로 광노화를 늦춰주세요.</p>
+      </div>
+      <div class="detail-block">
+        <span class="eyebrow">Weather Detail · 날짜별 날씨</span>
+        <table class="wtable">
+          <thead><tr><th>날짜</th><th>날씨</th><th>기온</th><th>습도</th><th>UV</th></tr></thead>
+          <tbody>
+            <tr class="hot"><td>08.03 월</td><td>맑음</td><td>31° / 25°</td><td>80%</td><td>11</td></tr>
+            <tr><td>08.04 화</td><td>구름조금</td><td>30° / 24°</td><td>78%</td><td>9</td></tr>
+            <tr class="hot"><td>08.05 수</td><td>맑음</td><td>32° / 25°</td><td>76%</td><td>11</td></tr>
+            <tr><td>08.06 목</td><td>소나기</td><td>29° / 24°</td><td>84%</td><td>7</td></tr>
+            <tr class="hot"><td>08.07 금</td><td>맑음</td><td>31° / 25°</td><td>79%</td><td>11</td></tr>
+            <tr><td>08.08 토</td><td>구름조금</td><td>30° / 24°</td><td>80%</td><td>9</td></tr>
+            <tr class="hot"><td>08.09 일</td><td>맑음</td><td>32° / 26°</td><td>75%</td><td>12</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="detail-block">
+        <span class="eyebrow">Baumann Axis · 피부 타입 4축</span>
+        <div class="axis-grid">
+          <div class="axis"><div class="a-top"><span class="a-ico">💧</span><span class="a-kr">지성</span></div><div class="a-en">Oily</div><div class="a-desc">피지 분비가 많아 번들거리기 쉬운 타입</div></div>
+          <div class="axis"><div class="a-top"><span class="a-ico">🔥</span><span class="a-kr">민감</span></div><div class="a-en">Sensitive</div><div class="a-desc">자극에 붉어지기 쉬워 저자극 진정이 필요</div></div>
+          <div class="axis"><div class="a-top"><span class="a-ico">☀️</span><span class="a-kr">색소</span></div><div class="a-en">Pigmented</div><div class="a-desc">자외선·자극 후 색소 침착이 잘 남는 타입</div></div>
+          <div class="axis"><div class="a-top"><span class="a-ico">🍂</span><span class="a-kr">주름</span></div><div class="a-en">Wrinkle-prone</div><div class="a-desc">잔주름·탄력 저하 관리가 필요한 타입</div></div>
+        </div>
+      </div>
+      <div class="detail-block">
+        <span class="eyebrow">Ingredients · 성분 가이드</span>
+        <div class="ing-cols">
+          <div><div class="ing-h">👍 추천 성분</div><ul class="ing-list"><li>나이아신아마이드</li><li>살리실산(BHA)</li><li>아연</li><li>센텔라(시카)</li><li>마데카소사이드</li><li>판테놀</li><li>비타민C</li><li>알부틴</li><li>트라넥삼산</li><li>레티놀</li><li>펩타이드</li><li>항산화제</li></ul></div>
+          <div><div class="ing-h">⚠️ 주의 성분</div><div class="tags"><span class="tag">무거운 오일</span><span class="tag">코코넛 오일</span><span class="tag">인공향료</span><span class="tag">에센셜오일</span><span class="tag">고농도 산</span><span class="tag">무방비 햇볕 노출</span><span class="tag">자외선 방치</span></div></div>
+        </div>
+      </div>
+      <div class="detail-block">
+        <span class="eyebrow">Daily Routine · 데일리 루틴 (신규 제안 — 확인 필요)</span>
+        <div class="routine">
+          <div class="rt"><div class="rt-h"><span class="dot"></span> 아침 (AM)</div><div class="rt-flow">저자극 클렌징 → <b>나이아신아마이드</b> 세럼 → 수분크림 → SPF50+ 재도포</div></div>
+          <div class="rt"><div class="rt-h"><span class="dot"></span> 저녁 (PM)</div><div class="rt-flow">이중 세정 → <b>센텔라(시카)</b> 진정 토너 → 비타민C 세럼 → 세라마이드 크림</div></div>
+        </div>
+      </div>
+      <button class="btn" id="closeDetail2" style="margin-top:22px;">닫기</button>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============ 실제 lib/products.ts 데이터 (그대로) ============ */
+  var CAT_EMOJI = { "토너":"💧", "세럼":"🧪", "크림":"🫙", "선크림":"☀️", "클렌징":"🧖", "앰플":"💉" };
+  var TIERS = [10,20,30,50,75];
+  var DEFAULT_ML = { "토너":30, "세럼":30, "크림":30, "선크림":50, "클렌징":50, "앰플":30 };
+
+  var PRODUCTS = {
+    "roundlab-dokdo-toner":  { brand:"라운드랩", name:"1025 독도 토너", category:"토너", ing:["미네랄","진정"], rating:4.6, fullMl:200, price:20000, safety:["저자극"], reason:"자극 없이 결을 정돈하는 진정 토너 — 지성·민감 축에 잘 맞아요.", forTypes:["지성","복합","민감"], concerns:["트러블"], desc:"자극 없이 결을 정돈하는 진정 토너", url:"https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000132162", linkType:"direct" },
+    "anua-pdrn":             { brand:"아누아", name:"PDRN 히알루론산 캡슐 100 세럼", category:"세럼", ing:["PDRN","히알루론산"], rating:4.6, fullMl:30, price:26000, safety:[], reason:"탄력·보습을 함께 잡아 냉방·기내 건조를 보완해줘요.", forTypes:["건성","복합","중성"], concerns:["수분","주름"], desc:"PDRN+히알루론산으로 탄력·보습을 함께 잡는 세럼", url:"https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000231894", linkType:"direct" },
+    "drg-red-blemish":       { brand:"닥터지", name:"레드 블레미쉬 클리어 수딩 크림", category:"크림", ing:["센텔라","시카"], rating:4.5, fullMl:70, price:30000, safety:["진정","저자극"], reason:"민감·트러블 축에 맞춘 저자극 진정 크림이에요.", forTypes:["민감","복합","지성"], concerns:["트러블"], desc:"붉은기·민감을 진정시키는 수딩크림", url:"https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000164615", linkType:"direct" },
+    "roundlab-birch-sun":    { brand:"라운드랩", name:"자작나무 수분 선크림 SPF50+", category:"선크림", ing:["자작나무수액"], rating:4.6, fullMl:50, price:19000, safety:[], reason:"자외선 지수가 높은 날이 많아 매일 재도포가 필요해요.", forTypes:["건성","중성","복합","민감"], concerns:["수분"], desc:"촉촉하게 발리는 데일리 수분 선크림", url:"https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000149135", linkType:"direct" },
+    "beplain-mungbean":      { brand:"비플레인", name:"녹두 약산성 클렌징폼", category:"클렌징", ing:["약산성","녹두"], rating:4.63, fullMl:80, price:12000, safety:["약산성"], reason:"피지·모공 관리에 좋은 약산성 클렌징이에요.", forTypes:["지성","복합","민감"], concerns:["트러블"], desc:"피지·모공 관리에 좋은 약산성 클렌징", url:"https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000142520", linkType:"direct" },
+    "goodal-vitac":          { brand:"구달", name:"청귤 비타C 잡티케어 세럼", category:"세럼", ing:["비타민C"], rating:4.5, fullMl:30, price:27000, safety:[], reason:"색소(P) 축을 겨냥한 잡티·톤 케어 세럼이에요.", forTypes:["중성","복합","지성"], concerns:["기미"], desc:"비타민C로 잡티·톤 케어하는 브라이트닝 세럼", url:"https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000162325", linkType:"direct" },
+    "wellage-blue-ampoule":  { brand:"웰라쥬", name:"리얼 히알루로닉 블루 100 앰플", category:"앰플", ing:["히알루론산"], rating:4.66, fullMl:100, price:30000, safety:[], reason:"히알루론산 집중 수분 공급으로 기내 건조를 대비해요.", forTypes:["건성","복합","민감"], concerns:["수분"], desc:"히알루론산 앰플로 집중 수분 공급", url:"https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000147809", linkType:"direct" },
+    "esnature-aqua-toner":   { brand:"에스네이처", name:"아쿠아 오아시스 토너", category:"토너", ing:["히알루론산"], rating:4.74, fullMl:300, price:21000, safety:[], reason:"가볍게 수분을 채워주는 데일리 수분 토너예요.", forTypes:["건성","중성","복합"], concerns:["수분"], desc:"가볍게 수분을 채워주는 데일리 수분 토너", url:"https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000158369", linkType:"direct" },
+    "estra-atobarrier":      { brand:"에스트라", name:"아토베리어365 크림", category:"크림", ing:["세라마이드"], rating:4.68, fullMl:80, price:32000, safety:["무향","저자극테스트"], reason:"세라마이드로 장벽을 강화하는 고보습 진정 크림이에요.", forTypes:["건성","민감"], concerns:["수분"], desc:"세라마이드로 피부장벽을 강화하는 고보습 진정 크림", url:"https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000198320", linkType:"direct" },
+    "clio-noscarnine":       { brand:"클리오", name:"노스카나인 트러블 세럼", category:"세럼", ing:["노스카나인","BHA"], rating:4.4, fullMl:20, price:20000, safety:[], reason:"트러블·피지가 걱정될 때 집중 케어하는 세럼이에요.", forTypes:["지성","복합"], concerns:["트러블"], desc:"트러블·피지 집중 케어 세럼", url:"https://www.oliveyoung.co.kr/store/search/getSearchMain.do?query="+encodeURIComponent("클리오 노스카나인 트러블 세럼"), linkType:"search" }
+  };
+  var REC_SET = ["roundlab-dokdo-toner","goodal-vitac","drg-red-blemish","roundlab-birch-sun","beplain-mungbean"];
+
+  function samplePrice(price, fullMl, ml){ return Math.round((price/fullMl*ml)/100)*100; }
+
+  /* ============ 반입 규제 배지 (실제 lib/compliance/check.ts 로직을 발리·인도네시아(ID) 기준으로 계산해둔 결과) ============ */
+  /* 데이터 출처: data/products.json(전성분) × data/country-rules.json(ID: mercury=high_risk, hydroquinone=caution, cbd_cannabis=high_risk, animal_derived=verify_needed) × data/restricted-ingredients.json(uv_filter/allergen flag_regions=["US"]/["EU","GB"] → ASEAN엔 no_flag) */
+  var STATUS_META = {
+    high_risk:     { label:"반입 제한 주의",      fg:"#c0322b", bg:"#fdecea", border:"#f3c2bd" },
+    caution:       { label:"확인 권장",          fg:"#8a5a00", bg:"#fdf4e3", border:"#f0dcae" },
+    verify_needed: { label:"직접 확인 필요",      fg:"#4b5563", bg:"#f3f4f6", border:"#e0e2e6" },
+    no_flag:       { label:"특이 규제 매칭 없음", fg:"#6b7280", bg:"#f7f8fa", border:"#eceef1" }
+  };
+  var COMPLIANCE = {
+    "roundlab-dokdo-toner": { status:"no_flag", complete:true, flags:[] },
+    "anua-pdrn": { status:"verify_needed", complete:false, flags:[
+      { ingredient:"소듐디엔에이(PDRN)", concern:"animal_derived", message:"[인도네시아] '소듐디엔에이(PDRN, 연어 정소 유래)'을(를) 포함합니다. 동물(어류) 유래 원료로 국가별 검역·바이오시큐리티 절차가 별도로 있을 수 있어 확인이 필요합니다.", source:"각국 동식물 검역/바이오시큐리티 규정", as_of:"2026-07-10" }
+    ]},
+    "drg-red-blemish": { status:"no_flag", complete:true, flags:[] },
+    "roundlab-birch-sun": { status:"no_flag", complete:true, flags:[] },
+    "beplain-mungbean": { status:"no_flag", complete:true, flags:[] },
+    "goodal-vitac": { status:"no_flag", complete:false, flags:[] },
+    "wellage-blue-ampoule": { status:"no_flag", complete:true, flags:[] },
+    "esnature-aqua-toner": { status:"no_flag", complete:true, flags:[] },
+    "estra-atobarrier": { status:"no_flag", complete:true, flags:[] }
+    /* clio-noscarnine: 규제 데이터 스펙(15종) 밖 제품 — 실제 앱처럼 배지 자체를 표시하지 않음 */
+  };
+  function complianceHtml(id){
+    var c = COMPLIANCE[id];
+    if(!c) return "";
+    var meta = STATUS_META[c.status];
+    var chip = c.complete === false ? '<span class="comp-chip" title="확인된 전성분 정보가 불완전한 제품입니다.">📄 성분정보 불완전</span>' : "";
+    return (
+      '<div class="comp-wrap">' +
+        '<button type="button" class="comp-badge" style="color:'+meta.fg+';background:'+meta.bg+';border-color:'+meta.border+';">' +
+          '🛂 '+meta.label+(c.flags.length?' · '+c.flags.length+'건':'')+' <span class="comp-chev">▾</span>' +
+        '</button>' + chip +
+        '<div class="comp-detail" hidden>' + complianceDetailHtml(c) + '</div>' +
+      '</div>'
+    );
+  }
+  function complianceDetailHtml(c){
+    var body = c.flags.length
+      ? '<ul class="comp-flags">' + c.flags.map(function(f){
+          return '<li><b>'+f.ingredient+'</b> <span class="comp-concern">('+f.concern+')</span>' +
+                 '<div class="comp-msg">'+f.message+'</div>' +
+                 '<div class="comp-src">출처: '+f.source+' · 기준일 '+f.as_of+'</div></li>';
+        }).join("") + '</ul>'
+      : '<div class="comp-none">대표 규제 성분 목록과 매칭된 항목이 없습니다.</div>';
+    body += '<div class="comp-foot">' +
+      '<p>⚠️ 이 결과는 대표 규제 성분 목록과의 매칭 결과이며, 제품의 전체 성분을 검증한 것이 아닙니다. 매칭된 성분이 없어도 \'안전\' 또는 \'반입 가능\'을 의미하지 않습니다.</p>' +
+      (c.complete === false ? '<p>🔎 이 제품은 확인된 전성분 정보가 불완전합니다. 실제 반입 전 브랜드 공식 채널에서 전성분을 재확인하세요.</p>' : '') +
+      '<p>✈️ 기내 반입 시 개별 용기 100ml 이하, 전체 1000ml(1L) 지퍼백 기준을 확인하세요(일반 기준). 인화성(고알코올·에어로졸) 제품은 별도 제한이 있을 수 있습니다.</p>' +
+      '<p style="color:#a1a1aa;">ℹ️ 규정은 수시로 변경될 수 있으며, 최종 반입 가능 여부는 도착국 세관·관련 기관을 통해 확인해야 합니다. 본 안내는 법적 판정이 아닙니다.</p>' +
+    '</div>';
+    return body;
+  }
+
+  /* ============ 장바구니 상태 ============ */
+  var cart = {}; // key `${id}|${ml}` -> qty
+  function ckey(id, ml){ return id+"|"+ml; }
+  function getQty(id, ml){ return cart[ckey(id,ml)] || 0; }
+  function setQty(id, ml, qty){
+    var k = ckey(id, ml);
+    if(qty <= 0) delete cart[k]; else cart[k] = qty;
+    refreshAll();
+  }
+  function cartLines(){
+    return Object.keys(cart).map(function(k){
+      var parts = k.split("|"); var id = parts[0]; var ml = Number(parts[1]);
+      var p = PRODUCTS[id]; var qty = cart[k];
+      var unit = samplePrice(p.price, p.fullMl, ml);
+      return { id:id, ml:ml, qty:qty, p:p, unit:unit, lineTotal: unit*qty };
+    });
+  }
+  function cartTotalQty(){ return cartLines().reduce(function(s,l){return s+l.qty;}, 0); }
+  function cartTotalPrice(){ return cartLines().reduce(function(s,l){return s+l.lineTotal;}, 0); }
+
+  /* ============ 제품 카드 렌더링 (추천세트 · 직접고르기 · 공통) ============ */
+  function productCard(id, opts){
+    opts = opts || {};
+    var p = PRODUCTS[id];
+    var defaultMl = opts.defaultMl || DEFAULT_ML[p.category] || 30;
+    var wide = opts.wide; // 추천세트: 스와이프 240px / 직접고르기: 목록 100%
+    var tagsHtml = p.ing.map(function(t){ return '<span class="pc-tag">#'+t+'</span>'; }).join("");
+    var safetyHtml = p.safety.map(function(t){ return '<span class="pc-tag safety">✓ '+t+'</span>'; }).join("");
+    var optionsHtml = TIERS.map(function(t){ return '<option value="'+t+'"'+(t===defaultMl?" selected":"")+'>'+t+'ml'+(t===defaultMl?" · 추천":"")+'</option>'; }).join("");
+
+    var card = document.createElement("div");
+    card.className = "pcard" + (wide ? "" : " list-row");
+    card.dataset.id = id;
+    card.innerHTML =
+      '<div class="pc-info">' +
+        '<div class="pc-top">' +
+          '<div class="pc-thumb">'+(CAT_EMOJI[p.category]||"🧴")+'</div>' +
+          '<div style="min-width:0;flex:1;">' +
+            '<div class="pc-brand">'+p.brand+'</div>' +
+            '<div class="pc-name">'+p.name+'</div>' +
+          '</div>' +
+          '<div class="pc-rating">★ '+p.rating.toFixed(2)+'</div>' +
+        '</div>' +
+        '<div class="pc-tags">'+tagsHtml+safetyHtml+'</div>' +
+        '<div class="pc-reason">💡 '+p.reason+'</div>' +
+      '</div>' +
+      complianceHtml(id) +
+      '<div class="pc-buy">' +
+        '<select class="ml-select">'+optionsHtml+'</select>' +
+        '<span class="fly-tag">기내 반입 ✈️</span>' +
+        '<span class="price-val"></span>' +
+        '<span class="qty-area"></span>' +
+      '</div>';
+
+    var info = card.querySelector(".pc-info");
+    info.addEventListener("click", function(){ openProductDetail(id, Number(card.querySelector(".ml-select").value)); });
+    var select = card.querySelector(".ml-select");
+    select.addEventListener("change", function(){ renderCardState(card); });
+    var compBtn = card.querySelector(".comp-badge");
+    if(compBtn){
+      compBtn.addEventListener("click", function(){
+        var panel = card.querySelector(".comp-detail");
+        var willOpen = panel.hidden;
+        panel.hidden = !willOpen;
+        compBtn.classList.toggle("open", willOpen);
+      });
+    }
+    card.__render = function(){ renderCardState(card); };
+    renderCardState(card);
+    return card;
+  }
+  function miniCard(id){
+    var p = PRODUCTS[id];
+    var div = document.createElement("div");
+    div.className = "mcard";
+    div.innerHTML =
+      '<div class="mc-thumb">'+(CAT_EMOJI[p.category]||"🧴")+'</div>' +
+      '<div class="mc-body">' +
+        '<div class="mc-name">'+p.name+'</div>' +
+        '<div class="mc-tags"><span class="pc-tag">'+p.category+'</span>'+(p.ing[0]?'<span class="pc-tag">#'+p.ing[0]+'</span>':'')+'</div>' +
+      '</div>';
+    div.addEventListener("click", function(){ openProductDetail(id, DEFAULT_ML[p.category] || 30); });
+    return div;
+  }
+
+  /* ============ 제품 상세 바텀시트 (실제 앱 ProductDetail 컴포넌트 그대로) ============ */
+  var pdOverlay = document.getElementById("pdOverlay");
+  var pdBody = document.getElementById("pdBody");
+  var pdState = { id:null, ml:null };
+
+  function openProductDetail(id, ml){
+    pdState.id = id; pdState.ml = ml;
+    renderPd();
+    pdOverlay.classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+  function closeProductDetail(){
+    pdOverlay.classList.remove("open");
+    document.body.style.overflow = "";
+    pdState.id = null;
+  }
+  document.getElementById("pdClose").addEventListener("click", closeProductDetail);
+  pdOverlay.addEventListener("click", function(e){ if(e.target === pdOverlay) closeProductDetail(); });
+
+  function renderPd(){
+    if(!pdState.id) return;
+    var id = pdState.id, ml = pdState.ml;
+    var p = PRODUCTS[id];
+    var price = samplePrice(p.price, p.fullMl, ml);
+    var qty = getQty(id, ml);
+    var defaultMl = DEFAULT_ML[p.category] || 30;
+
+    var safetyHtml = p.safety.map(function(s){ return '<span class="pd-badge">✓ '+s+'</span>'; }).join("");
+    var ingHtml = p.ing.map(function(t){ return '<span class="pd-tag">#'+t+'</span>'; }).join("");
+    var forTypeHtml = p.forTypes.map(function(t){ return '<span class="pd-typetag">'+t+'</span>'; }).join("");
+    var concernHtml = p.concerns.map(function(c){ return '<span class="pd-concerntag">'+c+'</span>'; }).join("");
+    var optionsHtml = TIERS.map(function(t){ return '<option value="'+t+'"'+(t===ml?" selected":"")+'>'+t+'ml · 기내 반입 가능 ✈️'+(t===defaultMl?" (추천)":"")+'</option>'; }).join("");
+    var buyLabel = "본품 구매하기 (올리브영)" + (p.linkType === "search" ? ' <span style="font-size:11px;font-weight:400;color:var(--muted2);">· 검색</span>' : "");
+
+    pdBody.innerHTML =
+      '<div class="pd-thumb">'+(CAT_EMOJI[p.category]||"🧴")+'</div>' +
+      '<div class="pd-row"><span class="pd-brand">'+p.brand+'</span><span class="pd-rating">★ '+p.rating.toFixed(2)+'</span></div>' +
+      '<div class="pd-name">'+p.name+'</div>' +
+      '<div class="pd-meta">정품 '+p.fullMl+'ml · 정가 '+p.price.toLocaleString()+'원</div>' +
+      (safetyHtml ? '<div class="pd-badges">'+safetyHtml+'</div>' : "") +
+      complianceHtml(id) +
+      '<div class="pd-tagrow">'+ingHtml+'</div>' +
+      '<div class="pd-tagrow">'+forTypeHtml+concernHtml+'</div>' +
+      '<div class="pd-desc">'+p.desc+'</div>' +
+      '<div class="pd-reason">💡 이 여행에 딱 맞아요 — '+p.reason+'</div>' +
+      '<div class="pd-volume">' +
+        '<div class="lbl">소용량 선택 (기내 반입 가능 ✈️)</div>' +
+        '<select id="pdMl">'+optionsHtml+'</select>' +
+        '<div class="row"><span class="note">'+p.category+' 카테고리 추천 <b>'+defaultMl+'ml</b></span><span class="price" id="pdPrice">'+price.toLocaleString()+'원</span></div>' +
+      '</div>' +
+      '<div class="pd-actions">' +
+        '<button class="btn ghost" id="pdBuy">'+buyLabel+'</button>' +
+        '<div id="pdAddArea"></div>' +
+      '</div>';
+
+    document.getElementById("pdMl").addEventListener("change", function(){
+      pdState.ml = Number(this.value);
+      renderPd();
+    });
+    document.getElementById("pdBuy").addEventListener("click", function(){ window.open(p.url, "_blank", "noopener"); });
+
+    var addArea = document.getElementById("pdAddArea");
+    if(qty === 0){
+      addArea.innerHTML = '<button class="btn" id="pdAdd">샘플 담기 · '+price.toLocaleString()+'원</button>';
+      document.getElementById("pdAdd").addEventListener("click", function(){ setQty(id, ml, 1); });
+    } else {
+      addArea.innerHTML =
+        '<div class="pd-instock">' +
+          '<span style="font-size:13px;font-weight:700;">샘플 '+ml+'ml 담김</span>' +
+          '<div style="display:flex;align-items:center;gap:14px;">' +
+            '<button id="pdDec">−</button><span style="font-weight:800;">'+qty+'</span><button id="pdInc">＋</button>' +
+          '</div>' +
+        '</div>';
+      document.getElementById("pdDec").addEventListener("click", function(){ setQty(id, ml, qty-1); });
+      document.getElementById("pdInc").addEventListener("click", function(){ setQty(id, ml, qty+1); });
+    }
+
+    var compBtn = pdBody.querySelector(".comp-badge");
+    if(compBtn){
+      compBtn.addEventListener("click", function(){
+        var panel = pdBody.querySelector(".comp-detail");
+        var willOpen = panel.hidden;
+        panel.hidden = !willOpen;
+        compBtn.classList.toggle("open", willOpen);
+      });
+    }
+  }
+  function renderCardState(card){
+    var id = card.dataset.id;
+    var p = PRODUCTS[id];
+    var ml = Number(card.querySelector(".ml-select").value);
+    var price = samplePrice(p.price, p.fullMl, ml);
+    card.querySelector(".price-val").textContent = price.toLocaleString()+"원";
+    var qty = getQty(id, ml);
+    var area = card.querySelector(".qty-area");
+    area.innerHTML = "";
+    if(qty === 0){
+      var btn = document.createElement("button");
+      btn.className = "add-btn"; btn.textContent = "담기";
+      btn.addEventListener("click", function(){ setQty(id, ml, 1); });
+      area.appendChild(btn);
+    } else {
+      var wrap = document.createElement("div"); wrap.className = "stepper";
+      var minus = document.createElement("button"); minus.textContent = "−";
+      minus.addEventListener("click", function(){ setQty(id, ml, qty-1); });
+      var span = document.createElement("span"); span.textContent = qty;
+      var plus = document.createElement("button"); plus.textContent = "＋";
+      plus.addEventListener("click", function(){ setQty(id, ml, qty+1); });
+      wrap.appendChild(minus); wrap.appendChild(span); wrap.appendChild(plus);
+      area.appendChild(wrap);
+    }
+  }
+
+  /* ============ 추천 세트 (Boarding Pass처럼 최대한 간단히 · 전체 담기 1버튼) ============ */
+  var recSwipe = document.getElementById("recSwipe");
+  REC_SET.forEach(function(id){ recSwipe.appendChild(miniCard(id)); });
+
+  var addAllBtn = document.getElementById("addAllBtn");
+  addAllBtn.addEventListener("click", function(){
+    REC_SET.forEach(function(id){
+      var ml = DEFAULT_ML[PRODUCTS[id].category] || 30;
+      if(getQty(id, ml) === 0) cart[ckey(id, ml)] = 1;
+    });
+    refreshAll();
+    addAllBtn.textContent = "담았어요 ✓";
+    setTimeout(function(){ addAllBtn.textContent = "전체 담기 →"; }, 1200);
+  });
+  document.getElementById("goPickBtn").addEventListener("click", function(){ goPage("page-pick"); });
+
+  /* ============ 직접 고르기: 카테고리 탭 + 전체 제품 ============ */
+  var CATS = Array.from(new Set(Object.keys(PRODUCTS).map(function(id){ return PRODUCTS[id].category; })));
+  var catTabsEl = document.getElementById("catTabs");
+  var pickListEl = document.getElementById("pickList");
+  var activeCat = CATS[0];
+  function renderCatTabs(){
+    catTabsEl.innerHTML = "";
+    CATS.forEach(function(cat){
+      var b = document.createElement("button");
+      b.className = "cat-tab" + (cat === activeCat ? " active" : "");
+      b.textContent = CAT_EMOJI[cat]+" "+cat;
+      b.addEventListener("click", function(){ activeCat = cat; renderCatTabs(); renderPickList(); });
+      catTabsEl.appendChild(b);
+    });
+  }
+  function renderPickList(){
+    pickListEl.innerHTML = "";
+    Object.keys(PRODUCTS).filter(function(id){ return PRODUCTS[id].category === activeCat; }).forEach(function(id){
+      pickListEl.appendChild(productCard(id, { wide:false }));
+    });
+  }
+  renderCatTabs(); renderPickList();
+
+  /* ============ 화면 전체 새로고침 (카트 변경 시) ============ */
+  function refreshAll(){
+    document.querySelectorAll(".pcard").forEach(function(card){ if(card.__render) card.__render(); });
+    renderCartFab();
+    renderCartSheet();
+    renderCheckoutSummaries();
+    if(pdState.id) renderPd();
+  }
+
+  /* ============ 플로팅 카트 버튼 + 바텀시트 ============ */
+  var cartFab = document.getElementById("cartFab");
+  var cartFabCount = document.getElementById("cartFabCount");
+  var cartOverlay = document.getElementById("cartOverlay");
+  var cartSheetEl = document.getElementById("cartSheet");
+  var cartBody = document.getElementById("cartBody");
+
+  function renderCartFab(){
+    var qty = cartTotalQty();
+    cartFabCount.textContent = qty;
+    var onShopPage = document.getElementById("page-1").classList.contains("active") || document.getElementById("page-pick").classList.contains("active");
+    cartFab.classList.toggle("show", qty > 0 && onShopPage);
+  }
+  function openCartSheet(){ cartOverlay.classList.add("open"); cartSheetEl.classList.add("open"); document.body.style.overflow = "hidden"; }
+  function closeCartSheet(){ cartOverlay.classList.remove("open"); cartSheetEl.classList.remove("open"); document.body.style.overflow = ""; }
+  cartFab.addEventListener("click", openCartSheet);
+  cartOverlay.addEventListener("click", closeCartSheet);
+  document.getElementById("cartClose").addEventListener("click", closeCartSheet);
+
+  function renderCartSheet(){
+    var lines = cartLines();
+    if(lines.length === 0){
+      cartBody.innerHTML = '<div class="cart-empty">장바구니가 비어있어요.</div>';
+      return;
+    }
+    var html = "";
+    lines.forEach(function(l){
+      html +=
+        '<div class="cline">' +
+          '<div class="pc-thumb">'+(CAT_EMOJI[l.p.category]||"🧴")+'</div>' +
+          '<div class="info">' +
+            '<div class="pc-brand">'+l.p.brand+'</div>' +
+            '<div class="pc-name">'+l.p.name+'</div>' +
+            '<div class="badges"><span>'+l.ml+'ml</span><span>기내 반입 ✈️</span></div>' +
+          '</div>' +
+          '<div class="right">' +
+            '<div class="stepper">' +
+              '<button data-act="dec" data-id="'+l.id+'" data-ml="'+l.ml+'">−</button>' +
+              '<span>'+l.qty+'</span>' +
+              '<button data-act="inc" data-id="'+l.id+'" data-ml="'+l.ml+'">＋</button>' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:8px;">' +
+              '<span style="font-size:11.5px;font-weight:700;">'+l.lineTotal.toLocaleString()+'원</span>' +
+              '<button class="del" data-act="del" data-id="'+l.id+'" data-ml="'+l.ml+'">삭제</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    });
+    var totalQty = cartTotalQty();
+    var totalMl = lines.reduce(function(s,l){return s+l.ml*l.qty;}, 0);
+    var totalPrice = cartTotalPrice();
+    html +=
+      '<div class="cart-sum">' +
+        '<div class="row"><span>총 제품 수</span><b>'+totalQty+'개</b></div>' +
+        '<div class="row"><span>총 용량</span><b>'+totalMl+'ml</b></div>' +
+        '<div class="row total"><span>총 금액</span><span>'+totalPrice.toLocaleString()+'원</span></div>' +
+      '</div>' +
+      '<div class="liquid-note">✈️ 전 제품 개별 100ml 이하 — 기내 반입 가능해요.<br><span style="opacity:.8;font-size:11px;">기내 액체 규정: 개별 100ml 이하 · 총합 1L 이하 · 투명 지퍼백 권장</span></div>' +
+      '<button class="btn big" id="checkoutBtn">신청하기 →</button>';
+    cartBody.innerHTML = html;
+
+    cartBody.querySelectorAll('[data-act="inc"]').forEach(function(b){ b.addEventListener("click", function(){ setQty(b.dataset.id, Number(b.dataset.ml), getQty(b.dataset.id, Number(b.dataset.ml))+1); }); });
+    cartBody.querySelectorAll('[data-act="dec"]').forEach(function(b){ b.addEventListener("click", function(){ setQty(b.dataset.id, Number(b.dataset.ml), getQty(b.dataset.id, Number(b.dataset.ml))-1); }); });
+    cartBody.querySelectorAll('[data-act="del"]').forEach(function(b){ b.addEventListener("click", function(){ setQty(b.dataset.id, Number(b.dataset.ml), 0); }); });
+    var checkoutBtn = document.getElementById("checkoutBtn");
+    if(checkoutBtn) checkoutBtn.addEventListener("click", function(){ closeCartSheet(); goPage("page-receive"); });
+  }
+
+  /* ============ 페이지 전환 ============ */
+  function goPage(id){
+    document.querySelectorAll(".page").forEach(function(p){ p.classList.toggle("active", p.id === id); });
+    document.getElementById("sheet").scrollTop = 0;
+    renderCartFab();
+  }
+  document.querySelectorAll("[data-goto]").forEach(function(el){
+    el.addEventListener("click", function(){ goPage(el.dataset.goto); });
+  });
+  document.getElementById("toPlan").addEventListener("click", function(){ goPage("page-2"); });
+
+  /* ============ 여행 전/중/후 탭 ============ */
+  var tabs = document.querySelectorAll(".phase-tab");
+  var panes = document.querySelectorAll(".phase-pane");
+  tabs.forEach(function(t){
+    t.addEventListener("click", function(){
+      var p = t.getAttribute("data-phase");
+      tabs.forEach(function(x){ x.classList.toggle("active", x === t); });
+      panes.forEach(function(pane){ pane.hidden = pane.getAttribute("data-phase") !== p; });
+    });
+  });
+
+  /* ============ 추천 제품 rec-tabs ============ */
+  var rtabs = document.querySelectorAll(".rec-tab");
+  var rpanes = document.querySelectorAll(".rec-pane");
+  rtabs.forEach(function(t){
+    t.addEventListener("click", function(){
+      var k = t.getAttribute("data-rtab");
+      rtabs.forEach(function(x){ x.classList.toggle("active", x === t); });
+      rpanes.forEach(function(p){ p.hidden = p.getAttribute("data-rpane") !== k; });
+    });
+  });
+
+  /* ============ 수령/배송/픽업/완료 ============ */
+  function orderLinesHtml(){
+    return cartLines().map(function(l){
+      return '<div class="order-line"><span>'+l.p.brand+' '+l.p.name+' · '+l.ml+'ml ×'+l.qty+'</span><b>'+l.lineTotal.toLocaleString()+'원</b></div>';
+    }).join("") || '<div class="order-line" style="color:var(--muted2);">담긴 샘플이 없어요.</div>';
+  }
+  function renderCheckoutSummaries(){
+    var total = cartTotalPrice();
+    document.getElementById("receiveSub").textContent = "담긴 샘플 "+cartTotalQty()+"개 · "+total.toLocaleString()+"원";
+    document.getElementById("dvOrderLines").innerHTML = orderLinesHtml();
+    document.getElementById("dvTotal").textContent = total.toLocaleString()+"원";
+    document.getElementById("pkOrderLines").innerHTML = orderLinesHtml();
+    document.getElementById("pkTotal").textContent = total.toLocaleString()+"원";
+    checkDeliveryValid();
+    checkPickupValid();
+  }
+
+  // 배송 폼
+  var dvName = document.getElementById("dvName");
+  var dvPhone = document.getElementById("dvPhone");
+  var dvAddr = document.getElementById("dvAddr");
+  var dvBefore = document.getElementById("dvBefore");
+  var dvAfter = document.getElementById("dvAfter");
+  var dvSubmit = document.getElementById("dvSubmit");
+  function checkDeliveryValid(){
+    var valid = dvName.value.trim() !== "" && dvPhone.value.trim() !== "" && dvAddr.value.trim() !== "" && (dvBefore.checked || dvAfter.checked);
+    dvSubmit.disabled = !valid;
+  }
+  [dvName, dvPhone, dvAddr].forEach(function(el){ el.addEventListener("input", checkDeliveryValid); });
+  [dvBefore, dvAfter].forEach(function(el){ el.addEventListener("change", checkDeliveryValid); });
+  dvPhone.addEventListener("input", function(){ dvPhone.value = dvPhone.value.replace(/[^0-9-]/g, ""); });
+
+  // 픽업 폼
+  var pkAirport = document.getElementById("pkAirport");
+  var pkDate = document.getElementById("pkDate");
+  var pkTime = document.getElementById("pkTime");
+  var pkPhone = document.getElementById("pkPhone");
+  var pkSubmit = document.getElementById("pkSubmit");
+  function checkPickupValid(){
+    var valid = !!pkAirport.value && !!pkDate.value && !!pkTime.value && pkPhone.value.trim() !== "";
+    pkSubmit.disabled = !valid;
+  }
+  [pkAirport, pkDate, pkTime].forEach(function(el){ el.addEventListener("change", checkPickupValid); });
+  pkPhone.addEventListener("input", function(){ pkPhone.value = pkPhone.value.replace(/[^0-9-]/g, ""); checkPickupValid(); });
+
+  function genOrderNo(){ return "BP" + Math.random().toString(36).slice(2, 8).toUpperCase(); }
+  function genLockerNo(){ var letter = "ABCDEF"[Math.floor(Math.random()*6)]; var num = Math.floor(Math.random()*89)+10; return letter+"-"+num; }
+
+  dvSubmit.addEventListener("click", function(){
+    if(dvSubmit.disabled) return;
+    document.getElementById("doneEmoji").textContent = "📦";
+    document.getElementById("doneTitle").textContent = "주문이 완료되었습니다!";
+    document.getElementById("doneOrderNo").textContent = "주문번호 " + genOrderNo();
+    document.getElementById("doneOrderLines").innerHTML = orderLinesHtml();
+    document.getElementById("doneTotal").textContent = cartTotalPrice().toLocaleString()+"원";
+    var lines = [];
+    if(dvBefore.checked) lines.push("· 출국 전 배송 — 예상 도착 2026.07.29");
+    if(dvAfter.checked) lines.push("· 여행 후 케어 배송 — 예상 도착 2026.08.12");
+    document.getElementById("doneDeliveryLines").innerHTML = lines.join("<br>");
+    document.getElementById("doneDeliveryCard").style.display = "";
+    document.getElementById("donePickupCard").style.display = "none";
+    goPage("page-done");
+  });
+
+  pkSubmit.addEventListener("click", function(){
+    if(pkSubmit.disabled) return;
+    document.getElementById("doneEmoji").textContent = "🛄";
+    document.getElementById("doneTitle").textContent = "예약이 완료되었습니다!";
+    document.getElementById("doneOrderNo").textContent = "주문번호 " + genOrderNo();
+    document.getElementById("doneOrderLines").innerHTML = orderLinesHtml();
+    document.getElementById("doneTotal").textContent = cartTotalPrice().toLocaleString()+"원";
+    document.getElementById("donePickupInfo").textContent = pkAirport.value+" · "+pkDate.value+" · "+pkTime.value;
+    document.getElementById("doneAirport").textContent = pkAirport.value+" 보관함";
+    document.getElementById("doneLocker").textContent = genLockerNo();
+    document.getElementById("doneDeliveryCard").style.display = "none";
+    document.getElementById("donePickupCard").style.display = "";
+    goPage("page-done");
+  });
+
+  /* ============ 게이지 · 막대 애니메이션 ============ */
+  requestAnimationFrame(function(){
+    document.querySelectorAll(".bar-fill").forEach(function(f){ f.style.width = f.getAttribute("data-w") + "%"; });
+  });
+
+  /* ============ 상세보기 모달 ============ */
+  var overlay = document.getElementById("overlay");
+  function openModal(){ overlay.classList.add("open"); document.body.style.overflow="hidden"; }
+  function closeModal(){ overlay.classList.remove("open"); document.body.style.overflow=""; }
+  document.getElementById("openDetail").addEventListener("click", openModal);
+  document.getElementById("closeDetail").addEventListener("click", closeModal);
+  document.getElementById("closeDetail2").addEventListener("click", closeModal);
+  overlay.addEventListener("click", function(e){ if(e.target === overlay) closeModal(); });
+  document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeModal(); });
+
+  /* ============ 바코드 (실제 앱 components/passport-ui.tsx의 PassportBarcode 그대로: 46개 · 폭 2px 고정 · 높이 26~44px 랜덤) ============ */
+  document.querySelectorAll(".barcode").forEach(function(bc){
+    for(var bi = 0; bi < 46; bi++){
+      var bar = document.createElement("i");
+      bar.style.height = Math.round(Math.random()*18 + 26) + "px";
+      bc.appendChild(bar);
+    }
+  });
+
+  refreshAll();
+})();
+</script>
+</body>
+</html>
