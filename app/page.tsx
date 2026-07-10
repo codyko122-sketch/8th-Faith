@@ -97,6 +97,8 @@ const CHECKLIST_ITEMS = [
 ];
 // 귀국 후 진정·장벽 회복 루틴 추천 (판테놀 진정 세럼 + 세라마이드 배리어 크림)
 const RECOVERY_IDS = ["layerlab-panthenol", "estra-atobarrier"];
+// "직접 고르기" 카테고리 탭 — 전체 카탈로그(lib/products.ts) 기준
+const PICK_CATEGORIES = Array.from(new Set(COSMETICS.map((c) => c.category)));
 
 /* ════════════════════════ [6-2]~[6-4] 장바구니 · 수령 · 완료 ════════════════════════ */
 const PICKUP_AIRPORTS = ["인천공항 T1", "인천공항 T2", "김포공항", "김해공항", "제주공항"];
@@ -656,6 +658,21 @@ function comboComment(p: { temp: number; humidity: number; uv: number; dust: num
   return `${env} 여행지에서 ${type} 피부라면 ${advice[type] ?? "기본 보습과 자외선 차단을 챙기세요."}`;
 }
 
+// 피부 이슈 지수 세부 항목(자외선노출/색소침착/수분손실/트러블·유수분) — 여행지 기후 × Baumann 코드로 산출
+function skinIssueSubindex(p: { temp: number; humidity: number; uv: number; dust: number }, code: string, concerns: string[]) {
+  const dry = code[0] === "D";
+  const oily = code[0] === "O";
+  const pigmented = code[2] === "P";
+  const uvExposure = Math.min(100, Math.round(p.uv * 8));
+  const pigment = Math.min(100, Math.round(p.uv * 5 + (pigmented ? 20 : 5) + (p.dust >= 70 ? 10 : 0)));
+  const hydrationLoss = Math.min(100, Math.round((100 - p.humidity) * 0.6 + (dry ? 25 : 10) + (p.temp >= 30 ? 10 : 0)));
+  const troubleSebum = Math.min(
+    100,
+    Math.round((oily ? 30 : 10) + (p.humidity >= 70 ? 20 : 8) + (p.temp >= 28 ? 15 : 5) + (concerns.includes("트러블") ? 15 : 0))
+  );
+  return { uvExposure, pigment, hydrationLoss, troubleSebum };
+}
+
 // 스캔 결과 성분 태그 색상 (여권 팔레트)
 const SCAN_PILL: Record<string, string> = {
   key: "bg-[#0a0a0a] text-white",
@@ -730,6 +747,12 @@ export default function BeautyPassportExperience() {
   const [cartOpen, setCartOpen] = useState(false);
   // 여행지 대표 메이크업 스타일노트
   const [makeupOpen, setMakeupOpen] = useState(false);
+  // 결과 화면 내 서브뷰(보딩패스 요약 ↔ 직접 고르기 ↔ 여행 케어 플랜) · AI 판단 상세 모달 · 여행 전/중/후 탭
+  const [resultView, setResultView] = useState<"main" | "pick" | "plan">("main");
+  const [showAiDetail, setShowAiDetail] = useState(false);
+  const [carePhase, setCarePhase] = useState<0 | 1 | 2>(0);
+  const [pickCat, setPickCat] = useState(PICK_CATEGORIES[0]);
+  const [recTab, setRecTab] = useState<"set" | "compare">("set");
   // [6-3] 수령 방식
   const [receiveMethod, setReceiveMethod] = useState<"delivery" | "pickup" | null>(null);
   // [6-3A] 배송 신청
@@ -751,6 +774,7 @@ export default function BeautyPassportExperience() {
   const timer = useRef<number | null>(null);
 
   // ── AI 성분 스캔 ──
+  const [scanFromResult, setScanFromResult] = useState(false);
   const [scanStep, setScanStep] = useState<"camera" | "loading" | "result" | "error">("camera");
   const [scanImage, setScanImage] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
@@ -770,6 +794,16 @@ export default function BeautyPassportExperience() {
     setCameraReady(false);
   }
   function openScan() {
+    setScanFromResult(false);
+    setScanStep("camera");
+    setScanImage(null);
+    setScanResult(null);
+    setScanError(null);
+    setScanSaved(false);
+    setStage("scan");
+  }
+  function openScanFromResult() {
+    setScanFromResult(true);
     setScanStep("camera");
     setScanImage(null);
     setScanResult(null);
@@ -779,7 +813,8 @@ export default function BeautyPassportExperience() {
   }
   function exitScan() {
     stopScanCamera();
-    setStage(loggedInId ? "member" : "journey");
+    setStage(scanFromResult ? "result" : loggedInId ? "member" : "journey");
+    setScanFromResult(false);
   }
   async function analyzeScan(dataUrl: string) {
     stopScanCamera();
@@ -980,6 +1015,15 @@ export default function BeautyPassportExperience() {
   function toggleChecklist(i: number) {
     setChecklist((c) => c.map((v, idx) => (idx === i ? !v : v)));
   }
+  function addAllRec() {
+    if (!result) return;
+    const dryHigh = result.profile.humidity <= 45;
+    const uvHigh = result.profile.uv >= 8;
+    result.recItems.forEach(({ p }) => {
+      const rec = recommendVolume(p.category, result.days, dryHigh, uvHigh);
+      if (cartQty(p.id, rec.ml) === 0) addSample(p.id, rec.ml);
+    });
+  }
   function goCheckout() {
     setCartOpen(false);
     setReceiveMethod(null);
@@ -1125,6 +1169,7 @@ export default function BeautyPassportExperience() {
     setDeliveryName(""); setDeliveryPhone(""); setDeliveryAddress(""); setDeliveryNote("");
     setPickupAirport(null); setPickupDate(null); setPickupTime(null); setPickupPhone("");
     setOrderNo(null); setLockerNo(null);
+    setResultView("main"); setShowAiDetail(false); setCarePhase(0); setPickCat(PICK_CATEGORIES[0]);
     setStage("intro");
   }
 
@@ -2501,424 +2546,528 @@ export default function BeautyPassportExperience() {
                 <div className="min-h-full">
                   <div className="mb-3 text-center font-sans text-[10px] font-bold uppercase tracking-[0.28em] text-[#71717a]">{name || "여행자"}님의 뷰티 여권</div>
 
-                  {/* 보딩패스 종합 요약 */}
-                  {skin && (
-                    <div className="overflow-hidden rounded-2xl border border-[#e7e7ea] bg-white shadow-[0_8px_24px_rgba(20,30,50,0.06)]">
-                      {/* 헤더 스트립 */}
-                      <div className="flex items-center justify-between bg-[#0a0a0a] px-[18px] py-3 text-white">
-                        <span className="text-[12px] font-extrabold tracking-[0.18em]">BOARDING PASS</span>
-                        <span className="text-[12px] font-bold tracking-[0.06em] text-white/70">BP-{(departDate ?? "2026-08").slice(2, 4)}{(departDate ?? "2026-08-08").slice(5, 7)}</span>
-                      </div>
-
-                      <div className="p-[18px]">
-                        {/* 탑승객 */}
-                        <div className="flex items-end justify-between">
-                          <div>
-                            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Passenger</div>
-                            <div className="mt-0.5 text-[22px] font-black tracking-[-0.02em] text-[#0a0a0a]">{name || "여행자"}</div>
-                          </div>
-                          <div className="text-right text-xs text-[#71717a]">
-                            {age && <>만 {age}세 · </>}{gender}
-                          </div>
-                        </div>
-
-                        {/* 항로 */}
-                        <div className="mt-4 flex items-center justify-between border-y border-dashed border-[#e7e7ea] py-3">
-                          <div>
-                            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">From</div>
-                            <div className="mt-0.5 text-base font-extrabold text-[#0a0a0a]">일상</div>
-                          </div>
-                          <div className="text-[15px] text-[#ec1c24]">✈</div>
-                          <div className="text-right">
-                            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">To</div>
-                            <div className="mt-0.5 text-base font-extrabold text-[#0a0a0a]">{result.placeLabel}</div>
-                          </div>
-                        </div>
-
-                        {/* 일정 */}
-                        <div className="mt-3 flex items-center justify-between text-sm">
-                          <div className="text-[#3f3f46]">
-                            {departDate && arriveDate ? `${fmtISO(departDate)} ~ ${fmtISO(arriveDate)}` : "일정 미정"}
-                          </div>
-                          <div className="rounded-full border border-[#ec1c24] px-2.5 py-0.5 text-[11px] font-extrabold text-[#ec1c24]">
-                            {result.days - 1}박 {result.days}일
-                          </div>
-                        </div>
-
-                        {/* 여행지 날씨 (Open-Meteo 예보 / 실패 시 계절 기본값) */}
-                        <div className="mt-3 flex items-center justify-between">
-                          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Weather</div>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                              result.wxSource === "실시간 예보" ? "bg-[#f4f4f5] text-[#0a0a0a]" : "bg-[#f4f4f5] text-[#71717a]"
-                            }`}
-                          >
-                            {result.wxSource === "실시간 예보" ? "🛰️ 실시간 예보" : "📊 계절 기본값"}
-                          </span>
-                        </div>
-                        <div className="mt-2 grid grid-cols-4 gap-2">
-                          <Metric icon="🌡️" label="기온" value={`${result.profile.temp}℃`} />
-                          <Metric icon="💧" label="습도" value={`${result.profile.humidity}%`} />
-                          <Metric icon="☀️" label="UV" value={`${result.profile.uv}`} />
-                          <Metric icon="😷" label="미세먼지" value={`${result.profile.dust}`} />
-                        </div>
-
-                        {/* 피부 타입 — Baumann 16-타입 */}
-                        {(() => {
+                  {resultView === "main" && (
+                    <>
+                      {/* 보딩패스 요약 + 피부 이슈 지수 + 날씨 캘린더 + AI 써머리 (통합 카드) */}
+                      {skin &&
+                        (() => {
                           const bt = BAUMANN_TYPES[skin.code];
-                          const care = baumannCare(skin.code);
+                          const sub = skinIssueSubindex(result.profile, skin.code, skin.recConcerns);
                           return (
-                            <div className="mt-5 border-t border-dashed border-[#e7e7ea] pt-4">
-                              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Baumann Skin Type</div>
-                              <div className="mt-1.5 flex items-center gap-3">
-                                <div className="flex h-14 items-center rounded-xl bg-[#0a0a0a] px-4 text-2xl font-black tracking-[0.08em] text-white">
-                                  {skin.code}
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="text-[17px] font-black leading-tight text-[#0a0a0a]">{bt?.nick ?? skin.code}</div>
-                                  <div className="text-[12px] leading-snug text-[#71717a]">{bt?.tagline}</div>
-                                </div>
+                            <div className="overflow-hidden rounded-2xl border border-[#e7e7ea] bg-white shadow-[0_8px_24px_rgba(20,30,50,0.06)]">
+                              {/* 헤더 스트립 */}
+                              <div className="flex items-center justify-between bg-[#0a0a0a] px-[18px] py-3 text-white">
+                                <span className="text-[12px] font-extrabold tracking-[0.18em]">BOARDING PASS</span>
+                                <span className="text-[12px] font-bold tracking-[0.06em] text-white/70">BP-{(departDate ?? "2026-08").slice(2, 4)}{(departDate ?? "2026-08-08").slice(5, 7)}</span>
                               </div>
 
-                              {/* 4축 요약 배지 */}
-                              <div className="mt-3 grid grid-cols-2 gap-2">
-                                {BAUMANN_AXES.map((ax, i) => {
-                                  const opt = skin.code[i] === ax.a.letter ? ax.a : ax.b;
-                                  return (
-                                    <div key={ax.key} className="flex items-center gap-2 rounded-xl border border-[#e7e7ea] px-3 py-2">
-                                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#0a0a0a] text-[11px] font-bold text-white">{opt.letter}</span>
-                                      <span className="text-[13px] font-semibold text-[#0a0a0a]">{opt.ko}</span>
-                                      <span className="ml-auto text-[10px] uppercase tracking-[0.1em] text-[#9ca3af]">{opt.en}</span>
+                              <div className="p-[18px]">
+                                {/* 탑승객 · 항로 · 일정 · Baumann 요약 */}
+                                <div className="flex items-end justify-between">
+                                  <div>
+                                    <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Passenger</div>
+                                    <div className="mt-0.5 text-[22px] font-black tracking-[-0.02em] text-[#0a0a0a]">{name || "여행자"}</div>
+                                  </div>
+                                  <div className="text-right text-xs text-[#71717a]">
+                                    {age && <>만 {age}세 · </>}{gender}
+                                  </div>
+                                </div>
+
+                                <div className="mt-4 flex items-center justify-between border-y border-dashed border-[#e7e7ea] py-3">
+                                  <div>
+                                    <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">From</div>
+                                    <div className="mt-0.5 text-base font-extrabold text-[#0a0a0a]">일상</div>
+                                  </div>
+                                  <div className="text-[15px] text-[#ec1c24]">✈</div>
+                                  <div className="text-right">
+                                    <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">To</div>
+                                    <div className="mt-0.5 text-base font-extrabold text-[#0a0a0a]">{result.placeLabel}</div>
+                                  </div>
+                                </div>
+
+                                <div className="mt-3 flex items-center justify-between text-sm">
+                                  <div className="text-[#3f3f46]">
+                                    {departDate && arriveDate ? `${fmtISO(departDate)} ~ ${fmtISO(arriveDate)}` : "일정 미정"}
+                                  </div>
+                                  <div className="rounded-full border border-[#ec1c24] px-2.5 py-0.5 text-[11px] font-extrabold text-[#ec1c24]">
+                                    {result.days - 1}박 {result.days}일
+                                  </div>
+                                </div>
+
+                                <div className="mt-4">
+                                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Baumann Skin Type</div>
+                                  <div className="mt-1.5 flex items-center gap-3">
+                                    <div className="flex h-14 items-center rounded-xl bg-[#0a0a0a] px-4 text-2xl font-black tracking-[0.08em] text-white">
+                                      {skin.code}
                                     </div>
-                                  );
-                                })}
-                              </div>
-
-                              {care.paras.map((para, i) => (
-                                <p key={i} className="mt-2 text-[13px] leading-relaxed text-[#52525b]">{para}</p>
-                              ))}
-
-                              <div className="mt-4 grid grid-cols-2 gap-3">
-                                <div>
-                                  <div className="text-xs font-extrabold text-[#0a0a0a]">👍 추천 성분</div>
-                                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                                    {care.good.map((g) => (
-                                      <span key={g} className="rounded-full bg-[#f4f4f5] px-2.5 py-0.5 text-[11px] font-medium text-[#3f3f46]">{g}</span>
-                                    ))}
+                                    <div className="min-w-0">
+                                      <div className="text-[17px] font-black leading-tight text-[#0a0a0a]">{bt?.nick ?? skin.code}</div>
+                                      <div className="text-[12px] leading-snug text-[#71717a]">{bt?.tagline}</div>
+                                    </div>
                                   </div>
                                 </div>
-                                <div>
-                                  <div className="text-xs font-extrabold text-[#ec1c24]">⚠️ 주의 성분</div>
-                                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                                    {care.avoid.length ? (
-                                      care.avoid.map((g) => (
-                                        <span key={g} className="rounded-full border border-[#ec1c24] bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#ec1c24]">{g}</span>
-                                      ))
-                                    ) : (
-                                      <span className="text-[11px] text-[#9ca3af]">특별히 피할 성분은 없어요</span>
-                                    )}
+
+                                {/* 피부 이슈 지수 */}
+                                <div className="mt-[17px] border-t border-dashed border-[#e7e7ea] pt-[17px]">
+                                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Skin Issue Index</div>
+                                  <h3 className="mt-0.5 text-[15px] font-extrabold text-[#0a0a0a]">📊 피부 이슈 지수</h3>
+                                  <div className="mt-3 flex items-center gap-4">
+                                    <div
+                                      className="relative grid h-[88px] w-[88px] flex-none place-items-center rounded-full"
+                                      style={{ background: `conic-gradient(#ec1c24 ${result.index.score}%, #f4f4f5 0)` }}
+                                    >
+                                      <div className="absolute h-[68px] w-[68px] rounded-full bg-white" />
+                                      <div className="relative text-center leading-none">
+                                        <div className="text-2xl font-black text-[#0a0a0a]">{result.index.score}</div>
+                                        <div className="text-[9px] text-[#9ca3af]">/ 100</div>
+                                        <div className="mt-0.5 text-[9px] font-extrabold tracking-[0.06em] text-[#ec1c24]">{result.index.level}</div>
+                                      </div>
+                                    </div>
+                                    <div className="grid flex-1 grid-cols-2 gap-x-3.5 gap-y-2.5">
+                                      <SubindexBar label="자외선 노출" value={sub.uvExposure} />
+                                      <SubindexBar label="색소 침착" value={sub.pigment} />
+                                      <SubindexBar label="수분 손실" value={sub.hydrationLoss} />
+                                      <SubindexBar label="트러블·유수분" value={sub.troubleSebum} />
+                                    </div>
                                   </div>
+                                </div>
+
+                                {/* 여행 날씨 캘린더 */}
+                                <div className="mt-[17px] border-t border-dashed border-[#e7e7ea] pt-[17px]">
+                                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Weather Calendar</div>
+                                  <h3 className="mt-0.5 text-[15px] font-extrabold text-[#0a0a0a]">📅 여행 날씨 캘린더</h3>
+                                  <p className="mt-1 text-xs text-[#71717a]">{result.placeLabel} · 좌우로 넘겨보세요</p>
+                                  <div className="scroll-x mt-3 flex gap-2 overflow-x-auto pb-1">
+                                    {result.calendar.map((c, k) => {
+                                      const hot = c.emojis.some((e) => e.icon === "🔥");
+                                      return (
+                                        <div
+                                          key={k}
+                                          className={`relative min-w-[76px] flex-none overflow-hidden rounded-xl border px-2.5 py-2 text-center ${
+                                            hot ? "border-[#f6d0d0] bg-gradient-to-b from-white to-[#fef6f6]" : "border-[#e7e7ea] bg-white"
+                                          }`}
+                                        >
+                                          <span className={`absolute inset-x-0 top-0 h-[3px] ${hot ? "bg-[#ec1c24]" : "bg-[#9ca3af]"}`} />
+                                          <div className="text-[11px] font-bold text-[#0a0a0a]">
+                                            {c.date} <span className="text-[#9ca3af]">({c.weekday})</span>
+                                          </div>
+                                          <div className="my-1 text-lg leading-none">{c.emojis.map((e) => e.icon).join("")}</div>
+                                          <div className="text-[11px] font-bold text-[#0a0a0a]">{c.temp}℃</div>
+                                          <div className="mt-0.5 text-[9px] text-[#9ca3af]">습도 {c.humidity}% · 미세먼지 {c.dust}</div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                  <div className="mt-2 flex gap-3 text-[10.5px] text-[#71717a]">
+                                    <span className="inline-flex items-center gap-1">
+                                      <i className="inline-block h-[3px] w-3.5 rounded bg-[#ec1c24]" />더운 날
+                                    </span>
+                                    <span className="inline-flex items-center gap-1">
+                                      <i className="inline-block h-[3px] w-3.5 rounded bg-[#9ca3af]" />보통
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* AI 써머리 */}
+                                <div className="mt-[17px] border-t border-dashed border-[#e7e7ea] pt-[17px]">
+                                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">AI Summary</div>
+                                  <h3 className="mt-0.5 text-[15px] font-extrabold text-[#0a0a0a]">🤖 AI가 이렇게 판단했어요</h3>
+                                  <div className="mt-2 flex flex-wrap gap-1.5">
+                                    {age && <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">{age}세</span>}
+                                    <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">{skin.code}</span>
+                                    {result.profile.tag && (
+                                      <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">{result.profile.tag}</span>
+                                    )}
+                                    <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">UV {result.profile.uv}</span>
+                                  </div>
+                                  <p className="mt-2.5 text-[13.5px] leading-relaxed text-[#444]">💬 {comboComment(result.profile, skin.skinTypeForRec)}</p>
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowAiDetail(true)}
+                                    className="mt-3.5 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.985]"
+                                  >
+                                    📋 상세보기 — AI 판단 · 날씨 · 성분 · 루틴
+                                  </button>
                                 </div>
                               </div>
                             </div>
                           );
                         })()}
 
-                        {/* 날씨+피부 한 줄 코멘트 */}
-                        <div className="mt-4 rounded-xl bg-[#f4f4f5] px-4 py-3 text-[13px] leading-relaxed text-[#3f3f46]">
-                          💬 {comboComment(result.profile, skin.skinTypeForRec)}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                      {/* 추천 제품 (추천 세트 · 내 제품과 비교) */}
+                      <Card>
+                        <CardTitle>🧴 AI가 고른 여행 스킨케어</CardTitle>
 
-                  {/* 스크롤 인디케이터 */}
-                  <motion.div
-                    className="mt-5 flex flex-col items-center text-[#9ca3af]"
-                    animate={{ y: [0, 6, 0], opacity: [0.6, 1, 0.6] }}
-                    transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    <span className="text-xs tracking-[0.2em]">아래로 스크롤</span>
-                    <span className="text-lg leading-none">⌄</span>
-                  </motion.div>
-
-                  <Card>
-                    <CardTitle>🌦️ 기후 리포트</CardTitle>
-                    <div className="mt-3 grid grid-cols-4 gap-2">
-                      <Metric icon="🌡️" label="기온" value={`${result.profile.temp}℃`} />
-                      <Metric icon="💧" label="습도" value={`${result.profile.humidity}%`} />
-                      <Metric icon="☀️" label="UV" value={`${result.profile.uv}`} />
-                      <Metric icon="😷" label="미세먼지" value={`${result.profile.dust}`} />
-                    </div>
-                  </Card>
-                  <Card>
-                    <CardTitle>📊 피부 이슈 지수</CardTitle>
-                    <div className="mt-2 flex items-baseline gap-2">
-                      <span className="text-[40px] font-black tracking-[-0.03em] text-[#0a0a0a]">{result.index.score}</span>
-                      <span className="text-sm font-bold text-[#0a0a0a]">{result.index.level}</span>
-                      <span className="text-sm text-[#9ca3af]">/ 100</span>
-                    </div>
-                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#f4f4f5]">
-                      <motion.div className="h-full rounded-full bg-[#0a0a0a]" initial={{ width: 0 }} animate={{ width: `${result.index.score}%` }} transition={{ delay: 0.3, duration: 0.9, ease: EASE }} />
-                    </div>
-                    <ul className="mt-3 space-y-1.5">
-                      {result.index.notes.map((n, k) => (
-                        <li key={k} className="flex gap-2 text-sm text-[#3f3f46]">
-                          <span className="text-[#ec1c24]">•</span>
-                          {n}
-                        </li>
-                      ))}
-                    </ul>
-                  </Card>
-                  <Card>
-                    <CardTitle>📅 여행 날씨 캘린더</CardTitle>
-                    <div className="scroll-x mt-3 flex gap-2 overflow-x-auto pb-2">
-                      {result.calendar.map((c, k) => (
-                        <motion.div key={k} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.15 + k * 0.03, duration: 0.3 }} className="flex min-w-[76px] flex-col items-center rounded-xl bg-[#f4f4f5] px-3 py-2.5 text-center">
-                          <div className="text-[12px] font-bold text-[#0a0a0a]">
-                            {c.date}
-                            <span className="text-[#9ca3af]">({c.weekday})</span>
-                          </div>
-                          <div className="my-1 text-xl leading-none">{c.emojis.map((e) => e.icon).join("")}</div>
-                          <div className="text-[10px] text-[#71717a]">{c.temp}℃</div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </Card>
-                  {makeupNote && (
-                    <Card>
-                      <CardTitle>💄 현지 메이크업</CardTitle>
-                      <p className="mt-2 text-sm leading-relaxed text-[#3f3f46]">
-                        {makeupNote.country}에서 통하는 포인트 메이크업 팁을 사진과 함께 확인해보세요.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setMakeupOpen(true)}
-                        className="mt-3 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.985]"
-                      >
-                        {makeupNote.country}의 대표메이크업 보기 →
-                      </button>
-                    </Card>
-                  )}
-                  <div className="mt-7 text-center text-lg font-black tracking-[-0.01em] text-[#0a0a0a]">
-                    🧴 맞춤 스킨케어 추천
-                  </div>
-                  {/* 근거 흐름 요약 */}
-                  <div className="mt-3 rounded-xl bg-[#f4f4f5] px-4 py-3 text-center text-[13px] font-semibold text-[#3f3f46]">
-                    {result.recSummary}
-                  </div>
-
-                  <div className="mt-3 space-y-3">
-                    {result.recItems.map(({ p, reason }, k) => {
-                      const dryHigh = result.profile.humidity <= 45;
-                      const uvHigh = result.profile.uv >= 8;
-                      const rec = recommendVolume(p.category, result.days, dryHigh, uvHigh);
-                      const ml = volumeSel[p.id] ?? rec.ml;
-                      const price = samplePrice(p.price, p.fullMl, ml);
-                      const qty = cartQty(p.id, ml);
-                      const nights = Math.max(0, result.days - 1);
-                      return (
-                        <motion.div
-                          key={p.id}
-                          initial={{ opacity: 0, y: 16 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.1 + k * 0.08, duration: 0.4, ease: EASE }}
-                          className="rounded-2xl border border-[#e7e7ea] bg-white p-3.5 shadow-[0_8px_24px_rgba(20,30,50,0.05)]"
-                        >
+                        <div className="mt-3 flex gap-1.5 rounded-[14px] bg-[#f4f4f5] p-1">
                           <button
                             type="button"
-                            onClick={() => setDetailId(p.id)}
-                            className="flex w-full gap-3 text-left"
+                            onClick={() => setRecTab("set")}
+                            className={`flex-1 rounded-xl px-2 py-2.5 text-[13.5px] font-extrabold transition ${
+                              recTab === "set" ? "bg-white text-[#0a0a0a] shadow-[0_2px_8px_-2px_rgba(0,0,0,0.14)]" : "text-[#71717a]"
+                            }`}
                           >
-                            <ProductImage product={p} />
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[10.5px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{p.brand}</span>
-                                <span className="text-[11px] text-[#d4d4d8]">·</span>
-                                <span className="text-[11px] text-[#9ca3af]">{p.category}</span>
-                                <span className="ml-auto flex items-center gap-0.5 text-[12px] font-bold text-[#ec1c24]">★ {p.rating.toFixed(2)}</span>
-                              </div>
-                              <div className="mt-0.5 truncate text-sm font-extrabold text-[#0a0a0a]">{p.name}</div>
-                              <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                                {p.ingredients.map((ing) => (
-                                  <span key={ing} className="rounded-full bg-[#f4f4f5] px-2 py-0.5 text-[10px] text-[#3f3f46]">#{ing}</span>
-                                ))}
-                                {p.safety[0] && (
-                                  <span className="rounded-full bg-[#f4f4f5] px-2 py-0.5 text-[10px] font-semibold text-[#0a0a0a]">✓ {p.safety[0]}</span>
+                            추천 세트
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRecTab("compare")}
+                            className={`flex-1 rounded-xl px-2 py-2.5 text-[13.5px] font-extrabold transition ${
+                              recTab === "compare" ? "bg-white text-[#0a0a0a] shadow-[0_2px_8px_-2px_rgba(0,0,0,0.14)]" : "text-[#71717a]"
+                            }`}
+                          >
+                            내 제품과 비교
+                          </button>
+                        </div>
+
+                        {recTab === "set" && (
+                          <div className="mt-4">
+                            <div className="rounded-xl bg-[#f4f4f5] px-4 py-3 text-center text-[13px] font-semibold text-[#3f3f46]">
+                              {result.recSummary}
+                            </div>
+                            <p className="mt-3 text-xs text-[#71717a]">카테고리별 대표 {result.recItems.length}개 · 좌우로 넘겨보세요</p>
+                            <div className="scroll-x mt-2 flex gap-2.5 overflow-x-auto pb-1">
+                              {result.recItems.map(({ p }) => (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  onClick={() => setDetailId(p.id)}
+                                  className="flex w-[108px] flex-none flex-col overflow-hidden rounded-xl border border-[#e7e7ea] bg-white text-left"
+                                >
+                                  <div className="flex h-[52px] items-center justify-center bg-[#f4f4f5]">
+                                    <ProductImage product={p} />
+                                  </div>
+                                  <div className="p-2">
+                                    <div className="line-clamp-2 text-[11.5px] font-extrabold leading-tight text-[#0a0a0a]">{p.name}</div>
+                                    <span className="mt-1.5 inline-block rounded-full bg-[#f4f4f5] px-1.5 py-0.5 text-[9px] font-semibold text-[#71717a]">{p.category}</span>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                            <div className="mt-3 flex gap-2">
+                              <button
+                                type="button"
+                                onClick={addAllRec}
+                                className="flex-1 rounded-[12px] bg-[#0a0a0a] px-3 py-3 text-[13.5px] font-extrabold text-white transition active:scale-[0.985]"
+                              >
+                                전체 담기 →
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setResultView("pick")}
+                                className="flex-1 rounded-[12px] border-[1.5px] border-[#e7e7ea] bg-white px-3 py-3 text-[13.5px] font-extrabold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
+                              >
+                                직접 고르기 →
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {recTab === "compare" && (
+                          <div className="mt-4 rounded-2xl border-[1.5px] border-dashed border-[#d7dbe0] bg-[#fafbfc] p-6 text-center">
+                            <div className="text-3xl">📷</div>
+                            <p className="mt-2.5 text-[13.5px] text-[#0a0a0a]">
+                              내가 쓰는 화장품을 촬영하면 <b className="text-[#ec1c24]">AI가 성분을 분석</b>해줘요.
+                            </p>
+                            <p className="mt-1 text-xs text-[#71717a]">이 여행지 기준 주의 성분·안전 여부까지 함께 확인할 수 있어요.</p>
+                            <button
+                              type="button"
+                              onClick={openScanFromResult}
+                              className="mt-4 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.985]"
+                            >
+                              촬영해서 내 제품 분석하기 →
+                            </button>
+                          </div>
+                        )}
+                      </Card>
+
+                      {/* [6-2] 장바구니는 우측 하단 플로팅 버튼에서 확인 */}
+                      {cart.length > 0 && (
+                        <div className="mt-3.5 flex items-center justify-between rounded-2xl border border-[#e7e7ea] bg-white px-4 py-2.5 text-sm text-[#0a0a0a]">
+                          <span>🧳 담긴 샘플 {cartCount}개</span>
+                          <button onClick={() => setCartOpen(true)} className="font-bold text-[#0a0a0a]">장바구니 보기 →</button>
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setResultView("plan")}
+                        className="mt-4 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-[15px] text-[14.5px] font-extrabold text-white transition active:scale-[0.985]"
+                      >
+                        여행 케어 플랜 보기 →
+                      </button>
+
+                      {/* 하단 영수증 바코드 */}
+                      <footer className="mt-6 border-t-[1.5px] border-dashed border-[#e7e7ea] pt-4 text-center">
+                        <div className="font-sans text-[11px] font-extrabold tracking-[0.32em] text-[#0a0a0a]">BEAUTY PASSPORT</div>
+                        <PassportBarcode />
+                        <div className="font-sans text-xs font-bold tracking-[0.28em] text-[#ec1c24]">
+                          {`BP ${(departDate ?? "2026-08-08").slice(2, 4)}${(departDate ?? "2026-08-08").slice(5, 7)} ${(arriveDate ?? "2026-08-18").slice(5, 7)} ${(arriveDate ?? "2026-08-18").slice(8, 10)}`}
+                        </div>
+                      </footer>
+                    </>
+                  )}
+
+                  {/* 직접 고르기: 전체 카탈로그 · 카테고리 탭 */}
+                  {resultView === "pick" && (
+                    <div>
+                      <button type="button" onClick={() => setResultView("main")} className="text-sm font-semibold text-[#71717a]">← 추천으로</button>
+                      <h2
+                        className="mt-3 text-[22px] font-black tracking-[-0.02em] text-[#0a0a0a]"
+                        style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                      >
+                        전체 제품에서 고르기
+                      </h2>
+                      <p className="mt-1 text-xs text-[#71717a]">카테고리별로 모든 제품을 둘러보고 담을 수 있어요.</p>
+
+                      <div className="scroll-x mt-3 flex gap-2 overflow-x-auto pb-2">
+                        {PICK_CATEGORIES.map((cat) => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setPickCat(cat)}
+                            className={`flex-none rounded-full border px-3.5 py-1.5 text-xs font-bold transition ${
+                              pickCat === cat ? "border-[#0a0a0a] bg-[#0a0a0a] text-white" : "border-[#e7e7ea] bg-white text-[#71717a]"
+                            }`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="mt-3 space-y-3">
+                        {COSMETICS.filter((p) => p.category === pickCat).map((p) => {
+                          const dryHigh = result.profile.humidity <= 45;
+                          const uvHigh = result.profile.uv >= 8;
+                          const rec = recommendVolume(p.category, result.days, dryHigh, uvHigh);
+                          const ml = volumeSel[p.id] ?? rec.ml;
+                          const price = samplePrice(p.price, p.fullMl, ml);
+                          const qty = cartQty(p.id, ml);
+                          return (
+                            <div key={p.id} className="rounded-2xl border border-[#e7e7ea] bg-white p-3.5 shadow-[0_8px_24px_rgba(20,30,50,0.05)]">
+                              <button type="button" onClick={() => setDetailId(p.id)} className="flex w-full gap-3 text-left">
+                                <ProductImage product={p} />
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10.5px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{p.brand}</span>
+                                    <span className="ml-auto flex items-center gap-0.5 text-[12px] font-bold text-[#ec1c24]">★ {p.rating.toFixed(2)}</span>
+                                  </div>
+                                  <div className="mt-0.5 truncate text-sm font-extrabold text-[#0a0a0a]">{p.name}</div>
+                                  <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                                    {p.ingredients.map((ing) => (
+                                      <span key={ing} className="rounded-full bg-[#f4f4f5] px-2 py-0.5 text-[10px] text-[#3f3f46]">#{ing}</span>
+                                    ))}
+                                  </div>
+                                  <div className="mt-1 text-right text-[10px] font-bold text-[#0a0a0a]">자세히 보기 →</div>
+                                </div>
+                              </button>
+
+                              <ComplianceBadge cosmeticId={p.id} destinationCountry={countryCode} compact />
+
+                              <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
+                                <select
+                                  value={ml}
+                                  onChange={(e) => setVolumeSel((v) => ({ ...v, [p.id]: Number(e.target.value) }))}
+                                  className="flex-1 rounded-xl border border-[#e7e7ea] bg-white px-2 py-1.5 text-[12px] text-[#0a0a0a] outline-none focus:border-[#0a0a0a]"
+                                >
+                                  {SAMPLE_TIERS.map((t) => (
+                                    <option key={t} value={t}>
+                                      {t}ml{t === rec.ml ? " · 추천" : ""}
+                                    </option>
+                                  ))}
+                                </select>
+                                <span className="rounded-full bg-[#f4f4f5] px-2 py-1 text-[10px] font-semibold text-[#3f3f46]">기내 반입 가능 ✈️</span>
+                                <span className="text-sm font-extrabold text-[#0a0a0a]">{price.toLocaleString()}원</span>
+                                {qty === 0 ? (
+                                  <button
+                                    onClick={() => addSample(p.id, ml)}
+                                    className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
+                                  >
+                                    담기
+                                  </button>
+                                ) : (
+                                  <div className="flex items-center gap-2 rounded-full bg-[#f4f4f5] px-2 py-1">
+                                    <button onClick={() => decSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">−</button>
+                                    <span className="w-4 text-center text-xs font-bold text-[#0a0a0a]">{qty}</span>
+                                    <button onClick={() => addSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">＋</button>
+                                  </div>
                                 )}
                               </div>
-                              <div className="mt-1.5 flex items-start gap-1 text-[11px] leading-snug text-[#71717a]">
-                                <span>💡</span>
-                                <span>{reason}</span>
-                              </div>
-                              <div className="mt-1 text-right text-[10px] font-bold text-[#0a0a0a]">자세히 보기 →</div>
                             </div>
-                          </button>
-
-                          {/* 성분 기반 반입 주의 플래그 (여행지 규정) */}
-                          <ComplianceBadge cosmeticId={p.id} destinationCountry={countryCode} compact />
-
-                          {/* [5-4] 소용량 선택 + 담기 */}
-                          <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
-                            <select
-                              value={ml}
-                              onChange={(e) => setVolumeSel((v) => ({ ...v, [p.id]: Number(e.target.value) }))}
-                              className="flex-1 rounded-xl border border-[#e7e7ea] bg-white px-2 py-1.5 text-[12px] text-[#0a0a0a] outline-none focus:border-[#0a0a0a]"
-                            >
-                              {SAMPLE_TIERS.map((t) => (
-                                <option key={t} value={t}>
-                                  {t}ml{t === rec.ml ? " · 추천" : ""}
-                                </option>
-                              ))}
-                            </select>
-                            <span className="rounded-full bg-[#f4f4f5] px-2 py-1 text-[10px] font-semibold text-[#3f3f46]">기내 반입 가능 ✈️</span>
-                            <span className="text-sm font-extrabold text-[#0a0a0a]">{price.toLocaleString()}원</span>
-                            {qty === 0 ? (
-                              <button
-                                onClick={() => addSample(p.id, ml)}
-                                className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
-                              >
-                                담기
-                              </button>
-                            ) : (
-                              <div className="flex items-center gap-2 rounded-full bg-[#f4f4f5] px-2 py-1">
-                                <button onClick={() => decSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">−</button>
-                                <span className="w-4 text-center text-xs font-bold text-[#0a0a0a]">{qty}</span>
-                                <button onClick={() => addSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">＋</button>
-                              </div>
-                            )}
-                          </div>
-                          <div className="mt-1 text-[10px] text-[#9ca3af]">
-                            {nights}박 {result.days}일에 딱 맞는 <b className="text-[#0a0a0a]">{rec.ml}ml</b>
-                            {rec.qty > 1 && <> (×{rec.qty})</>}
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-
-                  {/* [6-2] 장바구니는 우측 하단 플로팅 버튼에서 확인 */}
-                  {cart.length > 0 && (
-                    <div className="mt-5 flex items-center justify-between rounded-2xl border border-[#e7e7ea] bg-white px-4 py-2.5 text-sm text-[#0a0a0a]">
-                      <span>🧳 담긴 샘플 {cartCount}개</span>
-                      <button onClick={() => setCartOpen(true)} className="font-bold text-[#0a0a0a]">장바구니 보기 →</button>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
 
-                  {/* [6-1] 여행 전·중·후 타임라인 */}
-                  <div className="mt-8 text-center text-lg font-black tracking-[-0.01em] text-[#0a0a0a]">
-                    🗺️ 여행 전 · 중 · 후 타임라인
-                  </div>
-
-                  <Card>
-                    <CardTitle>🛫 출국 전</CardTitle>
-                    {dday !== null ? (
-                      <div className="mt-2 flex items-center justify-between">
-                        <span className="text-sm text-[#3f3f46]">출발까지</span>
-                        <span className="text-xl font-black text-[#ec1c24]">
-                          {dday > 0 ? `D-${dday}` : dday === 0 ? "D-DAY" : "여행 중"}
-                        </span>
+                  {/* 여행 케어 플랜: 여행 전 · 중 · 후 탭 */}
+                  {resultView === "plan" && (
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => setResultView("main")}
+                          className="flex h-9 w-9 items-center justify-center rounded-[11px] border-[1.5px] border-[#e7e7ea] bg-white text-[#0a0a0a]"
+                        >
+                          ‹
+                        </button>
+                        <span className="font-sans text-[11px] font-bold tracking-[0.06em] text-[#71717a]">PAGE 2 / 2</span>
                       </div>
-                    ) : (
-                      <p className="mt-2 text-sm text-[#71717a]">출발일을 선택하면 D-day가 표시돼요.</p>
-                    )}
-                    {departDate && (
-                      <div className="mt-2 rounded-xl bg-[#f4f4f5] px-3 py-2 text-xs text-[#3f3f46]">
-                        📦 소용량 키트 도착 예정일 <b className="text-[#0a0a0a]">{fmtISO(addDaysISO(departDate, -2))}</b> (출발 2일 전)
-                      </div>
-                    )}
-                    <div className="mt-3 space-y-2">
-                      {CHECKLIST_ITEMS.map((item, i) => (
-                        <label key={i} className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={checklist[i]}
-                            onChange={() => toggleChecklist(i)}
-                            className="h-4 w-4 rounded accent-[#0a0a0a]"
-                          />
-                          <span className={checklist[i] ? "text-[#9ca3af] line-through" : "text-[#3f3f46]"}>{item}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </Card>
-
-                  <Card>
-                    <CardTitle>🧳 여행 중 · 오늘의 피부 브리핑</CardTitle>
-                    <ul className="mt-2 space-y-1.5">
-                      {result.index.notes.map((n, k) => (
-                        <li key={k} className="flex gap-2 text-sm text-[#3f3f46]">
-                          <span className="text-[#ec1c24]">•</span>
-                          {n}
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="mt-3 rounded-xl bg-[#f4f4f5] px-4 py-3 text-[13px] leading-relaxed text-[#3f3f46]">
-                      🧴 소용량 키트를 미리 다 챙겨왔으니 현지 구매 걱정 없어요!
-                    </div>
-                    {!deliveryRequested ? (
-                      <button
-                        onClick={() => setDeliveryRequested(true)}
-                        className="mt-3 w-full rounded-[14px] border-[1.5px] border-[#e7e7ea] bg-white px-4 py-2.5 text-sm font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
+                      <h1
+                        className="mt-2.5 text-[24px] font-black leading-[0.95] tracking-[-0.02em] text-[#0a0a0a]"
+                        style={{ fontFamily: "var(--font-inter), sans-serif" }}
                       >
-                        현지/추가 배송 요청 →
-                      </button>
-                    ) : (
-                      <div className="mt-3 rounded-[14px] bg-[#f4f4f5] px-4 py-2.5 text-center text-sm font-semibold text-[#0a0a0a]">
-                        배송 요청이 접수됐어요 🚚
+                        여행 전 · 중 · 후
+                      </h1>
+                      <p className="mt-1 text-xs text-[#71717a]">시점을 고르면 체크리스트와 타임라인 케어가 나와요.</p>
+
+                      <div className="mt-4 flex gap-2">
+                        {(["여행 전", "여행 중", "여행 후"] as const).map((label, i) => (
+                          <button
+                            key={label}
+                            type="button"
+                            onClick={() => setCarePhase(i as 0 | 1 | 2)}
+                            className={`flex-1 rounded-2xl border px-1.5 py-2.5 text-center transition ${
+                              carePhase === i ? "border-[#0a0a0a] bg-[#0a0a0a]" : "border-[#e7e7ea] bg-white"
+                            }`}
+                          >
+                            <b className={`block text-[13.5px] ${carePhase === i ? "text-white" : "text-[#0a0a0a]"}`}>{label}</b>
+                          </button>
+                        ))}
                       </div>
-                    )}
-                  </Card>
 
-                  <Card>
-                    <CardTitle>🏠 귀국 후 · 리커버리</CardTitle>
-                    <p className="mt-2 text-sm leading-relaxed text-[#3f3f46]">
-                      여행 중 자극받은 피부 장벽을 되돌리는 진정 회복 루틴을 추천해요.
-                    </p>
-                    <div className="mt-3 space-y-2">
-                      {RECOVERY_IDS.map((id) => {
-                        const p = COSMETICS.find((c) => c.id === id);
-                        if (!p) return null;
-                        return (
-                          <div key={id} className="flex items-center gap-3 rounded-xl bg-[#f4f4f5] p-2.5">
-                            <ProductImage product={p} />
-                            <div className="min-w-0 flex-1">
-                              <div className="text-[11px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{p.brand}</div>
-                              <div className="truncate text-sm font-extrabold text-[#0a0a0a]">{p.name}</div>
+                      {carePhase === 0 && (
+                        <Card>
+                          <CardTitle>🛫 출국 전</CardTitle>
+                          {dday !== null ? (
+                            <div className="mt-2 flex items-center justify-between">
+                              <span className="text-sm text-[#3f3f46]">출발까지</span>
+                              <span className="text-xl font-black text-[#ec1c24]">
+                                {dday > 0 ? `D-${dday}` : dday === 0 ? "D-DAY" : "여행 중"}
+                              </span>
                             </div>
+                          ) : (
+                            <p className="mt-2 text-sm text-[#71717a]">출발일을 선택하면 D-day가 표시돼요.</p>
+                          )}
+                          {departDate && (
+                            <div className="mt-2 rounded-xl bg-[#f4f4f5] px-3 py-2 text-xs text-[#3f3f46]">
+                              📦 소용량 키트 도착 예정일 <b className="text-[#0a0a0a]">{fmtISO(addDaysISO(departDate, -2))}</b> (출발 2일 전)
+                            </div>
+                          )}
+                          <div className="mt-3 space-y-2">
+                            {CHECKLIST_ITEMS.map((item, i) => (
+                              <label key={i} className="flex items-center gap-2 text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={checklist[i]}
+                                  onChange={() => toggleChecklist(i)}
+                                  className="h-4 w-4 rounded accent-[#0a0a0a]"
+                                />
+                                <span className={checklist[i] ? "text-[#9ca3af] line-through" : "text-[#3f3f46]"}>{item}</span>
+                              </label>
+                            ))}
                           </div>
-                        );
-                      })}
-                    </div>
-                    <div className="mt-3 flex items-center justify-between rounded-xl bg-[#f4f4f5] px-4 py-3">
-                      <span className="text-sm text-[#3f3f46]">이번 여행 피부 이슈 지수</span>
-                      <span className="text-lg font-black text-[#0a0a0a]">
-                        {result.index.score} · {result.index.level}
-                      </span>
-                    </div>
-                  </Card>
+                        </Card>
+                      )}
 
-                  {/* 하단 버튼 */}
-                  <div className="mt-8 flex gap-3">
-                    <button
-                      onClick={restart}
-                      className="flex-1 rounded-[14px] border-[1.5px] border-[#e7e7ea] bg-white px-6 py-4 text-[15px] font-extrabold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
-                    >
-                      다시하기 ↺
-                    </button>
-                    <div className="flex-1">
-                      <PrimaryButton onClick={shareResult}>공유하기 🔗</PrimaryButton>
-                    </div>
-                  </div>
-                  {shared && <div className="mt-3 text-center text-sm text-[#71717a]">링크가 복사되었어요!</div>}
+                      {carePhase === 1 && (
+                        <Card>
+                          <CardTitle>🧳 여행 중 · 오늘의 피부 브리핑</CardTitle>
+                          <ul className="mt-2 space-y-1.5">
+                            {result.index.notes.map((n, k) => (
+                              <li key={k} className="flex gap-2 text-sm text-[#3f3f46]">
+                                <span className="text-[#ec1c24]">•</span>
+                                {n}
+                              </li>
+                            ))}
+                          </ul>
+                          <div className="mt-3 rounded-xl bg-[#f4f4f5] px-4 py-3 text-[13px] leading-relaxed text-[#3f3f46]">
+                            🧴 소용량 키트를 미리 다 챙겨왔으니 현지 구매 걱정 없어요!
+                          </div>
+                          {!deliveryRequested ? (
+                            <button
+                              onClick={() => setDeliveryRequested(true)}
+                              className="mt-3 w-full rounded-[14px] border-[1.5px] border-[#e7e7ea] bg-white px-4 py-2.5 text-sm font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
+                            >
+                              현지/추가 배송 요청 →
+                            </button>
+                          ) : (
+                            <div className="mt-3 rounded-[14px] bg-[#f4f4f5] px-4 py-2.5 text-center text-sm font-semibold text-[#0a0a0a]">
+                              배송 요청이 접수됐어요 🚚
+                            </div>
+                          )}
 
-                  {/* 하단 영수증 바코드 */}
-                  <footer className="mt-6 border-t-[1.5px] border-dashed border-[#e7e7ea] pt-4 text-center">
-                    <div className="font-sans text-[11px] font-extrabold tracking-[0.32em] text-[#0a0a0a]">BEAUTY PASSPORT</div>
-                    <PassportBarcode />
-                    <div className="font-sans text-xs font-bold tracking-[0.28em] text-[#ec1c24]">
-                      {`BP ${(departDate ?? "2026-08-08").slice(2, 4)}${(departDate ?? "2026-08-08").slice(5, 7)} ${(arriveDate ?? "2026-08-18").slice(5, 7)} ${(arriveDate ?? "2026-08-18").slice(8, 10)}`}
+                          {makeupNote && (
+                            <div className="mt-4 border-t border-dashed border-[#e7e7ea] pt-4">
+                              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">현지 메이크업</div>
+                              <p className="mt-1.5 text-sm leading-relaxed text-[#3f3f46]">
+                                {makeupNote.country}에서 통하는 포인트 메이크업 팁을 사진과 함께 확인해보세요.
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => setMakeupOpen(true)}
+                                className="mt-2.5 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.985]"
+                              >
+                                {makeupNote.country}의 대표메이크업 보기 →
+                              </button>
+                            </div>
+                          )}
+                        </Card>
+                      )}
+
+                      {carePhase === 2 && (
+                        <Card>
+                          <CardTitle>🏠 귀국 후 · 리커버리</CardTitle>
+                          <p className="mt-2 text-sm leading-relaxed text-[#3f3f46]">
+                            여행 중 자극받은 피부 장벽을 되돌리는 진정 회복 루틴을 추천해요.
+                          </p>
+                          <div className="mt-3 space-y-2">
+                            {RECOVERY_IDS.map((id) => {
+                              const p = COSMETICS.find((c) => c.id === id);
+                              if (!p) return null;
+                              return (
+                                <div key={id} className="flex items-center gap-3 rounded-xl bg-[#f4f4f5] p-2.5">
+                                  <ProductImage product={p} />
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-[11px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{p.brand}</div>
+                                    <div className="truncate text-sm font-extrabold text-[#0a0a0a]">{p.name}</div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="mt-3 flex items-center justify-between rounded-xl bg-[#f4f4f5] px-4 py-3">
+                            <span className="text-sm text-[#3f3f46]">이번 여행 피부 이슈 지수</span>
+                            <span className="text-lg font-black text-[#0a0a0a]">
+                              {result.index.score} · {result.index.level}
+                            </span>
+                          </div>
+                        </Card>
+                      )}
+
+                      {/* 하단 버튼 */}
+                      <div className="mt-8 flex gap-3">
+                        <button
+                          onClick={restart}
+                          className="flex-1 rounded-[14px] border-[1.5px] border-[#e7e7ea] bg-white px-6 py-4 text-[15px] font-extrabold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
+                        >
+                          다시하기 ↺
+                        </button>
+                        <div className="flex-1">
+                          <PrimaryButton onClick={shareResult}>공유하기 🔗</PrimaryButton>
+                        </div>
+                      </div>
+                      {shared && <div className="mt-3 text-center text-sm text-[#71717a]">링크가 복사되었어요!</div>}
+
+                      {/* 하단 영수증 바코드 */}
+                      <footer className="mt-6 border-t-[1.5px] border-dashed border-[#e7e7ea] pt-4 text-center">
+                        <div className="font-sans text-[11px] font-extrabold tracking-[0.32em] text-[#0a0a0a]">BEAUTY PASSPORT</div>
+                        <PassportBarcode />
+                        <div className="font-sans text-xs font-bold tracking-[0.28em] text-[#ec1c24]">
+                          {`BP ${(departDate ?? "2026-08-08").slice(2, 4)}${(departDate ?? "2026-08-08").slice(5, 7)} ${(arriveDate ?? "2026-08-18").slice(5, 7)} ${(arriveDate ?? "2026-08-18").slice(8, 10)}`}
+                        </div>
+                      </footer>
                     </div>
-                  </footer>
+                  )}
                 </div>
               </motion.section>
             )}
@@ -3200,7 +3349,7 @@ export default function BeautyPassportExperience() {
 
           {/* [6-2] 플로팅 장바구니 + 시트 */}
           <AnimatePresence>
-            {stage === "result" && cartCount > 0 && !cartOpen && (
+            {stage === "result" && resultView !== "plan" && cartCount > 0 && !cartOpen && (
               <motion.button
                 key="cart-fab"
                 initial={{ opacity: 0, y: 20 }}
@@ -3252,6 +3401,13 @@ export default function BeautyPassportExperience() {
                 onDec={decSample}
                 onClose={() => setDetailId(null)}
               />
+            )}
+          </AnimatePresence>
+
+          {/* AI 판단 상세 모달 */}
+          <AnimatePresence>
+            {showAiDetail && skin && result && (
+              <AiDetailModal key="ai-detail" skin={skin} result={result} onClose={() => setShowAiDetail(false)} />
             )}
           </AnimatePresence>
         </div>
@@ -3350,18 +3506,164 @@ function ProductImage({ product }: { product: Cosmetic }) {
   );
 }
 
-function Metric({ icon, label, value }: { icon: string; label: string; value: string }) {
+function SubindexBar({ label, value }: { label: string; value: number }) {
+  const high = value >= 70;
   return (
-    <div className="rounded-xl bg-[#f4f4f5] px-2 py-2.5 text-center">
-      <div className="text-[10px] tracking-[0.06em] text-[#9ca3af]">{label}</div>
-      <div className="my-0.5 text-[17px] leading-none">{icon}</div>
-      <div className="text-sm font-extrabold text-[#0a0a0a]">{value}</div>
+    <div>
+      <div className="mb-1 flex justify-between text-[11px]">
+        <span className="text-[#3f3f46]">{label}</span>
+        <span className={`font-bold ${high ? "text-[#ec1c24]" : "text-[#0a0a0a]"}`}>{value}</span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-[#f4f4f5]">
+        <motion.div
+          className={`h-full rounded-full ${high ? "bg-[#ec1c24]" : "bg-[#0a0a0a]"}`}
+          initial={{ width: 0 }}
+          animate={{ width: `${value}%` }}
+          transition={{ delay: 0.3, duration: 0.9, ease: EASE }}
+        />
+      </div>
     </div>
   );
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="block text-sm font-semibold text-[#2b6b86]">{children}</label>;
+}
+
+// AI 판단 상세 모달 — 상세보기 버튼에서 열리는 바텀시트
+function AiDetailModal({
+  skin,
+  result,
+  onClose,
+}: {
+  skin: SkinResult;
+  result: {
+    profile: { temp: number; humidity: number; uv: number; dust: number; tag?: string };
+    calendar: { date: string; weekday: string; temp: number; humidity: number; dust: number; emojis: { icon: string; label: string }[] }[];
+  };
+  onClose: () => void;
+}) {
+  const bt = BAUMANN_TYPES[skin.code];
+  const care = baumannCare(skin.code);
+  return (
+    <>
+      <motion.div className="absolute inset-0 z-[70] bg-black/35" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+      <motion.div
+        className="absolute inset-x-0 bottom-0 z-[71] max-h-[92%] overflow-y-auto rounded-t-[28px] bg-white"
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", stiffness: 320, damping: 34 }}
+      >
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-2 border-b border-[#e7e7ea] bg-white/95 px-5 py-3 backdrop-blur">
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Detail · 상세 리포트</div>
+            <div className="mt-0.5 text-lg font-black text-[#0a0a0a]">{skin.code} · {bt?.nick ?? skin.code}</div>
+          </div>
+          <button onClick={onClose} className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[#f4f4f5] text-base text-[#0a0a0a]">×</button>
+        </div>
+
+        <div className="px-5 pb-8 pt-4">
+          {/* AI 판단 상세 */}
+          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">AI Reasoning · AI 판단 상세</div>
+          {care.paras.map((para, i) => (
+            <p key={i} className="mt-2.5 text-[13px] leading-relaxed text-[#444]">{para}</p>
+          ))}
+
+          {/* 날짜별 날씨 */}
+          <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Weather Detail · 날짜별 날씨</div>
+          <table className="mt-3 w-full border-collapse text-xs">
+            <thead>
+              <tr className="text-left text-[10px] font-bold text-[#71717a]">
+                <th className="border-b border-[#e7e7ea] pb-1.5 pr-2">날짜</th>
+                <th className="border-b border-[#e7e7ea] pb-1.5 pr-2">날씨</th>
+                <th className="border-b border-[#e7e7ea] pb-1.5 pr-2">기온</th>
+                <th className="border-b border-[#e7e7ea] pb-1.5 pr-2">습도</th>
+                <th className="border-b border-[#e7e7ea] pb-1.5">미세먼지</th>
+              </tr>
+            </thead>
+            <tbody>
+              {result.calendar.map((c, k) => (
+                <tr key={k} className="text-[#3f3f46]">
+                  <td className="border-b border-[#e7e7ea] py-1.5 pr-2">{c.date} {c.weekday}</td>
+                  <td className="border-b border-[#e7e7ea] py-1.5 pr-2">{c.emojis.map((e) => e.icon).join("")}</td>
+                  <td className="border-b border-[#e7e7ea] py-1.5 pr-2">{c.temp}℃</td>
+                  <td className="border-b border-[#e7e7ea] py-1.5 pr-2">{c.humidity}%</td>
+                  <td className="border-b border-[#e7e7ea] py-1.5">{c.dust}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* 바우만 4축 */}
+          <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Baumann Axis · 피부 타입 4축</div>
+          <div className="mt-3 grid grid-cols-2 gap-2.5">
+            {BAUMANN_AXES.map((ax, i) => {
+              const opt = skin.code[i] === ax.a.letter ? ax.a : ax.b;
+              return (
+                <div key={ax.key} className="rounded-xl border border-[#e7e7ea] bg-white p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{opt.icon}</span>
+                    <span className="text-sm font-extrabold text-[#0a0a0a]">{opt.ko}</span>
+                  </div>
+                  <div className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[#9ca3af]">{opt.en}</div>
+                  <div className="mt-1.5 text-[11px] leading-snug text-[#71717a]">{opt.desc}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 성분 가이드 */}
+          <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Ingredients · 성분 가이드</div>
+          <div className="mt-3 grid grid-cols-2 gap-4">
+            <div>
+              <div className="text-xs font-extrabold text-[#0a0a0a]">👍 추천 성분</div>
+              <ul className="mt-2 space-y-1.5 text-[12px] text-[#3f3f46]">
+                {care.good.map((g) => (
+                  <li key={g}>{g}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <div className="text-xs font-extrabold text-[#ec1c24]">⚠️ 주의 성분</div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {care.avoid.length ? (
+                  care.avoid.map((g) => (
+                    <span key={g} className="rounded-full border border-[#ec1c24] bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#ec1c24]">{g}</span>
+                  ))
+                ) : (
+                  <span className="text-[11px] text-[#9ca3af]">특별히 피할 성분은 없어요</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 데일리 루틴 */}
+          <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Daily Routine · 데일리 루틴</div>
+          <div className="mt-3 space-y-2.5">
+            <div className="rounded-xl border border-[#e7e7ea] p-3.5">
+              <div className="mb-1.5 flex items-center gap-2 text-xs font-extrabold text-[#0a0a0a]">
+                <span className="h-2 w-2 rounded-full bg-[#0a0a0a]" /> 아침 (AM)
+              </div>
+              <p className="text-[12px] leading-relaxed text-[#3f3f46]">
+                저자극 클렌징 → <b className="text-[#ec1c24]">{care.good[0] ?? "수분 세럼"}</b> → 수분크림 → SPF50+ 재도포
+              </p>
+            </div>
+            <div className="rounded-xl border border-[#e7e7ea] p-3.5">
+              <div className="mb-1.5 flex items-center gap-2 text-xs font-extrabold text-[#0a0a0a]">
+                <span className="h-2 w-2 rounded-full bg-[#0a0a0a]" /> 저녁 (PM)
+              </div>
+              <p className="text-[12px] leading-relaxed text-[#3f3f46]">
+                이중 세정 → <b className="text-[#ec1c24]">{care.good[1] ?? care.good[0] ?? "진정 토너"}</b> → {care.good[2] ?? "수분 세럼"} → 세라마이드 크림
+              </p>
+            </div>
+          </div>
+
+          <button onClick={onClose} className="mt-6 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3.5 text-base font-extrabold text-white transition">닫기</button>
+        </div>
+      </motion.div>
+    </>
+  );
 }
 
 // [5-detail] 제품 상세 바텀시트
