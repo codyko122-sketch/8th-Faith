@@ -520,68 +520,47 @@ const stageVariants: Variants = {
   exit: { opacity: 0, rotateY: -32, y: -8, transition: { duration: 0.35, ease: EASE } },
 };
 
-// Baumann 축 선택 카드 (A vs B) — 큰 알파벳 배지 + 한글/영문/설명
-function AxisChoice({ option, active, onClick }: { option: AxisOption; active: boolean; onClick: () => void }) {
-  return (
-    <motion.button
-      type="button"
-      whileHover={{ scale: 1.01, y: -2 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 400, damping: 22 }}
-      onClick={onClick}
-      className={`w-full rounded-2xl border px-5 py-4 text-left transition ${
-        active
-          ? "border-transparent bg-gradient-to-r from-[#ff9f7a] to-[#ff7fa8] text-white shadow-[0_12px_26px_rgba(255,127,168,0.4)]"
-          : "border-white/70 bg-white/80 text-[#2b4b58] backdrop-blur hover:bg-white/90"
-      }`}
-    >
-      <span className="font-cute text-xl">
-        {option.ko} <span className={`text-xs ${active ? "text-white/80" : "text-[#9cb6c2]"}`}>{option.en}</span>
-      </span>
-      <span className={`mt-0.5 block whitespace-nowrap text-[12px] leading-snug ${active ? "text-white/90" : "text-[#6f909d]"}`}>
-        {option.desc}
-      </span>
-    </motion.button>
-  );
-}
-
 /* ════════════════════════ 피부 설문 (Baumann 16-타입) ════════════════════════ */
 // Leslie Baumann, 'The Skin Type Solution' — 4개 축의 조합으로 피부를 16가지로 분류한다.
 //   1) 건성(D) ↔ 지성(O)   2) 민감(S) ↔ 저항(R)   3) 색소(P) ↔ 무색소(N)   4) 주름(W) ↔ 탱탱(T)
 // 각 축을 한 문항씩, 총 4문항으로 물어 MBTI처럼 4글자 코드(예: DSNW)로 타입을 도출한다.
-type AxisOption = { letter: string; ko: string; en: string; desc: string };
-const BAUMANN_AXES: { key: string; icon: string; q: string; hint: string; a: AxisOption; b: AxisOption }[] = [
+type AxisOption = { letter: string; ko: string; en: string; desc: string; icon: string };
+const BAUMANN_AXES: { key: string; sectionEn: string; sectionKo: string; q: string; hint: string; a: AxisOption; b: AxisOption }[] = [
   {
     key: "hydration",
-    icon: "💧",
+    sectionEn: "Hydration",
+    sectionKo: "유·수분",
     q: "세안 후, 아무것도 안 바르면?",
-    hint: "유·수분 밸런스를 가르는 축이에요",
-    a: { letter: "D", ko: "건조", en: "Dry", desc: "당기고 각질·가려움이 잘 생겨요" },
-    b: { letter: "O", ko: "지성", en: "Oily", desc: "번들거리고 피지·모공이 신경 쓰여요" },
+    hint: "유·수분 밸런스를 가르는 축이에요.",
+    a: { letter: "D", ko: "건조", en: "Dry", desc: "당기고 각질·가려움이 잘 생겨요", icon: "🏜️" },
+    b: { letter: "O", ko: "지성", en: "Oily", desc: "번들거리고 피지·모공이 신경 쓰여요", icon: "💧" },
   },
   {
     key: "sensitivity",
-    icon: "🌡️",
+    sectionEn: "Sensitivity",
+    sectionKo: "민감도",
     q: "새 제품이나 환경 변화에?",
-    hint: "장벽이 자극에 반응하는 정도예요",
-    a: { letter: "S", ko: "민감", en: "Sensitive", desc: "붉어짐·따가움·트러블이 쉽게 올라와요" },
-    b: { letter: "R", ko: "저항", en: "Resistant", desc: "웬만해선 자극 없이 튼튼한 편이에요" },
+    hint: "장벽이 자극에 반응하는 정도예요.",
+    a: { letter: "S", ko: "민감", en: "Sensitive", desc: "붉어짐·따가움·트러블이 쉽게 올라와요", icon: "🔥" },
+    b: { letter: "R", ko: "저항", en: "Resistant", desc: "웬만해선 자극 없이 튼튼한 편이에요", icon: "🛡️" },
   },
   {
     key: "pigment",
-    icon: "🎨",
+    sectionEn: "Pigmentation",
+    sectionKo: "색소",
     q: "잡티·기미 같은 색소는?",
-    hint: "햇볕 노출 뒤 흔적이 남는 정도예요",
-    a: { letter: "P", ko: "색소", en: "Pigmented", desc: "기미·잡티·자국이 잘 생기고 오래가요" },
-    b: { letter: "N", ko: "무색소", en: "Non-pigmented", desc: "색소 침착이 적고 톤이 균일해요" },
+    hint: "햇볕 노출 뒤 흔적이 남는 정도예요.",
+    a: { letter: "P", ko: "색소", en: "Pigmented", desc: "기미·잡티·자국이 잘 생기고 오래가요", icon: "☀️" },
+    b: { letter: "N", ko: "무색소", en: "Non-pigmented", desc: "색소 침착이 적고 톤이 균일해요", icon: "🤍" },
   },
   {
     key: "wrinkle",
-    icon: "⏳",
+    sectionEn: "Aging",
+    sectionKo: "주름·탄력",
     q: "주름·탄력은 어떤가요?",
-    hint: "광노화·주름 경향을 가르는 축이에요",
-    a: { letter: "W", ko: "주름", en: "Wrinkle-prone", desc: "잔주름·탄력 저하가 보이거나 걱정돼요" },
-    b: { letter: "T", ko: "탱탱", en: "Tight", desc: "아직 주름 걱정은 적고 탄탄해요" },
+    hint: "광노화·주름 경향을 가르는 축이에요.",
+    a: { letter: "W", ko: "주름", en: "Wrinkle-prone", desc: "잔주름·탄력 저하가 보이거나 걱정돼요", icon: "🍂" },
+    b: { letter: "T", ko: "탱탱", en: "Tight", desc: "아직 주름 걱정은 적고 탄탄해요", icon: "🫧" },
   },
 ];
 
@@ -814,14 +793,19 @@ export default function BeautyPassportExperience() {
     if (timer.current) clearTimeout(timer.current);
     setStage(tryAutoLogin() ? "member" : "login");
   }
-  function chooseAxis(letter: string) {
-    const next = axes.map((a, i) => (i === qIndex ? letter : a));
-    setAxes(next);
+  function selectAxis(letter: string) {
+    setAxes((prev) => prev.map((a, i) => (i === qIndex ? letter : a)));
+  }
+  function skinPrev() {
+    if (qIndex === 0) setStage("checkin");
+    else setQIndex((i) => i - 1);
+  }
+  function skinNext() {
     if (qIndex < BAUMANN_AXES.length - 1) {
-      setQIndex((i) => i + 1); // 다음 축으로 자동 슬라이드
+      setQIndex((i) => i + 1);
     } else {
-      // 마지막 축까지 선택 → 4글자 코드 완성 후 분석
-      const code = next.join("");
+      // 마지막 축까지 선택 → 4글자 코드 완성 → 여권에 저장
+      const code = axes.join("");
       setSkin(analyzeBaumann(code));
       if (loggedInId) saveSkinToAccount(loggedInId, code);
       setStage("journey");
@@ -1973,62 +1957,86 @@ export default function BeautyPassportExperience() {
               </motion.section>
             )}
 
-            {/* 4. 피부 설문 — 스모어 방식 (한 문항씩) */}
-            {stage === "skin" && (
-              <motion.section key="skin" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto">
-                <Sky />
-                <AmbientClouds />
-                <div className="relative min-h-full px-7 pb-10 pt-14">
-                  {/* 진행바 */}
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => (qIndex === 0 ? setStage("checkin") : setQIndex((i) => i - 1))}
-                      className="rounded-full bg-white/70 px-3 py-1.5 text-xs font-semibold text-[#2b6b86] backdrop-blur"
-                    >
-                      ← 이전
-                    </button>
-                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/50">
-                      <motion.div
-                        className="h-full rounded-full bg-gradient-to-r from-[#ff9f7a] to-[#ff7fa8]"
-                        animate={{ width: `${((qIndex + 1) / BAUMANN_AXES.length) * 100}%` }}
-                        transition={{ duration: 0.4, ease: EASE }}
-                      />
-                    </div>
-                    <div className="text-xs font-semibold text-white">
-                      {Math.min(qIndex + 1, BAUMANN_AXES.length)}/{BAUMANN_AXES.length}
-                    </div>
-                  </div>
+            {/* 4. 피부 설문 — Baumann 4축 (여권 심사 템플릿) */}
+            {stage === "skin" &&
+              (() => {
+                const ax = BAUMANN_AXES[qIndex];
+                const chosen = axes[qIndex];
+                const last = qIndex === BAUMANN_AXES.length - 1;
+                return (
+                  <motion.section
+                    key="skin"
+                    variants={stageVariants}
+                    initial="hidden"
+                    animate="show"
+                    exit="exit"
+                    className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
+                  >
+                    <PassportTopBar onBack={skinPrev} />
+                    <PassportEyebrow>피부 여권 심사 · Skin Type</PassportEyebrow>
+                    <PassportTitle>
+                      SKIN
+                      <br />
+                      TYPE <PassportSurveyIcon className="ml-1 inline-block w-14 -translate-y-1 align-middle" />
+                    </PassportTitle>
+                    <PassportKSub>4가지만 답하면 나의 피부 타입이 나와요</PassportKSub>
 
-                  <AnimatePresence mode="wait">
-                    {qIndex < BAUMANN_AXES.length && (() => {
-                      const ax = BAUMANN_AXES[qIndex];
-                      return (
-                        <motion.div
-                          key={qIndex}
-                          initial={{ opacity: 0, x: 40 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -40 }}
-                          transition={{ duration: 0.35, ease: EASE }}
-                          className="flex min-h-[62vh] flex-col justify-center"
-                        >
-                          <div className="text-sm font-semibold tracking-[0.15em] text-white/80">STEP {qIndex + 1}</div>
-                          <h2 className="mt-2 whitespace-nowrap font-cute text-[22px] leading-snug text-white" style={{ textShadow: "0 3px 14px rgba(43,110,140,0.5)" }}>
-                            {ax.icon} {ax.q}
-                          </h2>
-                          <p className="mt-2 text-sm text-white/85">{ax.hint}</p>
-                          <div className="mt-7 space-y-3">
-                            <AxisChoice option={ax.a} active={axes[qIndex] === ax.a.letter} onClick={() => chooseAxis(ax.a.letter)} />
-                            <div className="text-center text-xs font-bold tracking-[0.2em] text-white/70">VS</div>
-                            <AxisChoice option={ax.b} active={axes[qIndex] === ax.b.letter} onClick={() => chooseAxis(ax.b.letter)} />
-                          </div>
-                        </motion.div>
-                      );
-                    })()}
-                  </AnimatePresence>
-                </div>
-                <Grain />
-              </motion.section>
-            )}
+                    {/* 진행 스텝 (4단계) */}
+                    <div className="mt-5 flex items-center gap-1.5">
+                      {BAUMANN_AXES.map((_, i) => (
+                        <span
+                          key={i}
+                          className={`h-1 flex-1 rounded-full transition-colors ${i <= qIndex ? "bg-[#0a0a0a]" : "bg-[#e7e7ea]"}`}
+                        />
+                      ))}
+                    </div>
+
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={qIndex}
+                        initial={{ opacity: 0, x: 24 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -24 }}
+                        transition={{ duration: 0.28, ease: EASE }}
+                      >
+                        <div className="mt-5 flex items-baseline gap-2">
+                          <span className="font-sans text-[13px] font-extrabold tracking-[0.14em] text-[#0a0a0a]">STEP {qIndex + 1}</span>
+                          <span className="font-sans text-[12px] font-semibold text-[#9ca3af]">· {ax.sectionEn} · {ax.sectionKo}</span>
+                        </div>
+                        <h2 className="mt-2 font-sans text-[22px] font-black leading-[1.2] tracking-[-0.02em] text-[#0a0a0a]">{ax.q}</h2>
+                        <p className="mt-1.5 font-sans text-[13px] leading-relaxed text-[#71717a]">{ax.hint}</p>
+
+                        <div className="mt-5 flex flex-col gap-3.5">
+                          <PassportOptionCard
+                            selected={chosen === ax.a.letter}
+                            onClick={() => selectAxis(ax.a.letter)}
+                            icon={<span className="text-[22px] leading-none">{ax.a.icon}</span>}
+                            en={ax.a.en.toUpperCase()}
+                            ko={ax.a.ko}
+                            desc={ax.a.desc}
+                          />
+                          <PassportOptionCard
+                            selected={chosen === ax.b.letter}
+                            onClick={() => selectAxis(ax.b.letter)}
+                            icon={<span className="text-[22px] leading-none">{ax.b.icon}</span>}
+                            en={ax.b.en.toUpperCase()}
+                            ko={ax.b.ko}
+                            desc={ax.b.desc}
+                          />
+                        </div>
+                      </motion.div>
+                    </AnimatePresence>
+
+                    <div className="mt-6">
+                      <PassportButton disabled={!chosen} onClick={skinNext}>
+                        {last ? "진단 완료 →" : "다음 →"}
+                      </PassportButton>
+                    </div>
+
+                    <PassportFooter />
+                  </motion.section>
+                );
+              })()}
 
             {/* 결과 분석중 (피부설문 또는 여행지설문 완료 후) */}
             {analyzing && (
