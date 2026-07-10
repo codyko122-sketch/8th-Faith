@@ -19,6 +19,8 @@ export type MakeupStyleNote = {
   countryCode: string;
   country: string;
   city: string;
+  /** 카드 썸네일 대표 사진. 없으면 flag 이모지로 대체. */
+  thumb?: string;
   intro: string;
   covers: MakeupCover[];
   points: MakeupPoint[];
@@ -31,6 +33,7 @@ export const MAKEUP_STYLE_NOTES: MakeupStyleNote[] = [
     countryCode: "JP",
     country: "일본",
     city: "오사카 · 도쿄",
+    thumb: "/assets/makeup/jp/card.jpg",
     intro:
       "화이트에 가까운 맑고 촉촉한 피부 표현이 기본이에요. 여기에 볼 중앙을 덮는 오렌지·코랄 블러셔와 진한 언더라인으로 순하면서도 발그레한 인상을 만드는 게 도쿄·오사카 스타일의 핵심이에요.",
     covers: [
@@ -60,6 +63,7 @@ export const MAKEUP_STYLE_NOTES: MakeupStyleNote[] = [
     countryCode: "TH",
     country: "태국",
     city: "방콕",
+    thumb: "/assets/makeup/th/card.jpg",
     intro:
       "고온다습한 날씨 특성상 유분과 광은 살리되 무너지지 않는 게 관건이에요. 코와 이마에 강하게 올리는 글로우 하이라이팅과, 땀에도 잘 버티는 워터프루프 아이 메이크업이 방콕 스타일의 특징이에요.",
     covers: [
@@ -89,6 +93,7 @@ export const MAKEUP_STYLE_NOTES: MakeupStyleNote[] = [
     countryCode: "VN",
     country: "베트남",
     city: "다낭 · 호치민",
+    thumb: "/assets/makeup/vn/card.jpg",
     intro:
       "촉촉한 수분 베이스 위에 자연스러운 눈썹, 은은한 코랄 립을 더하는 데일리 룩이 특징이에요. 진하게 그리기보다 결을 살리는 방식이 다낭·호치민 스타일에 잘 어울려요.",
     covers: [
@@ -118,6 +123,7 @@ export const MAKEUP_STYLE_NOTES: MakeupStyleNote[] = [
     countryCode: "ID",
     country: "인도네시아",
     city: "발리",
+    thumb: "/assets/makeup/id/card.jpg",
     intro: "태닝된 피부와 잘 어우러지는 브론즈 톤 하이라이팅이 발리 스타일의 핵심이에요. 자외선이 강한 만큼 워터프루프 제품 위주로 구성하는 게 좋아요.",
     covers: [
       { caption: "룩 1", image: "/assets/makeup/id/1.jpg" },
@@ -146,6 +152,7 @@ export const MAKEUP_STYLE_NOTES: MakeupStyleNote[] = [
     countryCode: "FR",
     country: "프랑스",
     city: "파리",
+    thumb: "/assets/makeup/fr/card.jpg",
     intro:
       "'애써 꾸미지 않은 듯' 보이는 노메이크업 메이크업이 파리지엔 스타일의 정수예요. 피부결을 그대로 드러내는 세미매트 베이스에 무광 레드나 베어 톤 립으로 포인트를 주는 게 특징이에요.",
     covers: [
@@ -175,6 +182,7 @@ export const MAKEUP_STYLE_NOTES: MakeupStyleNote[] = [
     countryCode: "IT",
     country: "이탈리아",
     city: "로마 · 밀라노",
+    thumb: "/assets/makeup/it/card.jpg",
     intro: "따뜻한 테라코타 톤의 립과 치크로 이탈리아 특유의 화사하고 생기 있는 인상을 만드는 게 핵심이에요. 골드 하이라이터로 은은한 태닝 광을 더하면 완성도가 올라가요.",
     covers: [
       { caption: "룩 1", image: "/assets/makeup/it/1.jpg" },
@@ -203,6 +211,7 @@ export const MAKEUP_STYLE_NOTES: MakeupStyleNote[] = [
     countryCode: "US",
     country: "미국",
     city: "LA · 뉴욕",
+    thumb: "/assets/makeup/us/card.jpg",
     intro: "또렷한 이목구비를 강조하는 컨투어링과 풀커버리지 베이스가 특징이에요. 눈썹도 힘 있게 그려 전체적으로 선명하고 완성도 높은 인상을 만드는 스타일이에요.",
     covers: [
       { caption: "룩 1", image: "/assets/makeup/us/1.jpg" },
@@ -259,6 +268,7 @@ export const MAKEUP_STYLE_NOTES: MakeupStyleNote[] = [
     countryCode: "MV",
     country: "몰디브",
     city: "말레",
+    thumb: "/assets/makeup/mv/card.jpg",
     intro: "물놀이와 강한 자외선이 일상인 만큼, 미니멀한 베이스에 방수력 높은 포인트 메이크업으로 구성하는 게 몰디브 스타일의 핵심이에요.",
     covers: [
       { caption: "룩 1", image: "/assets/makeup/mv/1.jpg" },

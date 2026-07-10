@@ -81,7 +81,14 @@ function CountryGrid({ onSelect }: { onSelect: (id: string) => void }) {
       <div className={styles.countryGrid}>
         {MAKEUP_STYLE_NOTES.map((c) => (
           <button key={c.id} type="button" className={styles.countryCard} onClick={() => onSelect(c.id)}>
-            <div className={styles.thumb}>{c.flag}</div>
+            <div className={styles.thumb}>
+              {c.thumb ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={c.thumb} alt={`${c.country} 대표 이미지`} className="h-full w-full object-cover" />
+              ) : (
+                c.flag
+              )}
+            </div>
             <div className={styles.countryName}>
               {c.countryCode} · {c.country}
             </div>
