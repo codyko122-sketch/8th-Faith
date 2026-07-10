@@ -13,6 +13,12 @@ export type ScanIngredient = {
 
 export type ScanCandidate = { brand: string; name: string };
 
+// 라벨에서 확인된 알레르기 유발 가능 성분 (EU 지정 향료 알레르겐 등)
+export type ScanAllergen = {
+  name: string; // 성분명 (한글)
+  note: string; // 알레르기/자극 관련 한 줄 안내
+};
+
 export type ScanResult = {
   identified: boolean; // 제품을 특정했는가
   confidence: number; // 0~100 인식 신뢰도
@@ -20,6 +26,7 @@ export type ScanResult = {
   name: string;
   category: string; // 세럼/토너/크림/선크림 등
   ingredients: ScanIngredient[];
+  allergens: ScanAllergen[]; // 알레르기 유발 가능 성분 (없으면 빈 배열)
   safety: string[]; // 무향·저자극·EWG 그린 등
   summary: string; // 한 줄 요약
   caution: string; // 전반 주의 (없으면 "")

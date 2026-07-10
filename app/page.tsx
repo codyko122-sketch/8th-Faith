@@ -17,6 +17,7 @@ import {
 import { MAKEUP_STYLE_NOTES } from "@/lib/makeup-style-notes";
 import { StyleNoteModal } from "@/components/style-note";
 import { ComplianceBadge } from "@/components/compliance-badge";
+import { IngredientSafety } from "@/components/ingredient-safety";
 import {
   signup as authSignup,
   login as authLogin,
@@ -2373,6 +2374,13 @@ export default function BeautyPassportExperience() {
                             ))}
                           </div>
                         )}
+
+                        {/* 알레르기·규제 성분 체크 (AI 라벨 판독 + 규제 성분 DB 교차검증) */}
+                        <IngredientSafety
+                          ingredients={scanResult.ingredients.map((g) => g.name)}
+                          allergens={scanResult.allergens ?? []}
+                        />
+
                         {scanResult.caution && (
                           <div className="mt-3 rounded-lg border-l-[3px] border-[#ec1c24] bg-[#fef3f2] px-3.5 py-2.5 font-sans text-[12.5px] leading-relaxed text-[#8a2b28]">⚠️ {scanResult.caution}</div>
                         )}

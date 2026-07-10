@@ -15,6 +15,7 @@ import type {
   ComplianceStatus,
   ConcernType,
   FlagLevel,
+  IngredientConcern,
 } from "./types";
 
 const RESTRICTED = restrictedRaw as RestrictedIngredient[];
@@ -192,4 +193,41 @@ export function checkCosmeticCompliance(
     disclaimer: DISCLAIMER,
     checked_at: opts.now ?? new Date().toISOString(),
   };
+}
+
+// concern_type 별 여행지 무관 일반 안내(정보성). "안전/반입 가능"을 단정하지 않는다.
+const CONCERN_GENERIC_NOTE: Record<ConcernType, string> = {
+  allergen: "향료 알레르겐 계열 성분입니다. EU/영국 등에서 라벨 표시 대상이며, 민감성 피부는 자극·알레르기 반응 가능성이 있어 확인이 필요합니다.",
+  uv_filter: "자외선차단 성분입니다. 국가에 따라(예: 미국) 미승인 성분일 수 있어 반입 시 확인이 필요합니다.",
+  restricted_active: "활성 성분입니다. 국가에 따라 함량 기준 규제 대상일 수 있어 확인이 필요합니다.",
+  animal_derived: "동물 유래 가능 성분입니다. 국가에 따라 검역·반입 절차가 있을 수 있어 확인이 필요합니다.",
+  mercury: "수은/중금속 성분입니다. 다수 국가에서 화장품 사용이 금지되어 있어 확인이 필요합니다.",
+  hydroquinone: "미백 활성 성분입니다. 국가에 따라 전문의약품으로 분류될 수 있어 확인이 필요합니다.",
+  cbd_cannabis: "대마 유래 성분입니다. 일부 국가는 반입을 엄격히 금지하므로 확인이 필요합니다.",
+  preservative: "보존 성분입니다. 국가에 따라 사용 기준이 다를 수 있어 확인이 필요합니다.",
+};
+
+/**
+ * 성분명 목록을 대표 규제 성분 DB와 교차검증한다(여행지 무관, 정보성).
+ * 스캔 결과의 알레르기·규제 성분 표시에 사용. "안전"을 단정하지 않으며 매칭이 없어도 안전을 의미하지 않는다.
+ */
+export function analyzeIngredients(ingredientNames: string[]): IngredientConcern[] {
+  const out: IngredientConcern[] = [];
+  const seen = new Set<string>();
+  for (const name of ingredientNames) {
+    for (const ri of RESTRICTED) {
+      if (!ingredientMatches(name, ri)) continue;
+      if (seen.has(ri.inci_name)) continue;
+      seen.add(ri.inci_name);
+      out.push({
+        inci_name: ri.inci_name,
+        matched_as: name,
+        concern_type: ri.concern_type,
+        note: CONCERN_GENERIC_NOTE[ri.concern_type],
+        source: ri.source,
+        as_of_date: ri.as_of_date,
+      });
+    }
+  }
+  return out;
 }

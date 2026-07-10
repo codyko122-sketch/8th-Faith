@@ -80,6 +80,16 @@ export type ComplianceResult = {
   checked_at: string;
 };
 
+// 여행지 무관, 성분명 목록을 규제 성분 DB와 교차검증한 결과(정보성).
+export type IngredientConcern = {
+  inci_name: string; // DB 상 대표 성분명
+  matched_as: string; // 입력에서 매칭된 성분 텍스트
+  concern_type: ConcernType;
+  note: string; // 여행지 무관 일반 안내(확인 필요 성격)
+  source: string;
+  as_of_date: string;
+};
+
 // data/products.json 한 항목
 export type ComplianceProduct = {
   product_id: string;
