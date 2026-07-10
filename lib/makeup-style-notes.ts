@@ -240,6 +240,7 @@ export const MAKEUP_STYLE_NOTES: MakeupStyleNote[] = [
     countryCode: "ES",
     country: "스페인",
     city: "바르셀로나",
+    thumb: "/assets/makeup/es/card.jpg",
     intro: "태닝된 피부 위에 올리는 코랄 치크와 또렷한 윙 아이라이너가 바르셀로나 스타일의 포인트예요. 전반적으로 화사하면서도 시원한 인상을 강조해요.",
     covers: [
       { caption: "룩 1", image: "/assets/makeup/es/1.jpg" },
