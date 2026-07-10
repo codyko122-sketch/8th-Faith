@@ -16,6 +16,7 @@ import {
 } from "@/lib/products";
 import { MAKEUP_STYLE_NOTES } from "@/lib/makeup-style-notes";
 import { StyleNoteModal } from "@/components/style-note";
+import { ComplianceBadge } from "@/components/compliance-badge";
 import {
   signup as authSignup,
   login as authLogin,
@@ -31,7 +32,12 @@ import {
   findAccountsByName,
   maskId,
   resetPassword,
+  saveProductToAccount,
+  getSavedProducts,
+  removeSavedProduct,
+  type SavedProduct,
 } from "@/lib/auth";
+import type { ScanResult } from "@/lib/scan-types";
 import {
   PassportTopBar,
   PassportEyebrow,
@@ -42,6 +48,7 @@ import {
   PassportDivider,
   PassportBackLink,
   PassportError,
+  PassportBarcode,
   PassportNote,
   PassportOptionCard,
   PassportFooter,
@@ -65,6 +72,7 @@ type Stage =
   | "journey"
   | "travel"
   | "skin"
+  | "scan"
   | "acArrival"
   | "acQ1"
   | "acQ2"
@@ -76,6 +84,8 @@ type Stage =
   | "pickup"
   | "done";
 const EASE = [0.22, 1, 0.36, 1] as const;
+// 로딩(발급) 화면 스캔 바코드용 고정 막대 높이(%) 패턴
+const ANALYZE_BARS = [40, 70, 30, 90, 52, 62, 34, 80, 46, 66, 54, 76, 40, 86, 30, 60, 50, 70, 36, 90, 44, 56, 64, 40, 80, 30, 74, 50, 60, 36, 86, 46, 70, 54, 40, 66, 30, 80, 50, 62, 36, 76, 46, 90, 40, 56];
 
 /* ════════════════════════ [6-1] 여정 타임라인 ════════════════════════ */
 const CHECKLIST_ITEMS = [
@@ -503,10 +513,8 @@ function PrimaryButton({ children, onClick, disabled }: { children: React.ReactN
       type="button"
       onClick={onClick}
       disabled={disabled}
-      whileHover={disabled ? undefined : { scale: 1.02, y: -1 }}
-      whileTap={{ scale: 0.97 }}
-      transition={{ type: "spring", stiffness: 400, damping: 22 }}
-      className="w-full rounded-full bg-gradient-to-r from-[#ff9f7a] to-[#ff7fa8] px-6 py-4 font-cute text-lg text-white shadow-[0_14px_30px_rgba(255,127,168,0.42)] disabled:opacity-50"
+      whileTap={disabled ? undefined : { scale: 0.985 }}
+      className="w-full rounded-[14px] bg-[#0a0a0a] px-6 py-4 text-[15px] font-extrabold text-white transition disabled:bg-[#d4d4d8] disabled:text-[#fafafa]"
     >
       {children}
     </motion.button>
@@ -647,6 +655,14 @@ function comboComment(p: { temp: number; humidity: number; uv: number; dust: num
   return `${env} 여행지에서 ${type} 피부라면 ${advice[type] ?? "기본 보습과 자외선 차단을 챙기세요."}`;
 }
 
+// 스캔 결과 성분 태그 색상 (여권 팔레트)
+const SCAN_PILL: Record<string, string> = {
+  key: "bg-[#0a0a0a] text-white",
+  calm: "bg-[#e7f6ee] text-[#1f9d57]",
+  base: "bg-[#f4f4f5] text-[#71717a]",
+  warn: "bg-[#fbe7e5] text-[#ec1c24]",
+};
+
 /* ════════════════════════ 메인 ════════════════════════ */
 
 export default function BeautyPassportExperience() {
@@ -732,6 +748,123 @@ export default function BeautyPassportExperience() {
   const [lockerNo, setLockerNo] = useState<string | null>(null);
 
   const timer = useRef<number | null>(null);
+
+  // ── AI 성분 스캔 ──
+  const [scanStep, setScanStep] = useState<"camera" | "loading" | "result" | "error">("camera");
+  const [scanImage, setScanImage] = useState<string | null>(null);
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [scanSaved, setScanSaved] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [memberRefresh, setMemberRefresh] = useState(0);
+  const scanVideoRef = useRef<HTMLVideoElement | null>(null);
+  const scanStreamRef = useRef<MediaStream | null>(null);
+  const scanFileRef = useRef<HTMLInputElement | null>(null);
+
+  function stopScanCamera() {
+    if (scanStreamRef.current) {
+      scanStreamRef.current.getTracks().forEach((t) => t.stop());
+      scanStreamRef.current = null;
+    }
+    setCameraReady(false);
+  }
+  function openScan() {
+    setScanStep("camera");
+    setScanImage(null);
+    setScanResult(null);
+    setScanError(null);
+    setScanSaved(false);
+    setStage("scan");
+  }
+  function exitScan() {
+    stopScanCamera();
+    setStage(loggedInId ? "member" : "journey");
+  }
+  async function analyzeScan(dataUrl: string) {
+    stopScanCamera();
+    setScanImage(dataUrl);
+    setScanResult(null);
+    setScanError(null);
+    setScanSaved(false);
+    setScanStep("loading");
+    try {
+      const res = await fetch("/api/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: dataUrl }),
+      });
+      if (!res.ok) {
+        const e = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(e.error || "분석에 실패했어요.");
+      }
+      const data = (await res.json()) as ScanResult;
+      setScanResult(data);
+      setScanStep("result");
+    } catch (err) {
+      setScanError(err instanceof Error ? err.message : "분석 중 문제가 생겼어요.");
+      setScanStep("error");
+    }
+  }
+  function captureScan() {
+    const v = scanVideoRef.current;
+    if (v && v.videoWidth) {
+      const canvas = document.createElement("canvas");
+      canvas.width = v.videoWidth;
+      canvas.height = v.videoHeight;
+      canvas.getContext("2d")?.drawImage(v, 0, 0, canvas.width, canvas.height);
+      analyzeScan(canvas.toDataURL("image/jpeg", 0.85));
+    }
+  }
+  function onScanFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") analyzeScan(reader.result);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
+  function saveScanProduct() {
+    if (!scanResult || !loggedInId) return;
+    saveProductToAccount(loggedInId, {
+      brand: scanResult.brand,
+      name: scanResult.name,
+      category: scanResult.category,
+    });
+    setScanSaved(true);
+  }
+
+  // 카메라 화면일 때만 스트림 열고, 벗어나면 정리
+  useEffect(() => {
+    if (stage !== "scan" || scanStep !== "camera") {
+      stopScanCamera();
+      return;
+    }
+    let cancelled = false;
+    if (typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia) {
+      navigator.mediaDevices
+        .getUserMedia({ video: { facingMode: "environment" }, audio: false })
+        .then((stream) => {
+          if (cancelled) {
+            stream.getTracks().forEach((t) => t.stop());
+            return;
+          }
+          scanStreamRef.current = stream;
+          if (scanVideoRef.current) {
+            scanVideoRef.current.srcObject = stream;
+            scanVideoRef.current.play().catch(() => {});
+          }
+          setCameraReady(true);
+        })
+        .catch(() => setCameraReady(false));
+    }
+    return () => {
+      cancelled = true;
+      stopScanCamera();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, scanStep]);
 
   // 아이디 저장/자동 로그인 저장값 복원 (최초 1회)
   useEffect(() => {
@@ -1431,6 +1564,7 @@ export default function BeautyPassportExperience() {
             {stage === "member" && (
               <motion.section
                 key="member"
+                data-refresh={memberRefresh}
                 variants={stageVariants}
                 initial="hidden"
                 animate="show"
@@ -1483,6 +1617,57 @@ export default function BeautyPassportExperience() {
                         ko="새로 설문 시작하기"
                         desc="피부 상태가 바뀌었다면 다시 진단해요"
                       />
+
+                      <PassportOptionCard
+                        selected={false}
+                        onClick={openScan}
+                        icon={
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                            <circle cx="12" cy="13" r="4" />
+                          </svg>
+                        }
+                        en="AI SCAN"
+                        ko="화장품 성분 스캔"
+                        desc="쓰는 화장품을 찍으면 AI가 성분을 분석해요"
+                      />
+
+                      {(() => {
+                        const saved = loggedInId ? getSavedProducts(loggedInId) : [];
+                        if (saved.length === 0) return null;
+                        return (
+                          <div className="mt-1 rounded-2xl border-[1.5px] border-[#e7e7ea] p-[15px]">
+                            <div className="flex items-center justify-between">
+                              <div className="font-sans text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9ca3af]">Saved Products · 저장한 제품</div>
+                              <div className="font-sans text-[11px] font-bold text-[#71717a]">{saved.length}</div>
+                            </div>
+                            <div className="mt-2.5 flex flex-col gap-2">
+                              {saved.slice(0, 5).map((p: SavedProduct) => (
+                                <div key={p.key} className="flex items-center gap-2.5">
+                                  <span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-[#f4f4f5] text-[13px]">🧴</span>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="truncate font-sans text-[13px] font-bold text-[#0a0a0a]">{p.name}</div>
+                                    <div className="font-sans text-[11px] text-[#9ca3af]">{p.brand} · {p.category}</div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    aria-label="삭제"
+                                    onClick={() => {
+                                      if (loggedInId) {
+                                        removeSavedProduct(loggedInId, p.key);
+                                        setMemberRefresh((n) => n + 1);
+                                      }
+                                    }}
+                                    className="flex-none rounded-lg px-2 py-1 font-sans text-[11px] font-semibold text-[#9ca3af] transition active:scale-95"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })()}
@@ -2038,6 +2223,221 @@ export default function BeautyPassportExperience() {
                 );
               })()}
 
+            {/* AI 성분 스캔 — 카메라 → 분석 → 결과 */}
+            {stage === "scan" && (
+              <motion.section
+                key="scan"
+                variants={stageVariants}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
+              >
+                <PassportTopBar onBack={scanStep === "camera" || scanStep === "loading" ? exitScan : () => setScanStep("camera")} />
+                <input ref={scanFileRef} type="file" accept="image/*" className="hidden" onChange={onScanFile} />
+
+                {scanStep === "camera" && (
+                  <>
+                    <PassportEyebrow>Ingredient Scan · 성분 스캔</PassportEyebrow>
+                    <PassportTitle>
+                      SCAN YOUR
+                      <br />
+                      PRODUCT
+                    </PassportTitle>
+                    <PassportKSub>쓰는 화장품을 프레임에 담아 촬영하세요</PassportKSub>
+
+                    <div className="relative mt-5 overflow-hidden rounded-[22px] bg-[#141416]" style={{ aspectRatio: "3 / 4" }}>
+                      <video ref={scanVideoRef} autoPlay muted playsInline className="absolute inset-0 h-full w-full object-cover" />
+                      {!cameraReady && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[#6b6b74]">
+                          <span className="text-5xl opacity-60 grayscale">🧴</span>
+                          <span className="px-6 text-center text-xs">카메라를 준비하거나 앨범에서 불러오세요</span>
+                        </div>
+                      )}
+                      <div className="pointer-events-none absolute inset-4">
+                        <span className="absolute left-0 top-0 h-7 w-7 rounded-tl-lg border-l-[3px] border-t-[3px] border-white" />
+                        <span className="absolute right-0 top-0 h-7 w-7 rounded-tr-lg border-r-[3px] border-t-[3px] border-white" />
+                        <span className="absolute bottom-0 left-0 h-7 w-7 rounded-bl-lg border-b-[3px] border-l-[3px] border-white" />
+                        <span className="absolute bottom-0 right-0 h-7 w-7 rounded-br-lg border-b-[3px] border-r-[3px] border-white" />
+                      </div>
+                      <div className="absolute inset-x-0 bottom-3 text-center text-xs font-semibold text-white" style={{ textShadow: "0 1px 6px rgba(0,0,0,.6)" }}>
+                        제품 라벨이 잘 보이게 맞춰주세요
+                      </div>
+                    </div>
+
+                    <div className="mt-5 flex items-center justify-center gap-6">
+                      <button
+                        type="button"
+                        onClick={() => scanFileRef.current?.click()}
+                        aria-label="앨범에서 불러오기"
+                        className="flex h-12 w-12 items-center justify-center rounded-2xl border-[1.5px] border-[#e7e7ea] bg-white text-xl transition active:scale-95"
+                      >
+                        🖼️
+                      </button>
+                      <button
+                        type="button"
+                        onClick={captureScan}
+                        disabled={!cameraReady}
+                        aria-label="촬영"
+                        className="flex h-[72px] w-[72px] items-center justify-center rounded-full border-4 border-[#0a0a0a] bg-white transition active:scale-90 disabled:opacity-40"
+                      >
+                        <span className="h-14 w-14 rounded-full bg-[#0a0a0a]" />
+                      </button>
+                      <div className="flex h-12 w-12 items-center justify-center font-sans text-[11px] font-extrabold text-[#9ca3af]">AI</div>
+                    </div>
+                    <p className="mt-3 text-center font-sans text-[11px] text-[#9ca3af]">촬영 · 앨범 불러오기 모두 지원해요</p>
+                  </>
+                )}
+
+                {scanStep === "loading" && (
+                  <>
+                    <PassportEyebrow>Analyzing · 분석 중</PassportEyebrow>
+                    <PassportTitle>
+                      READING
+                      <br />
+                      LABEL…
+                    </PassportTitle>
+                    {scanImage && (
+                      <div className="mt-5 overflow-hidden rounded-[20px]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={scanImage} alt="촬영 이미지" className="h-44 w-full object-cover" />
+                      </div>
+                    )}
+                    <div className="mt-6 flex flex-col gap-3.5">
+                      {[
+                        { t: "제품 인식", s: "브랜드·제품명 판독" },
+                        { t: "전성분 조회", s: "성분 데이터 대조" },
+                        { t: "내 피부와 매칭", s: "적합도·주의 성분 산출" },
+                      ].map((step, i) => (
+                        <div key={step.t} className="flex items-center gap-3">
+                          <span className="h-2.5 w-2.5 flex-none animate-pulse rounded-full bg-[#0a0a0a]" style={{ animationDelay: `${i * 0.25}s` }} />
+                          <div>
+                            <div className="font-sans text-[14px] font-bold text-[#0a0a0a]">{step.t}</div>
+                            <div className="font-sans text-[11.5px] text-[#9ca3af]">{step.s}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-7 flex items-center gap-3 font-sans text-[13px] text-[#71717a]">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#e7e7ea] border-t-[#0a0a0a]" />
+                      AI가 제품과 성분을 분석하고 있어요…
+                    </div>
+                  </>
+                )}
+
+                {scanStep === "result" && scanResult && (
+                  <>
+                    <PassportEyebrow>Result · 분석 결과</PassportEyebrow>
+                    {scanResult.identified ? (
+                      <>
+                        <div className="mt-2 font-sans text-[26px] font-black tracking-[-0.02em] text-[#0a0a0a]">스캔 완료</div>
+
+                        <div className="mt-3 flex items-center gap-3.5 rounded-2xl border-[1.5px] border-[#e7e7ea] p-3.5">
+                          <div className="flex h-[70px] w-[70px] flex-none items-center justify-center rounded-2xl bg-[#f4f4f5] text-3xl">🧴</div>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-sans text-[11px] font-extrabold uppercase tracking-[0.1em] text-[#9ca3af]">{scanResult.brand}</div>
+                            <div className="mt-0.5 font-sans text-[15px] font-black leading-tight text-[#0a0a0a]">{scanResult.name}</div>
+                            <span className="mt-1.5 inline-block rounded-full bg-[#f4f4f5] px-2.5 py-1 font-sans text-[11px] font-bold text-[#3f3f46]">{scanResult.category}</span>
+                          </div>
+                          <div className="flex-none text-right font-sans text-[10px] font-bold text-[#9ca3af]">
+                            AI 인식
+                            <br />
+                            {scanResult.confidence}%
+                          </div>
+                        </div>
+                        {scanResult.summary && <p className="mt-3 font-sans text-[13px] leading-relaxed text-[#3f3f46]">{scanResult.summary}</p>}
+
+                        <div className="mt-5 flex items-baseline gap-2">
+                          <span className="font-sans text-[14px] font-black text-[#0a0a0a]">전성분 분석</span>
+                          <span className="font-sans text-[11px] font-bold tracking-[0.06em] text-[#9ca3af]">KEY INGREDIENTS</span>
+                        </div>
+                        <div className="mt-2.5 flex flex-col gap-2">
+                          {scanResult.ingredients.map((g, i) => (
+                            <div key={i} className="flex items-center gap-3 rounded-xl border border-[#e7e7ea] px-3 py-2.5">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-sans text-[14px] font-extrabold text-[#0a0a0a]">{g.name}</div>
+                                <div className="font-sans text-[11.5px] text-[#71717a]">
+                                  {g.role}
+                                  {g.caution ? ` · ⚠️ ${g.caution}` : ""}
+                                </div>
+                              </div>
+                              <span className={`flex-none rounded-full px-2.5 py-1 font-sans text-[10px] font-extrabold ${SCAN_PILL[g.type] ?? SCAN_PILL.base}`}>{g.label}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {scanResult.safety.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {scanResult.safety.map((s) => (
+                              <span key={s} className="rounded-full bg-[#f4f4f5] px-2.5 py-1 font-sans text-[11px] font-bold text-[#3f3f46]">{s}</span>
+                            ))}
+                          </div>
+                        )}
+                        {scanResult.caution && (
+                          <div className="mt-3 rounded-lg border-l-[3px] border-[#ec1c24] bg-[#fef3f2] px-3.5 py-2.5 font-sans text-[12.5px] leading-relaxed text-[#8a2b28]">⚠️ {scanResult.caution}</div>
+                        )}
+                        {scanResult.demo && (
+                          <div className="mt-3 rounded-lg bg-[#f4f4f5] px-3.5 py-2.5 font-sans text-[12px] leading-relaxed text-[#71717a]">ℹ️ 데모 응답이에요. 서버에 <b className="font-bold text-[#0a0a0a]">ANTHROPIC_API_KEY</b>를 설정하면 실제 사진을 분석합니다.</div>
+                        )}
+
+                        <div className="mt-5 flex gap-3">
+                          <PassportButton onClick={saveScanProduct} disabled={!loggedInId || scanSaved}>
+                            {scanSaved ? "✓ 여권에 저장됨" : loggedInId ? "＋ 내 여권에 저장" : "로그인 후 저장 가능"}
+                          </PassportButton>
+                          <PassportButton variant="muted" fullWidth={false} onClick={() => setScanStep("camera")}>
+                            다시 스캔
+                          </PassportButton>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="mt-2 font-sans text-[23px] font-black tracking-[-0.02em] text-[#0a0a0a]">제품을 특정하지 못했어요</div>
+                        <p className="mt-2 font-sans text-[13px] leading-relaxed text-[#71717a]">{scanResult.note || "라벨이 잘 보이게 다시 촬영해 주세요."}</p>
+                        {scanResult.candidates.length > 0 && (
+                          <>
+                            <div className="mt-5 font-sans text-[13px] font-black text-[#0a0a0a]">혹시 이 제품인가요?</div>
+                            <div className="mt-2.5 flex flex-col gap-2">
+                              {scanResult.candidates.map((c, i) => (
+                                <div key={i} className="rounded-xl border border-[#e7e7ea] px-3.5 py-3">
+                                  <div className="font-sans text-[11px] font-bold uppercase tracking-[0.1em] text-[#9ca3af]">{c.brand}</div>
+                                  <div className="mt-0.5 font-sans text-[14px] font-extrabold text-[#0a0a0a]">{c.name}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                        <div className="mt-5">
+                          <PassportButton onClick={() => setScanStep("camera")}>다시 촬영하기 →</PassportButton>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+
+                {scanStep === "error" && (
+                  <>
+                    <PassportEyebrow>Error · 오류</PassportEyebrow>
+                    <div className="mt-2 font-sans text-[24px] font-black tracking-[-0.02em] text-[#0a0a0a]">분석에 실패했어요</div>
+                    <p className="mt-2 font-sans text-[13px] leading-relaxed text-[#71717a]">{scanError}</p>
+                    {scanImage && (
+                      <div className="mt-4 overflow-hidden rounded-[16px] opacity-70">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={scanImage} alt="촬영 이미지" className="h-32 w-full object-cover" />
+                      </div>
+                    )}
+                    <div className="mt-5 flex gap-3">
+                      <PassportButton onClick={() => scanImage && analyzeScan(scanImage)}>다시 시도 →</PassportButton>
+                      <PassportButton variant="muted" fullWidth={false} onClick={() => setScanStep("camera")}>
+                        다시 촬영
+                      </PassportButton>
+                    </div>
+                  </>
+                )}
+
+                <PassportFooter />
+              </motion.section>
+            )}
+
             {/* 결과 분석중 (피부설문 또는 여행지설문 완료 후) */}
             {analyzing && (
               <motion.section
@@ -2046,81 +2446,103 @@ export default function BeautyPassportExperience() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="absolute inset-0 z-40 overflow-y-auto"
-                style={{ background: "linear-gradient(180deg,#3a4d7a 0%,#2b3a63 45%,#22315a 100%)" }}
+                className="absolute inset-0 z-40 overflow-y-auto bg-white px-7 pb-6 pt-5"
               >
-                <div className="relative flex min-h-full flex-col items-center justify-center px-8 text-center">
-                  <motion.div
-                    className="h-16 w-16 rounded-full border-[3px] border-white/50 border-t-[#ff7fa8]"
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  />
-                  <div className="mt-6 font-cute text-2xl text-white" style={{ textShadow: "0 3px 14px rgba(43,110,140,0.5)" }}>
-                    결과 분석중…
+                <div className="flex min-h-full flex-col items-center justify-center text-center">
+                  <div className="font-sans text-[10px] font-bold uppercase tracking-[0.28em] text-[#71717a]">ANALYZING · 분석 중</div>
+                  <h1
+                    className="mt-3 text-[30px] font-black leading-[0.95] tracking-[-0.02em] text-[#0a0a0a]"
+                    style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                  >
+                    ISSUING
+                    <br />
+                    PASSPORT
+                  </h1>
+                  <p className="mt-3 max-w-[260px] font-sans text-[13.5px] leading-relaxed text-[#71717a]">
+                    여행지 기후와 내 피부 상태를 결합해 맞춤 여권을 발급하고 있어요.
+                  </p>
+                  <div className="relative mt-9 h-[70px] w-[210px] overflow-hidden">
+                    <div className="flex h-full items-end justify-center gap-[1.5px]">
+                      {ANALYZE_BARS.map((h, i) => (
+                        <span key={i} className="w-[2px] bg-[#0a0a0a]" style={{ height: `${h}%` }} />
+                      ))}
+                    </div>
+                    <motion.div
+                      className="absolute inset-x-0 h-[2px] bg-[#ec1c24]"
+                      style={{ boxShadow: "0 0 10px 1px rgba(236,28,36,0.6)" }}
+                      animate={{ top: [6, 60, 6] }}
+                      transition={{ duration: 1.7, repeat: Infinity, ease: "easeInOut" }}
+                    />
                   </div>
-                  <p className="mt-2 text-sm text-white/90">당신의 피부와 여행지를 매칭하고 있어요</p>
+                  <div className="mt-6 h-[5px] w-[180px] overflow-hidden rounded-full bg-[#f4f4f5]">
+                    <motion.span
+                      className="block h-full bg-[#0a0a0a]"
+                      initial={{ width: "8%" }}
+                      animate={{ width: "92%" }}
+                      transition={{ duration: 3.2, ease: "easeInOut" }}
+                    />
+                  </div>
+                  <div className="mt-4 font-sans text-[13px] font-bold tracking-[0.3em] text-[#71717a]">SCANNING…</div>
                 </div>
               </motion.section>
             )}
 
             {/* 5. 결과 */}
             {stage === "result" && result && (
-              <motion.section key="result" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto">
-                <Sky warm />
-                <AmbientClouds />
-                <div className="relative min-h-full px-6 pb-12 pt-12">
-                  <div className="mb-2 text-center font-cute text-white/90">{name || "여행자"}님의 뷰티 여권</div>
+              <motion.section key="result" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto bg-white px-7 pb-8 pt-5">
+                <div className="min-h-full">
+                  <div className="mb-3 text-center font-sans text-[10px] font-bold uppercase tracking-[0.28em] text-[#71717a]">{name || "여행자"}님의 뷰티 여권</div>
 
                   {/* 보딩패스 종합 요약 */}
                   {skin && (
-                    <div className="overflow-hidden rounded-[26px] bg-white/90 shadow-[0_24px_60px_rgba(43,120,170,0.28)] backdrop-blur-xl">
+                    <div className="overflow-hidden rounded-2xl border border-[#e7e7ea] bg-white shadow-[0_8px_24px_rgba(20,30,50,0.06)]">
                       {/* 헤더 스트립 */}
-                      <div className="flex items-center justify-between px-5 py-3 text-white" style={{ background: "linear-gradient(90deg,#ff9f7a,#ff7fa8)" }}>
-                        <span className="text-[11px] font-bold tracking-[0.2em]">BOARDING PASS</span>
-                        <span className="font-cute text-sm">BP-{(departDate ?? "2026-08").slice(2, 4)}{(departDate ?? "2026-08-08").slice(5, 7)}</span>
+                      <div className="flex items-center justify-between bg-[#0a0a0a] px-[18px] py-3 text-white">
+                        <span className="text-[12px] font-extrabold tracking-[0.18em]">BOARDING PASS</span>
+                        <span className="text-[12px] font-bold tracking-[0.06em] text-white/70">BP-{(departDate ?? "2026-08").slice(2, 4)}{(departDate ?? "2026-08-08").slice(5, 7)}</span>
                       </div>
 
-                      <div className="p-5">
+                      <div className="p-[18px]">
                         {/* 탑승객 */}
                         <div className="flex items-end justify-between">
                           <div>
-                            <div className="text-[10px] tracking-widest text-[#9cb6c2]">PASSENGER</div>
-                            <div className="font-cute text-2xl text-[#2b4b58]">{name || "여행자"}</div>
+                            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Passenger</div>
+                            <div className="mt-0.5 text-[22px] font-black tracking-[-0.02em] text-[#0a0a0a]">{name || "여행자"}</div>
                           </div>
-                          <div className="text-right text-xs text-[#6f909d]">
+                          <div className="text-right text-xs text-[#71717a]">
                             {age && <>만 {age}세 · </>}{gender}
                           </div>
                         </div>
 
                         {/* 항로 */}
-                        <div className="mt-4 flex items-center justify-between border-y border-dashed border-[#dbe8ef] py-3">
+                        <div className="mt-4 flex items-center justify-between border-y border-dashed border-[#e7e7ea] py-3">
                           <div>
-                            <div className="text-[10px] tracking-widest text-[#9cb6c2]">FROM</div>
-                            <div className="font-cute text-lg text-[#2b4b58]">일상</div>
+                            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">From</div>
+                            <div className="mt-0.5 text-base font-extrabold text-[#0a0a0a]">일상</div>
                           </div>
-                          <div className="text-xl text-[#ff7fa8]">✈</div>
+                          <div className="text-[15px] text-[#ec1c24]">✈</div>
                           <div className="text-right">
-                            <div className="text-[10px] tracking-widest text-[#9cb6c2]">TO</div>
-                            <div className="font-cute text-lg text-[#2b4b58]">{result.placeLabel}</div>
+                            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">To</div>
+                            <div className="mt-0.5 text-base font-extrabold text-[#0a0a0a]">{result.placeLabel}</div>
                           </div>
                         </div>
 
                         {/* 일정 */}
                         <div className="mt-3 flex items-center justify-between text-sm">
-                          <div className="text-[#4a6b78]">
+                          <div className="text-[#3f3f46]">
                             {departDate && arriveDate ? `${fmtISO(departDate)} ~ ${fmtISO(arriveDate)}` : "일정 미정"}
                           </div>
-                          <div className="rounded-full bg-[#f0fbff] px-3 py-1 font-cute text-[#ff7fa8]">
+                          <div className="rounded-full border border-[#ec1c24] px-2.5 py-0.5 text-[11px] font-extrabold text-[#ec1c24]">
                             {result.days - 1}박 {result.days}일
                           </div>
                         </div>
 
                         {/* 여행지 날씨 (Open-Meteo 예보 / 실패 시 계절 기본값) */}
                         <div className="mt-3 flex items-center justify-between">
-                          <div className="text-[10px] tracking-widest text-[#9cb6c2]">WEATHER</div>
+                          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Weather</div>
                           <span
                             className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                              result.wxSource === "실시간 예보" ? "bg-[#e9f8f0] text-[#268a5b]" : "bg-[#f0f4f7] text-[#7aa7ba]"
+                              result.wxSource === "실시간 예보" ? "bg-[#f4f4f5] text-[#0a0a0a]" : "bg-[#f4f4f5] text-[#71717a]"
                             }`}
                           >
                             {result.wxSource === "실시간 예보" ? "🛰️ 실시간 예보" : "📊 계절 기본값"}
@@ -2138,18 +2560,15 @@ export default function BeautyPassportExperience() {
                           const bt = BAUMANN_TYPES[skin.code];
                           const care = baumannCare(skin.code);
                           return (
-                            <div className="mt-5 border-t border-dashed border-[#dbe8ef] pt-4">
-                              <div className="text-[10px] tracking-widest text-[#9cb6c2]">BAUMANN SKIN TYPE</div>
+                            <div className="mt-5 border-t border-dashed border-[#e7e7ea] pt-4">
+                              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Baumann Skin Type</div>
                               <div className="mt-1.5 flex items-center gap-3">
-                                <div
-                                  className="flex h-14 items-center rounded-2xl px-4 font-cute text-3xl tracking-[0.12em] text-white shadow-[0_8px_18px_rgba(43,120,170,0.28)]"
-                                  style={{ background: bt?.color ?? "#8aa7bd" }}
-                                >
+                                <div className="flex h-14 items-center rounded-xl bg-[#0a0a0a] px-4 text-2xl font-black tracking-[0.08em] text-white">
                                   {skin.code}
                                 </div>
                                 <div className="min-w-0">
-                                  <div className="font-cute text-xl leading-tight text-[#2b4b58]">{bt?.nick ?? skin.code}</div>
-                                  <div className="text-[12px] leading-snug text-[#6f909d]">{bt?.tagline}</div>
+                                  <div className="text-[17px] font-black leading-tight text-[#0a0a0a]">{bt?.nick ?? skin.code}</div>
+                                  <div className="text-[12px] leading-snug text-[#71717a]">{bt?.tagline}</div>
                                 </div>
                               </div>
 
@@ -2158,37 +2577,37 @@ export default function BeautyPassportExperience() {
                                 {BAUMANN_AXES.map((ax, i) => {
                                   const opt = skin.code[i] === ax.a.letter ? ax.a : ax.b;
                                   return (
-                                    <div key={ax.key} className="flex items-center gap-2 rounded-xl bg-[#f2f8fb] px-3 py-2">
-                                      <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white font-cute text-sm text-[#ff7fa8]">{opt.letter}</span>
-                                      <span className="text-[13px] font-semibold text-[#2b4b58]">{opt.ko}</span>
-                                      <span className="ml-auto text-[10px] text-[#9cb6c2]">{opt.en}</span>
+                                    <div key={ax.key} className="flex items-center gap-2 rounded-xl border border-[#e7e7ea] px-3 py-2">
+                                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#0a0a0a] text-[11px] font-bold text-white">{opt.letter}</span>
+                                      <span className="text-[13px] font-semibold text-[#0a0a0a]">{opt.ko}</span>
+                                      <span className="ml-auto text-[10px] uppercase tracking-[0.1em] text-[#9ca3af]">{opt.en}</span>
                                     </div>
                                   );
                                 })}
                               </div>
 
                               {care.paras.map((para, i) => (
-                                <p key={i} className="mt-2 text-[13px] leading-relaxed text-[#5b7683]">{para}</p>
+                                <p key={i} className="mt-2 text-[13px] leading-relaxed text-[#52525b]">{para}</p>
                               ))}
 
                               <div className="mt-4 grid grid-cols-2 gap-3">
                                 <div>
-                                  <div className="text-xs font-bold text-[#2fae74]">👍 추천 성분</div>
+                                  <div className="text-xs font-extrabold text-[#0a0a0a]">👍 추천 성분</div>
                                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                                     {care.good.map((g) => (
-                                      <span key={g} className="rounded-full bg-[#e9f8f0] px-2.5 py-0.5 text-[11px] text-[#268a5b]">{g}</span>
+                                      <span key={g} className="rounded-full bg-[#f4f4f5] px-2.5 py-0.5 text-[11px] font-medium text-[#3f3f46]">{g}</span>
                                     ))}
                                   </div>
                                 </div>
                                 <div>
-                                  <div className="text-xs font-bold text-[#e5804d]">⚠️ 주의 성분</div>
+                                  <div className="text-xs font-extrabold text-[#ec1c24]">⚠️ 주의 성분</div>
                                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                                     {care.avoid.length ? (
                                       care.avoid.map((g) => (
-                                        <span key={g} className="rounded-full bg-[#fdeee6] px-2.5 py-0.5 text-[11px] text-[#c9622f]">{g}</span>
+                                        <span key={g} className="rounded-full border border-[#ec1c24] bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#ec1c24]">{g}</span>
                                       ))
                                     ) : (
-                                      <span className="text-[11px] text-[#9cb6c2]">특별히 피할 성분은 없어요</span>
+                                      <span className="text-[11px] text-[#9ca3af]">특별히 피할 성분은 없어요</span>
                                     )}
                                   </div>
                                 </div>
@@ -2198,7 +2617,7 @@ export default function BeautyPassportExperience() {
                         })()}
 
                         {/* 날씨+피부 한 줄 코멘트 */}
-                        <div className="mt-4 rounded-2xl bg-gradient-to-r from-[#fff2ea] to-[#ffe9f0] px-4 py-3 text-[13px] leading-relaxed text-[#8a4b52]">
+                        <div className="mt-4 rounded-xl bg-[#f4f4f5] px-4 py-3 text-[13px] leading-relaxed text-[#3f3f46]">
                           💬 {comboComment(result.profile, skin.skinTypeForRec)}
                         </div>
                       </div>
@@ -2207,7 +2626,7 @@ export default function BeautyPassportExperience() {
 
                   {/* 스크롤 인디케이터 */}
                   <motion.div
-                    className="mt-5 flex flex-col items-center text-white/90"
+                    className="mt-5 flex flex-col items-center text-[#9ca3af]"
                     animate={{ y: [0, 6, 0], opacity: [0.6, 1, 0.6] }}
                     transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
                   >
@@ -2227,17 +2646,17 @@ export default function BeautyPassportExperience() {
                   <Card>
                     <CardTitle>📊 피부 이슈 지수</CardTitle>
                     <div className="mt-2 flex items-baseline gap-2">
-                      <span className="font-cute text-5xl" style={{ color: result.index.color }}>{result.index.score}</span>
-                      <span className="font-semibold" style={{ color: result.index.color }}>{result.index.level}</span>
-                      <span className="text-sm text-[#7aa7ba]">/ 100</span>
+                      <span className="text-[40px] font-black tracking-[-0.03em] text-[#0a0a0a]">{result.index.score}</span>
+                      <span className="text-sm font-bold text-[#0a0a0a]">{result.index.level}</span>
+                      <span className="text-sm text-[#9ca3af]">/ 100</span>
                     </div>
-                    <div className="mt-3 h-3.5 overflow-hidden rounded-full bg-[#e3f1f7]">
-                      <motion.div className="h-full rounded-full" style={{ background: result.index.color }} initial={{ width: 0 }} animate={{ width: `${result.index.score}%` }} transition={{ delay: 0.3, duration: 0.9, ease: EASE }} />
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#f4f4f5]">
+                      <motion.div className="h-full rounded-full bg-[#0a0a0a]" initial={{ width: 0 }} animate={{ width: `${result.index.score}%` }} transition={{ delay: 0.3, duration: 0.9, ease: EASE }} />
                     </div>
                     <ul className="mt-3 space-y-1.5">
                       {result.index.notes.map((n, k) => (
-                        <li key={k} className="flex gap-2 text-sm text-[#4a6b78]">
-                          <span style={{ color: result.index.color }}>•</span>
+                        <li key={k} className="flex gap-2 text-sm text-[#3f3f46]">
+                          <span className="text-[#ec1c24]">•</span>
                           {n}
                         </li>
                       ))}
@@ -2247,13 +2666,13 @@ export default function BeautyPassportExperience() {
                     <CardTitle>📅 여행 날씨 캘린더</CardTitle>
                     <div className="scroll-x mt-3 flex gap-2 overflow-x-auto pb-2">
                       {result.calendar.map((c, k) => (
-                        <motion.div key={k} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.15 + k * 0.03, duration: 0.3 }} className="flex min-w-[76px] flex-col items-center rounded-2xl bg-[#f0fbff] px-3 py-2.5 text-center">
-                          <div className="text-[12px] font-bold text-[#2b6b86]">
+                        <motion.div key={k} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.15 + k * 0.03, duration: 0.3 }} className="flex min-w-[76px] flex-col items-center rounded-xl bg-[#f4f4f5] px-3 py-2.5 text-center">
+                          <div className="text-[12px] font-bold text-[#0a0a0a]">
                             {c.date}
-                            <span className="text-[#9cc3d1]">({c.weekday})</span>
+                            <span className="text-[#9ca3af]">({c.weekday})</span>
                           </div>
                           <div className="my-1 text-xl leading-none">{c.emojis.map((e) => e.icon).join("")}</div>
-                          <div className="text-[10px] text-[#7aa7ba]">{c.temp}℃</div>
+                          <div className="text-[10px] text-[#71717a]">{c.temp}℃</div>
                         </motion.div>
                       ))}
                     </div>
@@ -2261,23 +2680,23 @@ export default function BeautyPassportExperience() {
                   {makeupNote && (
                     <Card>
                       <CardTitle>💄 현지 메이크업</CardTitle>
-                      <p className="mt-2 text-sm leading-relaxed text-[#4a6b78]">
+                      <p className="mt-2 text-sm leading-relaxed text-[#3f3f46]">
                         {makeupNote.country}에서 통하는 포인트 메이크업 팁을 사진과 함께 확인해보세요.
                       </p>
                       <button
                         type="button"
                         onClick={() => setMakeupOpen(true)}
-                        className="mt-3 w-full rounded-full bg-gradient-to-r from-[#ff9f7a] to-[#ff7fa8] px-4 py-3 text-sm font-bold text-white"
+                        className="mt-3 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.985]"
                       >
                         {makeupNote.country}의 대표메이크업 보기 →
                       </button>
                     </Card>
                   )}
-                  <div className="mt-7 text-center font-cute text-2xl text-white" style={{ textShadow: "0 3px 14px rgba(43,110,140,0.5)" }}>
+                  <div className="mt-7 text-center text-lg font-black tracking-[-0.01em] text-[#0a0a0a]">
                     🧴 맞춤 스킨케어 추천
                   </div>
                   {/* 근거 흐름 요약 */}
-                  <div className="mt-3 rounded-2xl border border-white/60 bg-white/80 px-4 py-3 text-center text-[13px] font-semibold text-[#2b4b58] backdrop-blur-xl">
+                  <div className="mt-3 rounded-xl bg-[#f4f4f5] px-4 py-3 text-center text-[13px] font-semibold text-[#3f3f46]">
                     {result.recSummary}
                   </div>
 
@@ -2296,7 +2715,7 @@ export default function BeautyPassportExperience() {
                           initial={{ opacity: 0, y: 16 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.1 + k * 0.08, duration: 0.4, ease: EASE }}
-                          className="rounded-[22px] border border-white/70 bg-white p-3 shadow-[0_14px_34px_rgba(43,120,170,0.16)]"
+                          className="rounded-2xl border border-[#e7e7ea] bg-white p-3.5 shadow-[0_8px_24px_rgba(20,30,50,0.05)]"
                         >
                           <button
                             type="button"
@@ -2306,34 +2725,37 @@ export default function BeautyPassportExperience() {
                             <ProductImage product={p} />
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5">
-                                <span className="text-[11px] font-bold text-[#7aa7ba]">{p.brand}</span>
-                                <span className="text-[11px] text-[#c3d4dd]">·</span>
-                                <span className="text-[11px] text-[#9cb6c2]">{p.category}</span>
-                                <span className="ml-auto flex items-center gap-0.5 text-[12px] font-bold text-[#ff8f4d]">★ {p.rating.toFixed(2)}</span>
+                                <span className="text-[10.5px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{p.brand}</span>
+                                <span className="text-[11px] text-[#d4d4d8]">·</span>
+                                <span className="text-[11px] text-[#9ca3af]">{p.category}</span>
+                                <span className="ml-auto flex items-center gap-0.5 text-[12px] font-bold text-[#ec1c24]">★ {p.rating.toFixed(2)}</span>
                               </div>
-                              <div className="mt-0.5 truncate text-sm font-semibold text-[#2b4b58]">{p.name}</div>
+                              <div className="mt-0.5 truncate text-sm font-extrabold text-[#0a0a0a]">{p.name}</div>
                               <div className="mt-1.5 flex flex-wrap items-center gap-1">
                                 {p.ingredients.map((ing) => (
-                                  <span key={ing} className="rounded-full bg-[#eef6fb] px-2 py-0.5 text-[10px] text-[#3f7d97]">#{ing}</span>
+                                  <span key={ing} className="rounded-full bg-[#f4f4f5] px-2 py-0.5 text-[10px] text-[#3f3f46]">#{ing}</span>
                                 ))}
                                 {p.safety[0] && (
-                                  <span className="rounded-full bg-[#e9f8f0] px-2 py-0.5 text-[10px] font-semibold text-[#268a5b]">✓ {p.safety[0]}</span>
+                                  <span className="rounded-full bg-[#f4f4f5] px-2 py-0.5 text-[10px] font-semibold text-[#0a0a0a]">✓ {p.safety[0]}</span>
                                 )}
                               </div>
-                              <div className="mt-1.5 flex items-start gap-1 text-[11px] leading-snug text-[#8a6b52]">
+                              <div className="mt-1.5 flex items-start gap-1 text-[11px] leading-snug text-[#71717a]">
                                 <span>💡</span>
                                 <span>{reason}</span>
                               </div>
-                              <div className="mt-1 text-right text-[10px] font-semibold text-[#ff7fa8]">자세히 보기 →</div>
+                              <div className="mt-1 text-right text-[10px] font-bold text-[#0a0a0a]">자세히 보기 →</div>
                             </div>
                           </button>
 
+                          {/* 성분 기반 반입 주의 플래그 (여행지 규정) */}
+                          <ComplianceBadge cosmeticId={p.id} destinationCountry={countryCode} compact />
+
                           {/* [5-4] 소용량 선택 + 담기 */}
-                          <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#eef2f7] pt-2">
+                          <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
                             <select
                               value={ml}
                               onChange={(e) => setVolumeSel((v) => ({ ...v, [p.id]: Number(e.target.value) }))}
-                              className="flex-1 rounded-xl border border-[#e3e8f0] bg-white px-2 py-1.5 text-[12px] text-[#2b4b58] outline-none focus:border-[#22315a]"
+                              className="flex-1 rounded-xl border border-[#e7e7ea] bg-white px-2 py-1.5 text-[12px] text-[#0a0a0a] outline-none focus:border-[#0a0a0a]"
                             >
                               {SAMPLE_TIERS.map((t) => (
                                 <option key={t} value={t}>
@@ -2341,25 +2763,25 @@ export default function BeautyPassportExperience() {
                                 </option>
                               ))}
                             </select>
-                            <span className="rounded-full bg-[#eef6fb] px-2 py-1 text-[10px] font-semibold text-[#3f7d97]">기내 반입 가능 ✈️</span>
-                            <span className="text-sm font-bold text-[#2b4b58]">{price.toLocaleString()}원</span>
+                            <span className="rounded-full bg-[#f4f4f5] px-2 py-1 text-[10px] font-semibold text-[#3f3f46]">기내 반입 가능 ✈️</span>
+                            <span className="text-sm font-extrabold text-[#0a0a0a]">{price.toLocaleString()}원</span>
                             {qty === 0 ? (
                               <button
                                 onClick={() => addSample(p.id, ml)}
-                                className="rounded-full bg-gradient-to-r from-[#ff9f7a] to-[#ff7fa8] px-3 py-1.5 text-xs font-bold text-white"
+                                className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
                               >
                                 담기
                               </button>
                             ) : (
-                              <div className="flex items-center gap-2 rounded-full bg-[#fff0f5] px-2 py-1">
-                                <button onClick={() => decSample(p.id, ml)} className="text-sm font-bold text-[#ff7fa8]">−</button>
-                                <span className="w-4 text-center text-xs font-bold text-[#2b4b58]">{qty}</span>
-                                <button onClick={() => addSample(p.id, ml)} className="text-sm font-bold text-[#ff7fa8]">＋</button>
+                              <div className="flex items-center gap-2 rounded-full bg-[#f4f4f5] px-2 py-1">
+                                <button onClick={() => decSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">−</button>
+                                <span className="w-4 text-center text-xs font-bold text-[#0a0a0a]">{qty}</span>
+                                <button onClick={() => addSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">＋</button>
                               </div>
                             )}
                           </div>
-                          <div className="mt-1 text-[10px] text-[#9cb6c2]">
-                            {nights}박 {result.days}일에 딱 맞는 <b className="text-[#ff7fa8]">{rec.ml}ml</b>
+                          <div className="mt-1 text-[10px] text-[#9ca3af]">
+                            {nights}박 {result.days}일에 딱 맞는 <b className="text-[#0a0a0a]">{rec.ml}ml</b>
                             {rec.qty > 1 && <> (×{rec.qty})</>}
                           </div>
                         </motion.div>
@@ -2369,14 +2791,14 @@ export default function BeautyPassportExperience() {
 
                   {/* [6-2] 장바구니는 우측 하단 플로팅 버튼에서 확인 */}
                   {cart.length > 0 && (
-                    <div className="mt-5 flex items-center justify-between rounded-full border border-white/60 bg-white/85 px-4 py-2.5 text-sm text-[#2b4b58] backdrop-blur-xl">
+                    <div className="mt-5 flex items-center justify-between rounded-2xl border border-[#e7e7ea] bg-white px-4 py-2.5 text-sm text-[#0a0a0a]">
                       <span>🧳 담긴 샘플 {cartCount}개</span>
-                      <button onClick={() => setCartOpen(true)} className="font-bold text-[#ff7fa8]">장바구니 보기 →</button>
+                      <button onClick={() => setCartOpen(true)} className="font-bold text-[#0a0a0a]">장바구니 보기 →</button>
                     </div>
                   )}
 
                   {/* [6-1] 여행 전·중·후 타임라인 */}
-                  <div className="mt-8 text-center font-cute text-2xl text-white" style={{ textShadow: "0 3px 14px rgba(43,110,140,0.5)" }}>
+                  <div className="mt-8 text-center text-lg font-black tracking-[-0.01em] text-[#0a0a0a]">
                     🗺️ 여행 전 · 중 · 후 타임라인
                   </div>
 
@@ -2384,17 +2806,17 @@ export default function BeautyPassportExperience() {
                     <CardTitle>🛫 출국 전</CardTitle>
                     {dday !== null ? (
                       <div className="mt-2 flex items-center justify-between">
-                        <span className="text-sm text-[#4a6b78]">출발까지</span>
-                        <span className="font-cute text-2xl text-[#ff7fa8]">
+                        <span className="text-sm text-[#3f3f46]">출발까지</span>
+                        <span className="text-xl font-black text-[#ec1c24]">
                           {dday > 0 ? `D-${dday}` : dday === 0 ? "D-DAY" : "여행 중"}
                         </span>
                       </div>
                     ) : (
-                      <p className="mt-2 text-sm text-[#7aa7ba]">출발일을 선택하면 D-day가 표시돼요.</p>
+                      <p className="mt-2 text-sm text-[#71717a]">출발일을 선택하면 D-day가 표시돼요.</p>
                     )}
                     {departDate && (
-                      <div className="mt-2 rounded-xl bg-[#f0fbff] px-3 py-2 text-xs text-[#3f7d97]">
-                        📦 소용량 키트 도착 예정일 <b>{fmtISO(addDaysISO(departDate, -2))}</b> (출발 2일 전)
+                      <div className="mt-2 rounded-xl bg-[#f4f4f5] px-3 py-2 text-xs text-[#3f3f46]">
+                        📦 소용량 키트 도착 예정일 <b className="text-[#0a0a0a]">{fmtISO(addDaysISO(departDate, -2))}</b> (출발 2일 전)
                       </div>
                     )}
                     <div className="mt-3 space-y-2">
@@ -2404,9 +2826,9 @@ export default function BeautyPassportExperience() {
                             type="checkbox"
                             checked={checklist[i]}
                             onChange={() => toggleChecklist(i)}
-                            className="h-4 w-4 rounded accent-[#ff7fa8]"
+                            className="h-4 w-4 rounded accent-[#0a0a0a]"
                           />
-                          <span className={checklist[i] ? "text-[#9cb6c2] line-through" : "text-[#4a6b78]"}>{item}</span>
+                          <span className={checklist[i] ? "text-[#9ca3af] line-through" : "text-[#3f3f46]"}>{item}</span>
                         </label>
                       ))}
                     </div>
@@ -2416,24 +2838,24 @@ export default function BeautyPassportExperience() {
                     <CardTitle>🧳 여행 중 · 오늘의 피부 브리핑</CardTitle>
                     <ul className="mt-2 space-y-1.5">
                       {result.index.notes.map((n, k) => (
-                        <li key={k} className="flex gap-2 text-sm text-[#4a6b78]">
-                          <span style={{ color: result.index.color }}>•</span>
+                        <li key={k} className="flex gap-2 text-sm text-[#3f3f46]">
+                          <span className="text-[#ec1c24]">•</span>
                           {n}
                         </li>
                       ))}
                     </ul>
-                    <div className="mt-3 rounded-2xl bg-gradient-to-r from-[#fff2ea] to-[#ffe9f0] px-4 py-3 text-[13px] leading-relaxed text-[#8a4b52]">
+                    <div className="mt-3 rounded-xl bg-[#f4f4f5] px-4 py-3 text-[13px] leading-relaxed text-[#3f3f46]">
                       🧴 소용량 키트를 미리 다 챙겨왔으니 현지 구매 걱정 없어요!
                     </div>
                     {!deliveryRequested ? (
                       <button
                         onClick={() => setDeliveryRequested(true)}
-                        className="mt-3 w-full rounded-full border border-[#ff9fc0] px-4 py-2.5 text-sm font-semibold text-[#ff7fa8] transition hover:bg-[#fff0f5]"
+                        className="mt-3 w-full rounded-[14px] border-[1.5px] border-[#e7e7ea] bg-white px-4 py-2.5 text-sm font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
                       >
                         현지/추가 배송 요청 →
                       </button>
                     ) : (
-                      <div className="mt-3 rounded-full bg-[#fff0f5] px-4 py-2.5 text-center text-sm font-semibold text-[#ff7fa8]">
+                      <div className="mt-3 rounded-[14px] bg-[#f4f4f5] px-4 py-2.5 text-center text-sm font-semibold text-[#0a0a0a]">
                         배송 요청이 접수됐어요 🚚
                       </div>
                     )}
@@ -2441,7 +2863,7 @@ export default function BeautyPassportExperience() {
 
                   <Card>
                     <CardTitle>🏠 귀국 후 · 리커버리</CardTitle>
-                    <p className="mt-2 text-sm leading-relaxed text-[#4a6b78]">
+                    <p className="mt-2 text-sm leading-relaxed text-[#3f3f46]">
                       여행 중 자극받은 피부 장벽을 되돌리는 진정 회복 루틴을 추천해요.
                     </p>
                     <div className="mt-3 space-y-2">
@@ -2449,19 +2871,19 @@ export default function BeautyPassportExperience() {
                         const p = COSMETICS.find((c) => c.id === id);
                         if (!p) return null;
                         return (
-                          <div key={id} className="flex items-center gap-3 rounded-2xl bg-[#f8fafc] p-2.5">
+                          <div key={id} className="flex items-center gap-3 rounded-xl bg-[#f4f4f5] p-2.5">
                             <ProductImage product={p} />
                             <div className="min-w-0 flex-1">
-                              <div className="text-[11px] font-bold text-[#7aa7ba]">{p.brand}</div>
-                              <div className="truncate text-sm font-semibold text-[#2b4b58]">{p.name}</div>
+                              <div className="text-[11px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{p.brand}</div>
+                              <div className="truncate text-sm font-extrabold text-[#0a0a0a]">{p.name}</div>
                             </div>
                           </div>
                         );
                       })}
                     </div>
-                    <div className="mt-3 flex items-center justify-between rounded-2xl bg-[#f0fbff] px-4 py-3">
-                      <span className="text-sm text-[#4a6b78]">이번 여행 피부 이슈 지수</span>
-                      <span className="font-cute text-xl" style={{ color: result.index.color }}>
+                    <div className="mt-3 flex items-center justify-between rounded-xl bg-[#f4f4f5] px-4 py-3">
+                      <span className="text-sm text-[#3f3f46]">이번 여행 피부 이슈 지수</span>
+                      <span className="text-lg font-black text-[#0a0a0a]">
                         {result.index.score} · {result.index.level}
                       </span>
                     </div>
@@ -2471,7 +2893,7 @@ export default function BeautyPassportExperience() {
                   <div className="mt-8 flex gap-3">
                     <button
                       onClick={restart}
-                      className="flex-1 rounded-full border border-white/70 bg-white/70 px-6 py-4 font-cute text-lg text-[#2b6b86] backdrop-blur transition hover:bg-white/90"
+                      className="flex-1 rounded-[14px] border-[1.5px] border-[#e7e7ea] bg-white px-6 py-4 text-[15px] font-extrabold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
                     >
                       다시하기 ↺
                     </button>
@@ -2479,92 +2901,101 @@ export default function BeautyPassportExperience() {
                       <PrimaryButton onClick={shareResult}>공유하기 🔗</PrimaryButton>
                     </div>
                   </div>
-                  {shared && <div className="mt-3 text-center text-sm text-white/90">링크가 복사되었어요!</div>}
+                  {shared && <div className="mt-3 text-center text-sm text-[#71717a]">링크가 복사되었어요!</div>}
+
+                  {/* 하단 영수증 바코드 */}
+                  <footer className="mt-6 border-t-[1.5px] border-dashed border-[#e7e7ea] pt-4 text-center">
+                    <div className="font-sans text-[11px] font-extrabold tracking-[0.32em] text-[#0a0a0a]">BEAUTY PASSPORT</div>
+                    <PassportBarcode />
+                    <div className="font-sans text-xs font-bold tracking-[0.28em] text-[#ec1c24]">
+                      {`BP ${(departDate ?? "2026-08-08").slice(2, 4)}${(departDate ?? "2026-08-08").slice(5, 7)} ${(arriveDate ?? "2026-08-18").slice(5, 7)} ${(arriveDate ?? "2026-08-18").slice(8, 10)}`}
+                    </div>
+                  </footer>
                 </div>
-                <Grain />
               </motion.section>
             )}
 
             {/* [6-3] 수령 방식 선택 */}
             {stage === "receive" && (
-              <motion.section key="receive" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto">
-                <Sky warm />
-                <AmbientClouds />
-                <div className="relative min-h-full px-6 pb-12 pt-14">
-                  <button onClick={() => setStage("result")} className="text-sm font-semibold text-white/90">← 뒤로</button>
-                  <h2 className="mt-3 font-cute text-3xl text-white" style={{ textShadow: "0 3px 14px rgba(43,110,140,0.5)" }}>
+              <motion.section key="receive" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto bg-white px-7 pb-8 pt-5">
+                <div className="min-h-full">
+                  <button onClick={() => setStage("result")} className="text-sm font-semibold text-[#71717a]">← 뒤로</button>
+                  <h2
+                    className="mt-3 text-[26px] font-black leading-tight tracking-[-0.02em] text-[#0a0a0a]"
+                    style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                  >
                     어떻게 받으실래요?
                   </h2>
-                  <p className="mt-2 text-sm text-white/85">담긴 샘플 {cartCount}개 · {cartTotalPrice.toLocaleString()}원</p>
+                  <p className="mt-2 text-sm text-[#71717a]">담긴 샘플 {cartCount}개 · {cartTotalPrice.toLocaleString()}원</p>
 
                   <motion.button
-                    whileTap={{ scale: 0.98 }}
+                    whileTap={{ scale: 0.99 }}
                     onClick={() => { setReceiveMethod("delivery"); setStage("delivery"); }}
-                    className="mt-6 w-full rounded-[26px] border border-white/60 bg-white/90 p-5 text-left shadow-[0_18px_44px_rgba(43,120,170,0.22)] backdrop-blur-xl transition hover:bg-white"
+                    className="mt-6 w-full rounded-2xl border border-[#e7e7ea] bg-white p-5 text-left shadow-[0_8px_24px_rgba(20,30,50,0.05)] transition active:bg-[#fafafa]"
                   >
                     <div className="text-3xl">📦</div>
-                    <div className="mt-2 font-cute text-xl text-[#2b4b58]">배송으로 받기</div>
-                    <p className="mt-1 text-sm text-[#6f909d]">출발 전 미리 집(또는 원하는 곳)에서 받아보세요.</p>
+                    <div className="mt-2 text-lg font-black text-[#0a0a0a]">배송으로 받기</div>
+                    <p className="mt-1 text-sm text-[#71717a]">출발 전 미리 집(또는 원하는 곳)에서 받아보세요.</p>
                   </motion.button>
 
                   <motion.button
-                    whileTap={{ scale: 0.98 }}
+                    whileTap={{ scale: 0.99 }}
                     onClick={() => { setReceiveMethod("pickup"); setStage("pickup"); }}
-                    className="mt-4 w-full rounded-[26px] border border-white/60 bg-white/90 p-5 text-left shadow-[0_18px_44px_rgba(43,120,170,0.22)] backdrop-blur-xl transition hover:bg-white"
+                    className="mt-4 w-full rounded-2xl border border-[#e7e7ea] bg-white p-5 text-left shadow-[0_8px_24px_rgba(20,30,50,0.05)] transition active:bg-[#fafafa]"
                   >
                     <div className="text-3xl">🛄</div>
-                    <div className="mt-2 font-cute text-xl text-[#2b4b58]">공항에서 픽업</div>
-                    <p className="mt-1 text-sm text-[#6f909d]">짐을 줄이고 출국 당일 공항 보관함에서 바로 받으세요.</p>
+                    <div className="mt-2 text-lg font-black text-[#0a0a0a]">공항에서 픽업</div>
+                    <p className="mt-1 text-sm text-[#71717a]">짐을 줄이고 출국 당일 공항 보관함에서 바로 받으세요.</p>
                   </motion.button>
                 </div>
-                <Grain />
               </motion.section>
             )}
 
             {/* [6-3A] 배송 신청 */}
             {stage === "delivery" && (
-              <motion.section key="delivery" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto">
-                <Sky warm />
-                <AmbientClouds />
-                <div className="relative min-h-full px-6 pb-12 pt-14">
-                  <button onClick={() => setStage("receive")} className="text-sm font-semibold text-white/90">← 뒤로</button>
-                  <h2 className="mt-3 font-cute text-3xl text-white" style={{ textShadow: "0 3px 14px rgba(43,110,170,0.5)" }}>
+              <motion.section key="delivery" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto bg-white px-7 pb-8 pt-5">
+                <div className="min-h-full">
+                  <button onClick={() => setStage("receive")} className="text-sm font-semibold text-[#71717a]">← 뒤로</button>
+                  <h2
+                    className="mt-3 text-[26px] font-black tracking-[-0.02em] text-[#0a0a0a]"
+                    style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                  >
                     배송 신청
                   </h2>
 
                   <Card>
                     <CardTitle>배송 시점</CardTitle>
                     <div className="mt-3 space-y-2">
-                      <label className="flex items-center justify-between rounded-2xl border border-[#e3e8f0] px-4 py-3">
+                      <label className="flex items-center justify-between rounded-xl border border-[#e7e7ea] px-4 py-3">
                         <div>
-                          <div className="text-sm font-semibold text-[#2b4b58]">출국 전 배송</div>
-                          <div className="text-xs text-[#7aa7ba]">
+                          <div className="text-sm font-semibold text-[#0a0a0a]">출국 전 배송</div>
+                          <div className="text-xs text-[#71717a]">
                             {departDate ? `예상 도착 ${fmtISO(addDaysISO(departDate, -2))} (출발 2일 전)` : "출발일을 먼저 선택해 주세요"}
                           </div>
                         </div>
-                        <input type="checkbox" checked={deliveryBefore} onChange={(e) => setDeliveryBefore(e.target.checked)} className="h-5 w-5 accent-[#ff7fa8]" />
+                        <input type="checkbox" checked={deliveryBefore} onChange={(e) => setDeliveryBefore(e.target.checked)} className="h-5 w-5 accent-[#0a0a0a]" />
                       </label>
-                      <label className="flex items-center justify-between rounded-2xl border border-[#e3e8f0] px-4 py-3">
+                      <label className="flex items-center justify-between rounded-xl border border-[#e7e7ea] px-4 py-3">
                         <div>
-                          <div className="text-sm font-semibold text-[#2b4b58]">여행 후 케어 배송</div>
-                          <div className="text-xs text-[#7aa7ba]">
+                          <div className="text-sm font-semibold text-[#0a0a0a]">여행 후 케어 배송</div>
+                          <div className="text-xs text-[#71717a]">
                             {arriveDate ? `예상 도착 ${fmtISO(addDaysISO(arriveDate, 3))} (귀국 후)` : "도착일을 먼저 선택해 주세요"}
                           </div>
                         </div>
-                        <input type="checkbox" checked={deliveryAfter} onChange={(e) => setDeliveryAfter(e.target.checked)} className="h-5 w-5 accent-[#ff7fa8]" />
+                        <input type="checkbox" checked={deliveryAfter} onChange={(e) => setDeliveryAfter(e.target.checked)} className="h-5 w-5 accent-[#0a0a0a]" />
                       </label>
                     </div>
                   </Card>
 
                   <Card>
                     <CardTitle>배송 정보</CardTitle>
-                    <label className="mt-3 block text-sm font-bold text-[#22315a]">받는 사람</label>
+                    <label className="mt-3 block text-sm font-extrabold text-[#0a0a0a]">받는 사람</label>
                     <input value={deliveryName} onChange={(e) => setDeliveryName(e.target.value)} placeholder="이름" className="np-input" />
-                    <label className="mt-3 block text-sm font-bold text-[#22315a]">연락처</label>
+                    <label className="mt-3 block text-sm font-extrabold text-[#0a0a0a]">연락처</label>
                     <input value={deliveryPhone} onChange={(e) => setDeliveryPhone(e.target.value.replace(/[^0-9-]/g, ""))} placeholder="010-0000-0000" inputMode="tel" className="np-input" />
-                    <label className="mt-3 block text-sm font-bold text-[#22315a]">배송지</label>
+                    <label className="mt-3 block text-sm font-extrabold text-[#0a0a0a]">배송지</label>
                     <input value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} placeholder="주소를 입력하세요" className="np-input" />
-                    <label className="mt-3 block text-sm font-bold text-[#22315a]">요청사항 (선택)</label>
+                    <label className="mt-3 block text-sm font-extrabold text-[#0a0a0a]">요청사항 (선택)</label>
                     <input value={deliveryNote} onChange={(e) => setDeliveryNote(e.target.value)} placeholder="예: 부재 시 경비실에 맡겨주세요" className="np-input" />
                   </Card>
 
@@ -2572,13 +3003,13 @@ export default function BeautyPassportExperience() {
                     <CardTitle>주문 요약</CardTitle>
                     <div className="mt-2 space-y-1.5">
                       {cartLines.map(({ item, p, lineTotal }) => (
-                        <div key={`${item.id}-${item.ml}`} className="flex justify-between text-sm text-[#4a6b78]">
+                        <div key={`${item.id}-${item.ml}`} className="flex justify-between text-sm text-[#3f3f46]">
                           <span className="truncate">{p.brand} {p.name} · {item.ml}ml ×{item.qty}</span>
-                          <span className="font-semibold text-[#2b4b58]">{lineTotal.toLocaleString()}원</span>
+                          <span className="font-semibold text-[#0a0a0a]">{lineTotal.toLocaleString()}원</span>
                         </div>
                       ))}
                     </div>
-                    <div className="mt-3 flex justify-between border-t border-dashed border-[#dbe8ef] pt-2 text-sm font-bold text-[#2b4b58]">
+                    <div className="mt-3 flex justify-between border-t border-dashed border-[#e7e7ea] pt-2 text-sm font-extrabold text-[#0a0a0a]">
                       <span>합계</span>
                       <span>{cartTotalPrice.toLocaleString()}원</span>
                     </div>
@@ -2586,32 +3017,31 @@ export default function BeautyPassportExperience() {
 
                   <motion.button
                     disabled={!deliveryFormValid}
-                    whileHover={deliveryFormValid ? { scale: 1.02, y: -1 } : undefined}
-                    whileTap={{ scale: 0.98 }}
+                    whileTap={deliveryFormValid ? { scale: 0.985 } : undefined}
                     onClick={submitDelivery}
-                    className="mt-6 w-full rounded-2xl bg-gradient-to-r from-[#ff9f7a] to-[#ff7fa8] py-4 font-cute text-lg text-white shadow-[0_12px_26px_rgba(255,127,168,0.4)] disabled:opacity-40"
+                    className="mt-6 w-full rounded-[14px] bg-[#0a0a0a] py-4 text-[15px] font-extrabold text-white transition disabled:bg-[#d4d4d8] disabled:text-[#fafafa]"
                   >
                     주문 완료
                   </motion.button>
                 </div>
-                <Grain />
               </motion.section>
             )}
 
             {/* [6-3B] 공항 픽업 신청 */}
             {stage === "pickup" && (
-              <motion.section key="pickup" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto">
-                <Sky warm />
-                <AmbientClouds />
-                <div className="relative min-h-full px-6 pb-12 pt-14">
-                  <button onClick={() => setStage("receive")} className="text-sm font-semibold text-white/90">← 뒤로</button>
-                  <h2 className="mt-3 font-cute text-3xl text-white" style={{ textShadow: "0 3px 14px rgba(43,110,170,0.5)" }}>
+              <motion.section key="pickup" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto bg-white px-7 pb-8 pt-5">
+                <div className="min-h-full">
+                  <button onClick={() => setStage("receive")} className="text-sm font-semibold text-[#71717a]">← 뒤로</button>
+                  <h2
+                    className="mt-3 text-[26px] font-black tracking-[-0.02em] text-[#0a0a0a]"
+                    style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                  >
                     공항 픽업 신청
                   </h2>
 
                   <Card>
                     <CardTitle>픽업 정보</CardTitle>
-                    <label className="mt-3 block text-sm font-bold text-[#22315a]">픽업 공항</label>
+                    <label className="mt-3 block text-sm font-extrabold text-[#0a0a0a]">픽업 공항</label>
                     <select
                       value={pickupAirport ?? ""}
                       onChange={(e) => setPickupAirport(e.target.value || null)}
@@ -2623,19 +3053,20 @@ export default function BeautyPassportExperience() {
                       ))}
                     </select>
 
-                    <label className="mt-3 block text-sm font-bold text-[#22315a]">픽업 날짜</label>
+                    <label className="mt-3 block text-sm font-extrabold text-[#0a0a0a]">픽업 날짜</label>
                     <DateField
                       label="픽업 날짜"
                       value={pickupDate}
                       min={todayISO()}
                       max={departDate ?? undefined}
                       onChange={setPickupDate}
+                      tone="passport"
                     />
-                    <p className="mt-1 text-xs text-[#7aa7ba]">
+                    <p className="mt-1 text-xs text-[#71717a]">
                       출발일({departDate ? fmtISO(departDate) : "미정"}) 이후는 선택할 수 없어요 · 출발 당일 픽업을 권장해요.
                     </p>
 
-                    <label className="mt-3 block text-sm font-bold text-[#22315a]">픽업 시간</label>
+                    <label className="mt-3 block text-sm font-extrabold text-[#0a0a0a]">픽업 시간</label>
                     <select
                       value={pickupTime ?? ""}
                       onChange={(e) => setPickupTime(e.target.value || null)}
@@ -2646,14 +3077,14 @@ export default function BeautyPassportExperience() {
                         <option key={t} value={t}>{t}</option>
                       ))}
                     </select>
-                    <p className="mt-1 text-xs text-[#7aa7ba]">✈️ 출발 시각 최소 2시간 전 픽업을 권장해요.</p>
+                    <p className="mt-1 text-xs text-[#71717a]">✈️ 출발 시각 최소 2시간 전 픽업을 권장해요.</p>
                   </Card>
 
                   <Card>
                     <CardTitle>신청자 정보</CardTitle>
-                    <label className="mt-3 block text-sm font-bold text-[#22315a]">이름</label>
+                    <label className="mt-3 block text-sm font-extrabold text-[#0a0a0a]">이름</label>
                     <input value={name || "여행자"} disabled className="np-input opacity-60" />
-                    <label className="mt-3 block text-sm font-bold text-[#22315a]">연락처</label>
+                    <label className="mt-3 block text-sm font-extrabold text-[#0a0a0a]">연락처</label>
                     <input value={pickupPhone} onChange={(e) => setPickupPhone(e.target.value.replace(/[^0-9-]/g, ""))} placeholder="010-0000-0000" inputMode="tel" className="np-input" />
                   </Card>
 
@@ -2661,70 +3092,69 @@ export default function BeautyPassportExperience() {
                     <CardTitle>주문 요약</CardTitle>
                     <div className="mt-2 space-y-1.5">
                       {cartLines.map(({ item, p, lineTotal }) => (
-                        <div key={`${item.id}-${item.ml}`} className="flex justify-between text-sm text-[#4a6b78]">
+                        <div key={`${item.id}-${item.ml}`} className="flex justify-between text-sm text-[#3f3f46]">
                           <span className="truncate">{p.brand} {p.name} · {item.ml}ml ×{item.qty}</span>
-                          <span className="font-semibold text-[#2b4b58]">{lineTotal.toLocaleString()}원</span>
+                          <span className="font-semibold text-[#0a0a0a]">{lineTotal.toLocaleString()}원</span>
                         </div>
                       ))}
                     </div>
-                    <div className="mt-3 flex justify-between border-t border-dashed border-[#dbe8ef] pt-2 text-sm font-bold text-[#2b4b58]">
+                    <div className="mt-3 flex justify-between border-t border-dashed border-[#e7e7ea] pt-2 text-sm font-extrabold text-[#0a0a0a]">
                       <span>합계</span>
                       <span>{cartTotalPrice.toLocaleString()}원</span>
                     </div>
                     {pickupAirport && pickupDate && pickupTime && (
-                      <div className="mt-2 text-xs text-[#7aa7ba]">픽업: {pickupAirport} · {fmtISO(pickupDate)} · {pickupTime}</div>
+                      <div className="mt-2 text-xs text-[#71717a]">픽업: {pickupAirport} · {fmtISO(pickupDate)} · {pickupTime}</div>
                     )}
                   </Card>
 
                   <motion.button
                     disabled={!pickupFormValid}
-                    whileHover={pickupFormValid ? { scale: 1.02, y: -1 } : undefined}
-                    whileTap={{ scale: 0.98 }}
+                    whileTap={pickupFormValid ? { scale: 0.985 } : undefined}
                     onClick={submitPickup}
-                    className="mt-6 w-full rounded-2xl bg-gradient-to-r from-[#ff9f7a] to-[#ff7fa8] py-4 font-cute text-lg text-white shadow-[0_12px_26px_rgba(255,127,168,0.4)] disabled:opacity-40"
+                    className="mt-6 w-full rounded-[14px] bg-[#0a0a0a] py-4 text-[15px] font-extrabold text-white transition disabled:bg-[#d4d4d8] disabled:text-[#fafafa]"
                   >
                     예약 완료
                   </motion.button>
                 </div>
-                <Grain />
               </motion.section>
             )}
 
             {/* [6-4] 완료 화면 */}
             {stage === "done" && (
-              <motion.section key="done" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto">
-                <Sky warm />
-                <AmbientClouds />
-                <div className="relative flex min-h-full flex-col items-center px-6 pb-12 pt-16 text-center">
-                  <div className="text-5xl">{receiveMethod === "pickup" ? "🛄" : "📦"}</div>
-                  <h2 className="mt-4 font-cute text-2xl text-white" style={{ textShadow: "0 3px 14px rgba(43,110,170,0.5)" }}>
+              <motion.section key="done" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto bg-white px-7 pb-8 pt-5">
+                <div className="flex min-h-full flex-col items-center text-center">
+                  <div className="mt-6 text-5xl">{receiveMethod === "pickup" ? "🛄" : "📦"}</div>
+                  <h2
+                    className="mt-4 text-2xl font-black tracking-[-0.02em] text-[#0a0a0a]"
+                    style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                  >
                     {receiveMethod === "pickup" ? "예약이 완료되었습니다!" : "주문이 완료되었습니다!"}
                   </h2>
-                  <div className="mt-1 text-sm text-white/85">주문번호 {orderNo}</div>
+                  <div className="mt-1 text-sm text-[#71717a]">주문번호 {orderNo}</div>
 
                   <div className="mt-5 w-full text-left">
                     <Card>
                       <CardTitle>주문 요약</CardTitle>
                       <div className="mt-2 space-y-1.5">
                         {cartLines.map(({ item, p, lineTotal }) => (
-                          <div key={`${item.id}-${item.ml}`} className="flex justify-between text-sm text-[#4a6b78]">
+                          <div key={`${item.id}-${item.ml}`} className="flex justify-between text-sm text-[#3f3f46]">
                             <span className="truncate">{p.brand} {p.name} · {item.ml}ml ×{item.qty}</span>
-                            <span className="font-semibold text-[#2b4b58]">{lineTotal.toLocaleString()}원</span>
+                            <span className="font-semibold text-[#0a0a0a]">{lineTotal.toLocaleString()}원</span>
                           </div>
                         ))}
                       </div>
-                      <div className="mt-3 flex justify-between border-t border-dashed border-[#dbe8ef] pt-2 text-sm font-bold text-[#2b4b58]">
+                      <div className="mt-3 flex justify-between border-t border-dashed border-[#e7e7ea] pt-2 text-sm font-extrabold text-[#0a0a0a]">
                         <span>합계</span>
                         <span>{cartTotalPrice.toLocaleString()}원</span>
                       </div>
-                      <div className="mt-2 text-xs text-[#7aa7ba]">✈️ 전 제품 100ml 이하 · 기내 반입 가능</div>
+                      <div className="mt-2 text-xs text-[#71717a]">✈️ 전 제품 100ml 이하 · 기내 반입 가능</div>
                     </Card>
 
                     {receiveMethod === "delivery" ? (
                       <Card>
                         <CardTitle>📦 배송 안내</CardTitle>
-                        <p className="mt-2 text-sm leading-relaxed text-[#4a6b78]">여행 일정에 맞춰 소용량 키트를 준비해 배송합니다.</p>
-                        <div className="mt-2 space-y-1 text-xs text-[#7aa7ba]">
+                        <p className="mt-2 text-sm leading-relaxed text-[#3f3f46]">여행 일정에 맞춰 소용량 키트를 준비해 배송합니다.</p>
+                        <div className="mt-2 space-y-1 text-xs text-[#71717a]">
                           {deliveryBefore && departDate && <div>· 출국 전 배송 — 예상 도착 {fmtISO(addDaysISO(departDate, -2))}</div>}
                           {deliveryAfter && arriveDate && <div>· 여행 후 케어 배송 — 예상 도착 {fmtISO(addDaysISO(arriveDate, 3))}</div>}
                         </div>
@@ -2732,15 +3162,15 @@ export default function BeautyPassportExperience() {
                     ) : (
                       <Card>
                         <CardTitle>🛄 픽업 안내</CardTitle>
-                        <div className="mt-2 text-sm text-[#4a6b78]">
+                        <div className="mt-2 text-sm text-[#3f3f46]">
                           {pickupAirport} · {pickupDate ? fmtISO(pickupDate) : ""} · {pickupTime}
                         </div>
-                        <div className="mt-3 rounded-2xl bg-gradient-to-r from-[#fff2ea] to-[#ffe9f0] p-4 text-center">
-                          <div className="text-xs text-[#8a4b52]">{pickupAirport} 보관함</div>
-                          <div className="font-cute text-4xl text-[#ff7fa8]">{lockerNo}</div>
-                          <div className="text-xs text-[#8a4b52]">번 보관함에서 찾아가세요</div>
+                        <div className="mt-3 rounded-xl bg-[#f4f4f5] p-4 text-center">
+                          <div className="text-xs text-[#71717a]">{pickupAirport} 보관함</div>
+                          <div className="text-4xl font-black tracking-[0.04em] text-[#ec1c24]">{lockerNo}</div>
+                          <div className="text-xs text-[#71717a]">번 보관함에서 찾아가세요</div>
                         </div>
-                        <ul className="mt-3 space-y-1.5 text-xs text-[#7aa7ba]">
+                        <ul className="mt-3 space-y-1.5 text-xs text-[#71717a]">
                           <li>· 예약 시간 이후 수령 가능해요.</li>
                           <li>· 픽업 시 주문번호·연락처를 확인해 주세요.</li>
                           <li>· 출발 2시간 전, 여유 있게 방문해 주세요.</li>
@@ -2751,12 +3181,11 @@ export default function BeautyPassportExperience() {
 
                   <button
                     onClick={restart}
-                    className="mt-8 w-full rounded-full border border-white/70 bg-white/70 px-6 py-4 font-cute text-lg text-[#2b6b86] backdrop-blur transition hover:bg-white/90"
+                    className="mt-8 w-full rounded-[14px] border-[1.5px] border-[#e7e7ea] bg-white px-6 py-4 text-[15px] font-extrabold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
                   >
                     처음으로 ↺
                   </button>
                 </div>
-                <Grain />
               </motion.section>
             )}
           </AnimatePresence>
@@ -2770,7 +3199,7 @@ export default function BeautyPassportExperience() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 onClick={() => setCartOpen(true)}
-                className="absolute bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-gradient-to-r from-[#ff9f7a] to-[#ff7fa8] px-5 py-3.5 font-cute text-white shadow-[0_16px_36px_rgba(255,127,168,0.5)]"
+                className="absolute bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-[#0a0a0a] px-5 py-3.5 font-extrabold text-white shadow-[0_16px_36px_rgba(10,10,10,0.28)]"
               >
                 🧳 <span className="text-sm">{cartCount}</span>
               </motion.button>
@@ -2809,6 +3238,7 @@ export default function BeautyPassportExperience() {
                 dryHigh={result.profile.humidity <= 45}
                 uvHigh={result.profile.uv >= 8}
                 reason={result.recItems.find((it) => it.p.id === detailId)?.reason ?? ""}
+                destinationCountry={countryCode}
                 cartQty={cartQty}
                 onAdd={addSample}
                 onDec={decSample}
@@ -2828,10 +3258,10 @@ function StepBadge({ step, total, label }: { step: number; total: number; label:
   return <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-[#2b6b86] backdrop-blur">STEP {step}/{total} · {label}</div>;
 }
 function Card({ children }: { children: React.ReactNode }) {
-  return <div className="mt-4 rounded-[26px] border border-white/60 bg-white/78 p-5 shadow-[0_18px_44px_rgba(43,120,170,0.2)] backdrop-blur-xl">{children}</div>;
+  return <div className="mt-3.5 rounded-2xl border border-[#e7e7ea] bg-white p-[18px] shadow-[0_8px_24px_rgba(20,30,50,0.05)]">{children}</div>;
 }
 function CardTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="font-cute text-xl text-[#2b4b58]">{children}</h3>;
+  return <h3 className="flex items-center gap-2 text-[15px] font-extrabold tracking-[-0.01em] text-[#0a0a0a]">{children}</h3>;
 }
 function hashHue(s: string) {
   let h = 0;
@@ -2914,10 +3344,10 @@ function ProductImage({ product }: { product: Cosmetic }) {
 
 function Metric({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-[#f0fbff] px-2 py-3 text-center">
-      <div className="text-lg">{icon}</div>
-      <div className="mt-0.5 text-[10px] text-[#7aa7ba]">{label}</div>
-      <div className="font-cute text-base text-[#2b4b58]">{value}</div>
+    <div className="rounded-xl bg-[#f4f4f5] px-2 py-2.5 text-center">
+      <div className="text-[10px] tracking-[0.06em] text-[#9ca3af]">{label}</div>
+      <div className="my-0.5 text-[17px] leading-none">{icon}</div>
+      <div className="text-sm font-extrabold text-[#0a0a0a]">{value}</div>
     </div>
   );
 }
@@ -2933,6 +3363,7 @@ function ProductDetail({
   dryHigh,
   uvHigh,
   reason,
+  destinationCountry,
   cartQty,
   onAdd,
   onDec,
@@ -2943,6 +3374,7 @@ function ProductDetail({
   dryHigh: boolean;
   uvHigh: boolean;
   reason: string;
+  destinationCountry: string | null;
   cartQty: (id: string, ml: number) => number;
   onAdd: (id: string, ml: number) => void;
   onDec: (id: string, ml: number) => void;
@@ -2965,9 +3397,9 @@ function ProductDetail({
         transition={{ type: "spring", stiffness: 320, damping: 34 }}
       >
         {/* 상단 바 */}
-        <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-[#eef2f7] bg-white/95 px-5 py-3 backdrop-blur">
-          <button onClick={onClose} className="text-sm font-semibold text-[#5a6b8c]">← 목록으로</button>
-          <div className="mx-auto h-1 w-10 rounded-full bg-[#e3e8f0]" />
+        <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-[#e7e7ea] bg-white/95 px-5 py-3 backdrop-blur">
+          <button onClick={onClose} className="text-sm font-semibold text-[#71717a]">← 목록으로</button>
+          <div className="mx-auto h-1 w-10 rounded-full bg-[#e7e7ea]" />
         </div>
 
         <div className="px-5 pb-8 pt-4">
@@ -2977,11 +3409,11 @@ function ProductDetail({
           </div>
 
           <div className="mt-4 flex items-center gap-2">
-            <span className="text-sm font-bold text-[#7aa7ba]">{product.brand}</span>
-            <span className="ml-auto text-sm font-bold text-[#ff8f4d]">★ {product.rating.toFixed(2)}</span>
+            <span className="text-sm font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{product.brand}</span>
+            <span className="ml-auto text-sm font-bold text-[#ec1c24]">★ {product.rating.toFixed(2)}</span>
           </div>
-          <h2 className="mt-0.5 font-cute text-2xl text-[#22315a]">{product.name}</h2>
-          <div className="mt-1 text-sm text-[#6f909d]">
+          <h2 className="mt-0.5 text-xl font-black tracking-[-0.01em] text-[#0a0a0a]">{product.name}</h2>
+          <div className="mt-1 text-sm text-[#71717a]">
             정품 {product.fullMl}ml · 정가 {product.price.toLocaleString()}원
           </div>
 
@@ -2989,42 +3421,45 @@ function ProductDetail({
           {product.safety.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {product.safety.map((s) => (
-                <span key={s} className="rounded-full bg-[#e9f8f0] px-2.5 py-1 text-[11px] font-semibold text-[#268a5b]">✓ {s}</span>
+                <span key={s} className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[11px] font-semibold text-[#0a0a0a]">✓ {s}</span>
               ))}
             </div>
           )}
 
+          {/* 성분 기반 반입 주의 플래그 (여행지 규정) */}
+          <ComplianceBadge cosmeticId={product.id} destinationCountry={destinationCountry} />
+
           {/* 성분 · 적합/고민 태그 */}
           <div className="mt-3 flex flex-wrap gap-1.5">
             {product.ingredients.map((ing) => (
-              <span key={ing} className="rounded-full bg-[#eef6fb] px-2.5 py-1 text-[11px] text-[#3f7d97]">#{ing}</span>
+              <span key={ing} className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[11px] text-[#3f3f46]">#{ing}</span>
             ))}
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {product.forTypes.map((t) => (
-              <span key={t} className="rounded-full border border-[#e3e8f0] px-2.5 py-1 text-[11px] text-[#5a6b8c]">{t}</span>
+              <span key={t} className="rounded-full border border-[#e7e7ea] px-2.5 py-1 text-[11px] text-[#52525b]">{t}</span>
             ))}
             {product.concerns.map((c) => (
-              <span key={c} className="rounded-full bg-[#fff0f5] px-2.5 py-1 text-[11px] text-[#ff7fa8]">{c}</span>
+              <span key={c} className="rounded-full border border-[#ec1c24] bg-white px-2.5 py-1 text-[11px] text-[#ec1c24]">{c}</span>
             ))}
           </div>
 
-          <p className="mt-3 text-sm leading-relaxed text-[#5b7683]">{product.desc}</p>
+          <p className="mt-3 text-sm leading-relaxed text-[#52525b]">{product.desc}</p>
 
           {/* 이 여행에 왜 맞는지 */}
           {reason && (
-            <div className="mt-3 rounded-2xl bg-gradient-to-r from-[#fff2ea] to-[#ffe9f0] px-4 py-3 text-[13px] leading-relaxed text-[#8a4b52]">
+            <div className="mt-3 rounded-xl bg-[#f4f4f5] px-4 py-3 text-[13px] leading-relaxed text-[#3f3f46]">
               💡 이 여행에 딱 맞아요 — {reason}
             </div>
           )}
 
           {/* 소용량 선택 */}
-          <div className="mt-5 rounded-2xl border border-[#e3e8f0] bg-[#f8fafc] p-4">
-            <div className="text-sm font-bold text-[#22315a]">소용량 선택 (기내 반입 가능 ✈️)</div>
+          <div className="mt-5 rounded-2xl border border-[#e7e7ea] bg-[#fafafa] p-4">
+            <div className="text-sm font-extrabold text-[#0a0a0a]">소용량 선택 (기내 반입 가능 ✈️)</div>
             <select
               value={ml}
               onChange={(e) => setMl(Number(e.target.value))}
-              className="mt-2 w-full appearance-none rounded-xl border border-[#e3e8f0] bg-white px-4 py-3 text-[15px] text-[#22315a] outline-none focus:border-[#22315a]"
+              className="mt-2 w-full appearance-none rounded-xl border border-[#e7e7ea] bg-white px-4 py-3 text-[15px] text-[#0a0a0a] outline-none focus:border-[#0a0a0a]"
             >
               {SAMPLE_TIERS.map((t) => (
                 <option key={t} value={t}>
@@ -3033,11 +3468,11 @@ function ProductDetail({
               ))}
             </select>
             <div className="mt-2 flex items-center justify-between">
-              <span className="text-xs text-[#6f909d]">
-                {nights}박 {days}일에 딱 맞는 <b className="text-[#ff7fa8]">{rec.ml}ml</b>
+              <span className="text-xs text-[#71717a]">
+                {nights}박 {days}일에 딱 맞는 <b className="text-[#0a0a0a]">{rec.ml}ml</b>
                 {rec.qty > 1 && <> (×{rec.qty})</>}
               </span>
-              <span className="font-cute text-xl text-[#22315a]">{price.toLocaleString()}원</span>
+              <span className="text-xl font-black text-[#0a0a0a]">{price.toLocaleString()}원</span>
             </div>
           </div>
 
@@ -3045,25 +3480,25 @@ function ProductDetail({
           <div className="mt-4 space-y-2">
             <button
               onClick={() => window.open(product.oliveYoungUrl, "_blank", "noopener")}
-              className="w-full rounded-2xl border border-[#22315a] py-3.5 font-cute text-base text-[#22315a] transition hover:bg-[#f2f5fa]"
+              className="w-full rounded-[14px] border-[1.5px] border-[#e7e7ea] py-3.5 text-base font-extrabold text-[#0a0a0a] transition hover:bg-[#f4f4f5]"
             >
-              본품 구매하기 (올리브영){product.linkType === "search" && <span className="ml-1 text-xs font-normal text-[#8aa]">· 검색</span>}
+              본품 구매하기 (올리브영){product.linkType === "search" && <span className="ml-1 text-xs font-normal text-[#9ca3af]">· 검색</span>}
             </button>
             {qty === 0 ? (
               <motion.button
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.985 }}
                 onClick={() => onAdd(product.id, ml)}
-                className="w-full rounded-2xl bg-gradient-to-r from-[#ff9f7a] to-[#ff7fa8] py-3.5 font-cute text-base text-white shadow-[0_12px_26px_rgba(255,127,168,0.4)]"
+                className="w-full rounded-[14px] bg-[#0a0a0a] py-3.5 text-base font-extrabold text-white transition"
               >
                 샘플 담기 · {price.toLocaleString()}원
               </motion.button>
             ) : (
-              <div className="flex items-center justify-between rounded-2xl bg-[#fff0f5] px-4 py-2.5">
-                <span className="text-sm font-semibold text-[#ff7fa8]">샘플 {ml}ml 담김</span>
+              <div className="flex items-center justify-between rounded-[14px] bg-[#f4f4f5] px-4 py-2.5">
+                <span className="text-sm font-semibold text-[#0a0a0a]">샘플 {ml}ml 담김</span>
                 <div className="flex items-center gap-4">
-                  <button onClick={() => onDec(product.id, ml)} className="text-xl text-[#ff7fa8]">−</button>
-                  <span className="w-5 text-center font-bold text-[#22315a]">{qty}</span>
-                  <button onClick={() => onAdd(product.id, ml)} className="text-xl text-[#ff7fa8]">＋</button>
+                  <button onClick={() => onDec(product.id, ml)} className="text-xl text-[#0a0a0a]">−</button>
+                  <span className="w-5 text-center font-bold text-[#0a0a0a]">{qty}</span>
+                  <button onClick={() => onAdd(product.id, ml)} className="text-xl text-[#0a0a0a]">＋</button>
                 </div>
               </div>
             )}
@@ -3108,36 +3543,36 @@ function CartSheet({
         exit={{ y: "100%" }}
         transition={{ type: "spring", stiffness: 320, damping: 34 }}
       >
-        <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-[#eef2f7] bg-white/95 px-5 py-3 backdrop-blur">
-          <span className="font-cute text-lg text-[#2b4b58]">🧳 여행 샘플 장바구니</span>
-          <button onClick={onClose} className="ml-auto text-sm font-semibold text-[#5a6b8c]">닫기</button>
+        <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-[#e7e7ea] bg-white/95 px-5 py-3 backdrop-blur">
+          <span className="text-lg font-black text-[#0a0a0a]">🧳 여행 샘플 장바구니</span>
+          <button onClick={onClose} className="ml-auto text-sm font-semibold text-[#71717a]">닫기</button>
         </div>
 
         <div className="px-5 pb-8 pt-4">
           {lines.length === 0 ? (
-            <p className="py-8 text-center text-sm text-[#9cb6c2]">장바구니가 비어있어요.</p>
+            <p className="py-8 text-center text-sm text-[#9ca3af]">장바구니가 비어있어요.</p>
           ) : (
             <div className="space-y-3">
               {lines.map(({ item, p, lineTotal }) => (
-                <div key={`${item.id}-${item.ml}`} className="flex items-center gap-3 rounded-2xl border border-[#eef2f7] p-3">
+                <div key={`${item.id}-${item.ml}`} className="flex items-center gap-3 rounded-2xl border border-[#e7e7ea] p-3">
                   <ProductImage product={p} />
                   <div className="min-w-0 flex-1">
-                    <div className="text-[11px] font-bold text-[#7aa7ba]">{p.brand}</div>
-                    <div className="truncate text-sm font-semibold text-[#2b4b58]">{p.name}</div>
+                    <div className="text-[11px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{p.brand}</div>
+                    <div className="truncate text-sm font-extrabold text-[#0a0a0a]">{p.name}</div>
                     <div className="mt-1 flex items-center gap-1.5">
-                      <span className="rounded-full bg-[#fff0f5] px-2 py-0.5 text-[10px] font-semibold text-[#ff7fa8]">{item.ml}ml</span>
-                      <span className="rounded-full bg-[#eef6fb] px-2 py-0.5 text-[10px] font-semibold text-[#3f7d97]">기내 반입 ✈️</span>
+                      <span className="rounded-full bg-[#f4f4f5] px-2 py-0.5 text-[10px] font-semibold text-[#3f3f46]">{item.ml}ml</span>
+                      <span className="rounded-full bg-[#f4f4f5] px-2 py-0.5 text-[10px] font-semibold text-[#3f3f46]">기내 반입 ✈️</span>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <div className="flex items-center gap-2 rounded-full bg-[#f0f4f9] px-2 py-1">
-                      <button onClick={() => onDec(item.id, item.ml)} className="text-sm font-bold text-[#5a6b8c]">−</button>
-                      <span className="w-4 text-center text-xs font-bold">{item.qty}</span>
-                      <button onClick={() => onInc(item.id, item.ml)} className="text-sm font-bold text-[#5a6b8c]">＋</button>
+                    <div className="flex items-center gap-2 rounded-full bg-[#f4f4f5] px-2 py-1">
+                      <button onClick={() => onDec(item.id, item.ml)} className="text-sm font-bold text-[#0a0a0a]">−</button>
+                      <span className="w-4 text-center text-xs font-bold text-[#0a0a0a]">{item.qty}</span>
+                      <button onClick={() => onInc(item.id, item.ml)} className="text-sm font-bold text-[#0a0a0a]">＋</button>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-[#2b4b58]">{lineTotal.toLocaleString()}원</span>
-                      <button onClick={() => onRemove(item.id, item.ml)} className="text-xs text-[#c3d4dd] underline">삭제</button>
+                      <span className="text-xs font-semibold text-[#0a0a0a]">{lineTotal.toLocaleString()}원</span>
+                      <button onClick={() => onRemove(item.id, item.ml)} className="text-xs text-[#9ca3af] underline">삭제</button>
                     </div>
                   </div>
                 </div>
@@ -3147,22 +3582,22 @@ function CartSheet({
 
           {lines.length > 0 && (
             <>
-              <div className="mt-4 space-y-1 rounded-2xl bg-[#f8fafc] p-4 text-sm">
-                <div className="flex justify-between text-[#4a6b78]"><span>총 제품 수</span><span className="font-semibold text-[#2b4b58]">{totalQty}개</span></div>
-                <div className="flex justify-between text-[#4a6b78]"><span>총 용량</span><span className="font-semibold text-[#2b4b58]">{totalMl}ml</span></div>
-                <div className="flex justify-between border-t border-dashed border-[#dbe8ef] pt-1.5 font-bold text-[#2b4b58]"><span>총 금액</span><span>{totalPrice.toLocaleString()}원</span></div>
+              <div className="mt-4 space-y-1 rounded-2xl bg-[#f4f4f5] p-4 text-sm">
+                <div className="flex justify-between text-[#71717a]"><span>총 제품 수</span><span className="font-semibold text-[#0a0a0a]">{totalQty}개</span></div>
+                <div className="flex justify-between text-[#71717a]"><span>총 용량</span><span className="font-semibold text-[#0a0a0a]">{totalMl}ml</span></div>
+                <div className="flex justify-between border-t border-dashed border-[#e7e7ea] pt-1.5 font-extrabold text-[#0a0a0a]"><span>총 금액</span><span>{totalPrice.toLocaleString()}원</span></div>
               </div>
 
-              <div className={`mt-3 rounded-2xl px-4 py-3 text-[12px] leading-relaxed ${allUnder100 ? "bg-[#e9f8f0] text-[#268a5b]" : "bg-[#fdeee6] text-[#c9622f]"}`}>
+              <div className={`mt-3 rounded-xl px-4 py-3 text-[12px] leading-relaxed ${allUnder100 ? "bg-[#f4f4f5] text-[#3f3f46]" : "border border-[#ec1c24] bg-white text-[#ec1c24]"}`}>
                 ✈️ {allUnder100 ? "전 제품 개별 100ml 이하 — 기내 반입 가능해요." : "일부 제품이 100ml를 초과해요 — 위탁수하물로 부쳐야 해요."}
                 <br />
                 <span className="text-[11px] opacity-80">기내 액체 규정: 개별 100ml 이하 · 총합 1L 이하 · 투명 지퍼백 권장</span>
               </div>
 
               <motion.button
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.985 }}
                 onClick={onCheckout}
-                className="mt-4 w-full rounded-2xl bg-gradient-to-r from-[#ff9f7a] to-[#ff7fa8] py-3.5 font-cute text-base text-white shadow-[0_12px_26px_rgba(255,127,168,0.4)]"
+                className="mt-4 w-full rounded-[14px] bg-[#0a0a0a] py-3.5 text-base font-extrabold text-white transition"
               >
                 신청하기 →
               </motion.button>
@@ -3193,7 +3628,7 @@ function StubField({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <div className="text-[11px] font-bold tracking-[0.12em] text-[#9aa6bf]">{label}</div>
-      <div className="mt-0.5 font-cute text-2xl text-[#22315a]">{value}</div>
+      <div className="mt-0.5 text-2xl font-black text-[#0a0a0a]">{value}</div>
     </div>
   );
 }
@@ -3291,7 +3726,7 @@ function DateField({
                   transition={{ duration: 0.2, ease: EASE }}
                   className="relative w-[288px] rounded-3xl border border-white/70 bg-white p-4 shadow-[0_30px_70px_rgba(43,120,170,0.4)]"
                 >
-                  <div className={`mb-2 text-center ${passport ? "font-sans text-[15px] font-extrabold text-[#0a0a0a]" : "font-cute text-[#2b4b58]"}`}>{label} 선택</div>
+                  <div className={`mb-2 text-center ${passport ? "font-sans text-[15px] font-extrabold text-[#0a0a0a]" : "font-sans text-[15px] font-extrabold text-[#0a0a0a]"}`}>{label} 선택</div>
                   <CalendarPopup value={value} min={min} max={max} tone={tone} onPick={(d) => { onChange(d); setOpen(false); }} />
                 </motion.div>
               </div>

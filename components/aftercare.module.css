@@ -13,7 +13,8 @@
   --stamp-soft: #fbe7e5;
   --radius-field: 14px;
   --radius-btn: 16px;
-  --font: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  /* 폰트는 로그인 등 다른 화면과 동일하게 전역 Noto Sans KR로 통일 */
+  --font: var(--font-noto-sans), "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 
   font-family: var(--font);
   color: var(--ink);
@@ -161,7 +162,8 @@
 .product .why { font-size: 13px; color: var(--ink-soft); line-height: 1.55; margin: 0; }
 
 .footer { border-top: 1px dashed var(--line); margin-top: 18px; padding-top: 16px; text-align: center; }
-.footer .cap { font-size: 11px; font-weight: 800; letter-spacing: 0.26em; color: var(--ink); margin-bottom: 10px; }
-.barcode { display: flex; justify-content: center; align-items: flex-end; gap: 2px; height: 40px; }
-.barcode i { display: block; background: var(--ink); height: 100%; }
-.code { margin-top: 9px; font-size: 12px; font-weight: 700; letter-spacing: 0.26em; color: var(--stamp); font-variant-numeric: tabular-nums; }
+/* 바코드는 로그인(PassportBarcode) 비율로 통일 — 균일 2px 막대 · gap 1.5px · 높이 44px */
+.footer .cap { font-size: 11px; font-weight: 800; letter-spacing: 0.32em; color: var(--ink); margin-bottom: 10px; }
+.barcode { display: flex; justify-content: center; align-items: flex-end; gap: 1.5px; height: 44px; }
+.barcode i { display: block; width: 2px; background: var(--ink); }
+.code { margin-top: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.28em; color: var(--stamp); font-variant-numeric: tabular-nums; }

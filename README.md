@@ -48,4 +48,14 @@ components/
 lib/
   data.ts             기후 프로파일 · 제품 카탈로그
   logic.ts            피부 이슈 지수 · 캘린더 · 제품 추천 로직
+  compliance/         성분 기반 반입 주의 플래그(types · check · test)
+data/                 규제 데이터(products · restricted-ingredients · country-rules · aviation-rules)
 ```
+
+## 반입 주의 플래그 (Compliance)
+
+추천 제품의 전성분을 여행지 규제 성분과 매칭해 "반입 주의" 배지를 노출합니다.
+"반입 가능/불가"를 단정하지 않고 주의 환기 + 확인 유도만 합니다(법적 판정 아님).
+설계 원칙·데이터 갱신 방법·국가별 예상 결과표는 [COMPLIANCE.md](COMPLIANCE.md) 참고.
+
+테스트: `npx tsx lib/compliance/check.test.ts`

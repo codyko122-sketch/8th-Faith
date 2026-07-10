@@ -1,6 +1,14 @@
 // 브라우저 localStorage 기반 계정 저장소. 이 프로젝트엔 서버/DB가 없어서
 // 회원가입·로그인 데이터를 브라우저에만 저장한다 — 비밀번호도 평문 저장.
 // 실제 서비스로 배포한다면 반드시 서버 인증 + 해시된 비밀번호로 교체해야 한다.
+export type SavedProduct = {
+  key: string; // 고유 키 (brand+name 기반)
+  brand: string;
+  name: string;
+  category: string;
+  savedAt: string;
+};
+
 export type Account = {
   id: string;
   password: string;
@@ -10,6 +18,7 @@ export type Account = {
   skinCode: string | null;
   skinUpdatedAt: string | null;
   createdAt: string;
+  savedProducts?: SavedProduct[];
 };
 
 const ACCOUNTS_KEY = "beauty-passport:accounts";
@@ -139,6 +148,30 @@ export function saveSkinToAccount(id: string, skinCode: string) {
   const idx = accounts.findIndex((a) => a.id === id);
   if (idx === -1) return;
   accounts[idx] = { ...accounts[idx], skinCode, skinUpdatedAt: new Date().toISOString() };
+  writeAccounts(accounts);
+}
+
+export function getSavedProducts(id: string): SavedProduct[] {
+  return findAccount(id)?.savedProducts ?? [];
+}
+
+// 스캔한 제품을 계정에 저장 (같은 제품이면 최신으로 갱신, 최대 30개 유지)
+export function saveProductToAccount(id: string, product: Omit<SavedProduct, "key" | "savedAt">) {
+  const accounts = readAccounts();
+  const idx = accounts.findIndex((a) => a.id === id);
+  if (idx === -1) return;
+  const key = `${product.brand}|${product.name}`.trim().toLowerCase();
+  const entry: SavedProduct = { ...product, key, savedAt: new Date().toISOString() };
+  const existing = (accounts[idx].savedProducts ?? []).filter((p) => p.key !== key);
+  accounts[idx] = { ...accounts[idx], savedProducts: [entry, ...existing].slice(0, 30) };
+  writeAccounts(accounts);
+}
+
+export function removeSavedProduct(id: string, key: string) {
+  const accounts = readAccounts();
+  const idx = accounts.findIndex((a) => a.id === id);
+  if (idx === -1) return;
+  accounts[idx] = { ...accounts[idx], savedProducts: (accounts[idx].savedProducts ?? []).filter((p) => p.key !== key) };
   writeAccounts(accounts);
 }
 

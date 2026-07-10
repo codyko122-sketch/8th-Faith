@@ -1,0 +1,20 @@
+{
+  "carry_on": {
+    "liquid_container_max_ml": 100,
+    "liquid_total_max_ml": 1000,
+    "packaging_note": "개별 용기 100ml 이하, 전체를 1L 규격의 투명 지퍼백 1개에 담아야 합니다(일반 기준).",
+    "note": "국가·항공사·공항 보안 기준에 따라 세부 사항이 다를 수 있어 확인이 필요합니다 (verify_needed)."
+  },
+  "checked": {
+    "liquid_note": "위탁 수하물은 용량 제한이 완화되나, 인화성·에어로졸 제품은 별도 제한이 적용될 수 있습니다.",
+    "note": "항공사 기준 확인이 필요합니다 (verify_needed)."
+  },
+  "flammable_prohibited": [
+    "고농도 알코올(에탄올) 기반 제품",
+    "에어로졸 스프레이(가압 용기)",
+    "인화성 네일 리무버/아세톤"
+  ],
+  "duty_free_exemption": "면세 한도·반입 수량 기준은 출발/도착 국가에 따라 다르므로 확인이 필요합니다 (verify_needed).",
+  "source": "ICAO/IATA 위험물 규정 및 TSA 일반 기준 (verify_needed)",
+  "as_of_date": "2026-07-10"
+}

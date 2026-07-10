@@ -1,0 +1,122 @@
+[
+  {
+    "inci_name": "디에틸아미노하이드록시벤조일헥실벤조에이트",
+    "cas": "302776-68-7",
+    "concern_type": "uv_filter",
+    "aliases": ["Diethylamino Hydroxybenzoyl Hexyl Benzoate", "DHHB", "Uvinul A Plus"],
+    "flag_regions": ["US"],
+    "flag_level": "caution",
+    "else_level": "no_flag",
+    "notes": "차세대 유기 자외선차단 성분. 미국 FDA 21 CFR 352.10 승인 자외선차단 성분 목록에 없어 미국 반입·판매가 제한될 수 있음. EU·한국 등에서는 승인·사용되는 성분이라 그 외 지역은 no_flag.",
+    "source": "US FDA 21 CFR 352.10 (승인 자외선차단 성분 목록) / EU Reg. (EC) 1223/2009 Annex VI",
+    "as_of_date": "2026-07-10"
+  },
+  {
+    "inci_name": "비스에틸헥실옥시페놀메톡시페닐트리아진",
+    "cas": "187393-00-6",
+    "concern_type": "uv_filter",
+    "aliases": ["Bis-Ethylhexyloxyphenol Methoxyphenyl Triazine", "Bemotrizinol", "Tinosorb S"],
+    "flag_regions": ["US"],
+    "flag_level": "caution",
+    "else_level": "no_flag",
+    "notes": "차세대 유기 자외선차단 성분(티노솔브 S). 미국 FDA 승인 목록에 없어 미국향 caution, 그 외 지역 no_flag.",
+    "source": "US FDA 21 CFR 352.10 / EU Reg. (EC) 1223/2009 Annex VI",
+    "as_of_date": "2026-07-10"
+  },
+  {
+    "inci_name": "메칠렌비스벤조트리아졸릴테트라메칠부틸페놀",
+    "cas": "103597-45-1",
+    "concern_type": "uv_filter",
+    "aliases": ["Methylene Bis-Benzotriazolyl Tetramethylbutylphenol", "Bisoctrizole", "Tinosorb M"],
+    "flag_regions": ["US"],
+    "flag_level": "caution",
+    "else_level": "no_flag",
+    "notes": "차세대 자외선차단 성분(티노솔브 M). 미국 FDA 승인 목록에 없어 미국향 caution, 그 외 지역 no_flag.",
+    "source": "US FDA 21 CFR 352.10 / EU Reg. (EC) 1223/2009 Annex VI",
+    "as_of_date": "2026-07-10"
+  },
+  {
+    "inci_name": "디에틸헥실부타미도트리아존",
+    "cas": "154702-15-5",
+    "concern_type": "uv_filter",
+    "aliases": ["Diethylhexyl Butamido Triazone", "Iscotrizinol", "Uvasorb HEB"],
+    "flag_regions": ["US"],
+    "flag_level": "caution",
+    "else_level": "no_flag",
+    "notes": "차세대 자외선차단 성분. 미국 FDA 승인 목록에 없어 미국향 caution, 그 외 지역 no_flag.",
+    "source": "US FDA 21 CFR 352.10 / EU Reg. (EC) 1223/2009 Annex VI",
+    "as_of_date": "2026-07-10"
+  },
+  {
+    "inci_name": "리날룰",
+    "cas": "78-70-6",
+    "concern_type": "allergen",
+    "aliases": ["Linalool"],
+    "flag_regions": ["EU", "GB"],
+    "flag_level": "caution",
+    "else_level": "no_flag",
+    "notes": "EU 화장품 규정 향료 알레르겐 표시 대상 성분. 반입 금지 성분이 아니라, 일정 농도 이상이면 라벨에 개별 표기해야 하는 '표시(라벨링)' 의무 대상. 확인이 필요함.",
+    "source": "EU Regulation (EC) No 1223/2009 Annex III (향료 알레르겐 라벨링)",
+    "as_of_date": "2026-07-10"
+  },
+  {
+    "inci_name": "리모넨",
+    "cas": "5989-27-5",
+    "concern_type": "allergen",
+    "aliases": ["Limonene", "d-Limonene"],
+    "flag_regions": ["EU", "GB"],
+    "flag_level": "caution",
+    "else_level": "no_flag",
+    "notes": "EU 화장품 규정 향료 알레르겐 표시 대상 성분. 반입 금지가 아니라 라벨링 의무 대상. 확인이 필요함.",
+    "source": "EU Regulation (EC) No 1223/2009 Annex III (향료 알레르겐 라벨링)",
+    "as_of_date": "2026-07-10"
+  },
+  {
+    "inci_name": "레티놀",
+    "cas": "68-26-8",
+    "concern_type": "restricted_active",
+    "aliases": ["Retinol", "Vitamin A", "비타민에이"],
+    "flag_regions": ["EU", "GB"],
+    "flag_level": "caution",
+    "else_level": "verify_needed",
+    "notes": "EU에서 페이스 제품 기준 농도 상한(약 0.3%) 등 사용 제한 대상(Annex III). 반입 금지가 아니라 함량 기준 규제 대상. 국내 유통 농도가 상한 이내인지 여부는 라벨만으로 확인 불가하므로, EU/영국은 caution, 그 외 지역은 함량 미상으로 verify_needed.",
+    "source": "EU SCCS/1639/21, Regulation (EC) 1223/2009 Annex III",
+    "as_of_date": "2026-07-10"
+  },
+  {
+    "inci_name": "소듐디엔에이",
+    "cas": "9007-49-2",
+    "concern_type": "animal_derived",
+    "aliases": ["Sodium DNA", "PDRN", "Polydeoxyribonucleotide", "폴리데옥시리보뉴클레오타이드", "하이드롤라이즈드디엔에이", "연어정소추출물"],
+    "notes": "PDRN 등 어류(연어 정소) 유래 생물학적 원료의 INCI 표기명. 일부 국가(호주·뉴질랜드 등)는 동물성 유래 화장품 원료에 대해 검역·바이오시큐리티 신고·반입 절차가 별도로 있을 수 있음. 국가·시기·개인 반입 여부에 따라 크게 달라지므로 verify_needed(국가 concern_flags로 판정).",
+    "source": "각국 동식물 검역/바이오시큐리티 규정(일반 규제 지식)",
+    "as_of_date": "2026-07-10"
+  },
+  {
+    "inci_name": "머큐리",
+    "cas": "7439-97-6",
+    "concern_type": "mercury",
+    "aliases": ["Mercury", "수은", "Calomel", "칼로멜", "Mercurous Chloride"],
+    "notes": "화장품 내 수은/수은화합물. 다수 국가에서 화장품 사용이 금지되어 반입이 제한될 수 있음. 국가 concern_flags로 판정.",
+    "source": "EU Reg. (EC) 1223/2009 Annex II, US FDA 등 (일반 규제 지식)",
+    "as_of_date": "2026-07-10"
+  },
+  {
+    "inci_name": "하이드로퀴논",
+    "cas": "123-31-9",
+    "concern_type": "hydroquinone",
+    "aliases": ["Hydroquinone"],
+    "notes": "미백 활성 성분. 국가에 따라 화장품 사용 금지 또는 전문의약품으로만 허용됨. 국가 concern_flags로 판정.",
+    "source": "EU Reg. (EC) 1223/2009 Annex II/III, US FDA OTC (일반 규제 지식)",
+    "as_of_date": "2026-07-10"
+  },
+  {
+    "inci_name": "칸나비디올",
+    "cas": "13956-29-1",
+    "concern_type": "cbd_cannabis",
+    "aliases": ["Cannabidiol", "CBD", "대마", "Cannabis Sativa"],
+    "notes": "대마 유래 성분. 일부 국가는 반입을 엄격히 금지함. 국가 concern_flags로 판정.",
+    "source": "국가별 대마 성분 규제(일반 규제 지식)",
+    "as_of_date": "2026-07-10"
+  }
+]
