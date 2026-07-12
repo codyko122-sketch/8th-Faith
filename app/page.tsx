@@ -2720,13 +2720,13 @@ export default function BeautyPassportExperience() {
                                   <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Weather Calendar</div>
                                   <h3 className="mt-0.5 text-[15px] font-extrabold text-[#0a0a0a]">📅 여행 날씨 캘린더</h3>
                                   <p className="mt-1 text-xs text-[#71717a]">{result.placeLabel} · 좌우로 넘겨보세요</p>
-                                  <div className="scroll-x mt-3 flex gap-2 overflow-x-auto pb-1">
+                                  <div className="scroll-x mt-3 flex gap-1.5 overflow-x-auto pb-1">
                                     {result.calendar.map((c, k) => {
                                       const hot = c.emojis.some((e) => e.icon === "🔥");
                                       return (
                                         <div
                                           key={k}
-                                          className={`relative min-w-[76px] flex-none overflow-hidden rounded-xl border px-2.5 py-2 text-center ${
+                                          className={`relative w-[66px] flex-none overflow-hidden rounded-xl border px-1.5 py-2 text-center ${
                                             hot ? "border-[#f6d0d0] bg-gradient-to-b from-white to-[#fef6f6]" : "border-[#e7e7ea] bg-white"
                                           }`}
                                         >
@@ -2736,7 +2736,7 @@ export default function BeautyPassportExperience() {
                                           </div>
                                           <div className="my-1 text-lg leading-none">{c.emojis.map((e) => e.icon).join("")}</div>
                                           <div className="text-[11px] font-bold text-[#0a0a0a]">{c.temp}℃</div>
-                                          <div className="mt-0.5 text-[9px] text-[#9ca3af]">습도 {c.humidity}% · 미세먼지 {c.dust}</div>
+                                          <div className="mt-0.5 text-[9px] leading-tight text-[#9ca3af]">습도 {c.humidity}% · 미세먼지 {c.dust}</div>
                                         </div>
                                       );
                                     })}
