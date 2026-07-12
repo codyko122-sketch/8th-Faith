@@ -1126,6 +1126,26 @@
     "as_of_date": "2026-07-10"
   },
   {
+    "product_id": "sunscreen_hieut_vita_waterful_sun_essence",
+    "cosmetic_id": "hieut-vita-waterful-sun-essence",
+    "display_name": "비타 워터풀 선에센스",
+    "display_brand": "hieut",
+    "category": "sunscreen",
+    "ingredients_complete": false,
+    "ingredients_inci": [
+      "정제수",
+      "글리세린",
+      "부틸렌글라이콜",
+      "다이메티콘",
+      "나이아신아마이드",
+      "히알루론산",
+      "트로메타민"
+    ],
+    "note": "온라인 유통·리뷰 채널에서 브랜드명 검색 확인이 어려워 제품 패키지 표기만으로 근사 기재. 전성분표 미확인.",
+    "source_note": "판매처 표기 핵심 성분 기반 근사 기재 — 전성분표 미확인. 서비스 반영 전 브랜드 공식 채널에서 전성분 재확인 필요.",
+    "as_of_date": "2026-07-10"
+  },
+  {
     "product_id": "sunscreen_scinic_enjoy_mild_sun_essence",
     "cosmetic_id": "scinic-enjoy-mild-sun-essence",
     "display_name": "엔조이 슈퍼 마일드 수분 선에센스",
