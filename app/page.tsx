@@ -2992,6 +2992,13 @@ export default function BeautyPassportExperience() {
                               </label>
                             ))}
                           </div>
+                          <button
+                            type="button"
+                            onClick={() => setCarePhase(1)}
+                            className="mt-4 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.985]"
+                          >
+                            출국하기 →
+                          </button>
                         </Card>
                       )}
 
@@ -3037,6 +3044,14 @@ export default function BeautyPassportExperience() {
                               </button>
                             </div>
                           )}
+
+                          <button
+                            type="button"
+                            onClick={() => setStage("acArrival")}
+                            className="mt-4 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.985]"
+                          >
+                            입국하기 →
+                          </button>
                         </Card>
                       )}
 
