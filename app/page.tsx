@@ -316,24 +316,60 @@ function DotGlobe() {
       }
       angle += 0.005;
 
-      // ── 도트 비행기: 지구본 주위를 도는 궤도 (뒤로 가면 지구본에 가려짐) ──
+      // ── 도트 비행기: 지구본 위를 대각선으로 가로지르는 기울어진 대원 궤도 + 코랄 콘트레일 ──
       if (elapsed >= PLANE_DELAY) {
         const ms = elapsed - PLANE_DELAY;
-        const S = 0.42; // 기체 크기(작게)
+        const S = 0.26; // 기체 크기(작게)
         const fade = Math.min(1, ms / 500); // 부드럽게 등장
-        // 지구본 주위 원궤도. 궤도면을 살짝 기울여 3D로 도는 느낌.
-        const R = Rw * 1.3; // 궤도 반경(지구본 반경보다 크게)
-        const incl = 0.3; // 궤도면 기울기
-        const speed = 0.0013; // 각속도(rad/ms)
-        const theta0 = 0.3; // 시작 각(앞쪽에서 보이게)
-        const orbit = (tms: number): [number, number, number] => {
-          const th = theta0 + speed * tms;
-          const st = Math.sin(th), ct = Math.cos(th);
-          return [R * ct, Gcy - R * st * Math.sin(incl), R * st * Math.cos(incl)];
+        // 궤도: 수평 원을 X축으로 기울이고(betaT) 화면상 Z축으로 돌려(gammaT) 대각선 호를 만든다.
+        const R = Rw * 1.34; // 궤도 반경
+        const betaT = -0.42; // 앞쪽 호가 지구본 위로 솟도록 기울임
+        const gammaT = 0.55; // 화면상 대각선 기울기
+        const cb = Math.cos(betaT), sb = Math.sin(betaT);
+        const cg = Math.cos(gammaT), sg = Math.sin(gammaT);
+        const speed = 0.0011; // 각속도(rad/ms)
+        const theta0 = -0.5; // 시작 각
+        const ringPos = (th: number): [number, number, number] => {
+          const x0 = R * Math.cos(th), z0 = R * Math.sin(th); // 수평 원(y0=0)
+          const y1 = -z0 * sb, z1 = z0 * cb; // X축 기울기
+          return [x0 * cg - y1 * sg, Gcy + (x0 * sg + y1 * cg), z1]; // Z축 회전
         };
-        const P0 = orbit(ms);
-        const P1 = orbit(ms + 16); // 다음 프레임 위치로 진행방향(기수) 산출
-        // 진행방향(기수) 기준 정규직교 기저
+        // 오클루전용 상수 (카메라-구 교차)
+        const ocY = -Gcy, ocZ = camZ; // (O - Sc), O=(0,0,camZ) Sc=(0,Gcy,0)
+        const cc = Gcy * Gcy + camZ * camZ - Rw * Rw;
+        const project = (P: [number, number, number]): [number, number, number, boolean] | null => {
+          const dx = P[0], dy = P[1], dz = P[2] - camZ;
+          const a = dx * dx + dy * dy + dz * dz;
+          const bq = 2 * (dy * ocY + dz * ocZ);
+          const disc = bq * bq - 4 * a * cc;
+          let hidden = false;
+          if (disc >= 0) {
+            const u1 = (-bq - Math.sqrt(disc)) / (2 * a);
+            if (u1 > 0.001 && u1 < 0.999) hidden = true; // 구 뒤 → 가림
+          }
+          const depth = camZ - P[2];
+          if (depth <= 0.15) return null;
+          return [ppx + (P[0] / depth) * f, ppy - (P[1] / depth) * f, depth, hidden];
+        };
+        const theta = theta0 + speed * ms;
+
+        // ── 비행 경로(콘트레일): 뒤로 갈수록 옅어지는 코랄 점선 ──
+        const TRAIL = 26;
+        for (let k = TRAIL; k >= 1; k--) {
+          const pr = project(ringPos(theta - k * 0.045));
+          if (!pr || pr[3]) continue; // 지구본에 가려지면 스킵
+          const a = 1 - k / TRAIL;
+          ctx.globalAlpha = Math.min(1, fade) * a * 0.5;
+          ctx.fillStyle = "rgba(255,138,110,1)"; // 코랄 액센트
+          ctx.beginPath();
+          ctx.arc(pr[0], pr[1], 0.6 + 1.1 * a, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // ── 기체 본체 ──
+        const P0 = ringPos(theta);
+        const P1 = ringPos(theta + 0.02); // 다음 위치로 진행방향(기수) 산출
         let fx = P1[0] - P0[0], fy = P1[1] - P0[1], fz = P1[2] - P0[2];
         const fl = Math.hypot(fx, fy, fz) || 1;
         fx /= fl; fy /= fl; fz /= fl;
@@ -343,23 +379,17 @@ function DotGlobe() {
         const ux = fy * rz - fz * ry; // cross(forward, right)
         const uy = fz * rx - fx * rz;
         const uz = fx * ry - fy * rx;
-        const roll = -0.45; // 선회 뱅크(일정)
+        const roll = -0.4; // 선회 뱅크
         const cr = Math.cos(roll), sr = Math.sin(roll);
-        // 오클루전용 상수 (카메라-구 교차)
-        const ocY = -Gcy, ocZ = camZ; // (O - Sc), O=(0,0,camZ) Sc=(0,Gcy,0)
-        const cc = Gcy * Gcy + camZ * camZ - Rw * Rw;
         ctx.globalAlpha = Math.max(0, Math.min(1, fade));
         ctx.fillStyle = "rgba(9,11,15,1)"; // 지구본보다 아주 조금 진하게
         for (const p of PLANE_POINTS) {
-          // 기수축(local z) 기준 뱅크 회전
           const rlx = cr * p[0] - sr * p[1];
           const rly = sr * p[0] + cr * p[1];
           const rlz = p[2];
-          // 기저로 월드 오프셋
           const wx = P0[0] + S * (rx * rlx + ux * rly + fx * rlz);
           const wy = P0[1] + S * (ry * rlx + uy * rly + fy * rlz);
           const wz = P0[2] + S * (rz * rlx + uz * rly + fz * rlz);
-          // 지구본에 가려지는가? (카메라→점 선분이 구를 먼저 통과) — 접근 구간엔 앞에 있어 자연히 통과
           const dx = wx, dy = wy, dz = wz - camZ;
           const a = dx * dx + dy * dy + dz * dz;
           const bq = 2 * (dy * ocY + dz * ocZ);
@@ -4426,12 +4456,16 @@ function AiDetailModal({
           <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Ingredients · 성분 가이드</div>
           <div className="mt-3 grid grid-cols-2 gap-4">
             <div>
-              <div className="text-xs font-extrabold text-[#0a0a0a]">👍 추천 성분</div>
-              <ul className="mt-2 space-y-1.5 text-[12px] text-[#3f3f46]">
-                {care.good.map((g) => (
-                  <li key={g}>{g}</li>
-                ))}
-              </ul>
+              <div className="text-xs font-extrabold text-[#1f9d57]">👍 추천 성분</div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {care.good.length ? (
+                  care.good.map((g) => (
+                    <span key={g} className="rounded-full border border-[#1f9d57] bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#1f9d57]">{g}</span>
+                  ))
+                ) : (
+                  <span className="text-[11px] text-[#9ca3af]">추천 성분 정보가 없어요</span>
+                )}
+              </div>
             </div>
             <div>
               <div className="text-xs font-extrabold text-[#ec1c24]">⚠️ 주의 성분</div>
