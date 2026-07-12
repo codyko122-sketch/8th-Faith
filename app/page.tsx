@@ -83,6 +83,7 @@ type Stage =
   | "receive"
   | "delivery"
   | "pickup"
+  | "payment"
   | "done";
 const EASE = [0.22, 1, 0.36, 1] as const;
 // 로딩(발급) 화면 스캔 바코드용 고정 막대 높이(%) 패턴
@@ -767,6 +768,13 @@ export default function BeautyPassportExperience() {
   const [pickupDate, setPickupDate] = useState<string | null>(null);
   const [pickupTime, setPickupTime] = useState<string | null>(null);
   const [pickupPhone, setPickupPhone] = useState("");
+  // [6-3C] 결제하기 (배송/픽업 폼에서 진입)
+  const [pendingReceive, setPendingReceive] = useState<"delivery" | "pickup" | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "kakao" | "naver">("card");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvc, setCardCvc] = useState("");
+  const [paying, setPaying] = useState(false);
   // [6-4] 완료
   const [orderNo, setOrderNo] = useState<string | null>(null);
   const [lockerNo, setLockerNo] = useState<string | null>(null);
@@ -1041,6 +1049,23 @@ export default function BeautyPassportExperience() {
   const deliveryFormValid =
     deliveryName.trim() !== "" && deliveryPhone.trim() !== "" && deliveryAddress.trim() !== "" && (deliveryBefore || deliveryAfter);
   const pickupFormValid = !!pickupAirport && !!pickupDate && !!pickupTime && pickupPhone.trim() !== "";
+
+  function openPayment(kind: "delivery" | "pickup") {
+    setPendingReceive(kind);
+    setStage("payment");
+  }
+  const paymentValid =
+    paymentMethod !== "card" || (cardNumber.trim() !== "" && cardExpiry.trim() !== "" && cardCvc.trim() !== "");
+  function confirmPayment() {
+    if (!paymentValid || paying) return;
+    setPaying(true);
+    window.setTimeout(() => {
+      setPaying(false);
+      if (pendingReceive === "pickup") submitPickup();
+      else submitDelivery();
+      setPendingReceive(null);
+    }, 1200);
+  }
   async function shareResult() {
     const text = `${name || "여행자"}님의 뷰티 여권 · ${result?.placeLabel ?? ""} ${result?.days ?? ""}일`;
     const url = typeof window !== "undefined" ? window.location.href : "";
@@ -1168,6 +1193,7 @@ export default function BeautyPassportExperience() {
     setDeliveryBefore(true); setDeliveryAfter(false);
     setDeliveryName(""); setDeliveryPhone(""); setDeliveryAddress(""); setDeliveryNote("");
     setPickupAirport(null); setPickupDate(null); setPickupTime(null); setPickupPhone("");
+    setPendingReceive(null); setPaymentMethod("card"); setCardNumber(""); setCardExpiry(""); setCardCvc(""); setPaying(false);
     setOrderNo(null); setLockerNo(null);
     setResultView("main"); setShowAiDetail(false); setCarePhase(0); setPickCat(PICK_CATEGORIES[0]);
     setStage("intro");
@@ -3175,8 +3201,16 @@ export default function BeautyPassportExperience() {
                   <motion.button
                     disabled={!deliveryFormValid}
                     whileTap={deliveryFormValid ? { scale: 0.985 } : undefined}
-                    onClick={submitDelivery}
+                    onClick={() => openPayment("delivery")}
                     className="mt-6 w-full rounded-[14px] bg-[#0a0a0a] py-4 text-[15px] font-extrabold text-white transition disabled:bg-[#d4d4d8] disabled:text-[#fafafa]"
+                  >
+                    결제하기 · {cartTotalPrice.toLocaleString()}원
+                  </motion.button>
+                  <motion.button
+                    disabled={!deliveryFormValid}
+                    whileTap={deliveryFormValid ? { scale: 0.985 } : undefined}
+                    onClick={submitDelivery}
+                    className="mt-2.5 w-full rounded-[14px] bg-[#0a0a0a] py-4 text-[15px] font-extrabold text-white transition disabled:bg-[#d4d4d8] disabled:text-[#fafafa]"
                   >
                     주문 완료
                   </motion.button>
@@ -3267,11 +3301,137 @@ export default function BeautyPassportExperience() {
                   <motion.button
                     disabled={!pickupFormValid}
                     whileTap={pickupFormValid ? { scale: 0.985 } : undefined}
-                    onClick={submitPickup}
+                    onClick={() => openPayment("pickup")}
                     className="mt-6 w-full rounded-[14px] bg-[#0a0a0a] py-4 text-[15px] font-extrabold text-white transition disabled:bg-[#d4d4d8] disabled:text-[#fafafa]"
+                  >
+                    결제하기 · {cartTotalPrice.toLocaleString()}원
+                  </motion.button>
+                  <motion.button
+                    disabled={!pickupFormValid}
+                    whileTap={pickupFormValid ? { scale: 0.985 } : undefined}
+                    onClick={submitPickup}
+                    className="mt-2.5 w-full rounded-[14px] bg-[#0a0a0a] py-4 text-[15px] font-extrabold text-white transition disabled:bg-[#d4d4d8] disabled:text-[#fafafa]"
                   >
                     예약 완료
                   </motion.button>
+                </div>
+              </motion.section>
+            )}
+
+            {/* [6-3C] 결제하기 */}
+            {stage === "payment" && (
+              <motion.section key="payment" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto bg-white px-7 pb-8 pt-5">
+                <div className="min-h-full">
+                  <button
+                    onClick={() => setStage(pendingReceive === "pickup" ? "pickup" : "delivery")}
+                    className="text-sm font-semibold text-[#71717a]"
+                  >
+                    ← 뒤로
+                  </button>
+                  <h2
+                    className="mt-3 text-[26px] font-black tracking-[-0.02em] text-[#0a0a0a]"
+                    style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                  >
+                    결제하기
+                  </h2>
+
+                  <Card>
+                    <CardTitle>주문 요약</CardTitle>
+                    <div className="mt-2 space-y-1.5">
+                      {cartLines.map(({ item, p, lineTotal }) => (
+                        <div key={`${item.id}-${item.ml}`} className="flex justify-between text-sm text-[#3f3f46]">
+                          <span className="truncate">{p.brand} {p.name} · {item.ml}ml ×{item.qty}</span>
+                          <span className="font-semibold text-[#0a0a0a]">{lineTotal.toLocaleString()}원</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 flex justify-between border-t border-dashed border-[#e7e7ea] pt-2 text-sm font-extrabold text-[#0a0a0a]">
+                      <span>총 결제금액</span>
+                      <span>{cartTotalPrice.toLocaleString()}원</span>
+                    </div>
+                  </Card>
+
+                  <Card>
+                    <CardTitle>결제 수단</CardTitle>
+                    <div className="mt-3 space-y-2">
+                      {(
+                        [
+                          { id: "card", label: "신용·체크카드", icon: "💳" },
+                          { id: "kakao", label: "카카오페이", icon: "🟡" },
+                          { id: "naver", label: "네이버페이", icon: "🟢" },
+                        ] as const
+                      ).map((m) => (
+                        <label
+                          key={m.id}
+                          className={`flex items-center gap-3 rounded-xl border-[1.5px] px-4 py-3 transition ${
+                            paymentMethod === m.id ? "border-[#0a0a0a] bg-[#fafafa]" : "border-[#e7e7ea]"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            checked={paymentMethod === m.id}
+                            onChange={() => setPaymentMethod(m.id)}
+                            className="h-4 w-4 accent-[#0a0a0a]"
+                          />
+                          <span className="text-lg">{m.icon}</span>
+                          <span className="text-sm font-bold text-[#0a0a0a]">{m.label}</span>
+                        </label>
+                      ))}
+                    </div>
+
+                    {paymentMethod === "card" && (
+                      <div className="mt-4 space-y-3 border-t border-dashed border-[#e7e7ea] pt-4">
+                        <label className="block text-sm font-extrabold text-[#0a0a0a]">카드 번호</label>
+                        <input
+                          value={cardNumber}
+                          onChange={(e) => setCardNumber(e.target.value.replace(/[^0-9]/g, "").slice(0, 16))}
+                          placeholder="0000 0000 0000 0000"
+                          inputMode="numeric"
+                          className="np-input"
+                        />
+                        <div className="flex gap-3">
+                          <div className="flex-1">
+                            <label className="block text-sm font-extrabold text-[#0a0a0a]">유효기간</label>
+                            <input
+                              value={cardExpiry}
+                              onChange={(e) => setCardExpiry(e.target.value.replace(/[^0-9/]/g, "").slice(0, 5))}
+                              placeholder="MM/YY"
+                              inputMode="numeric"
+                              className="np-input"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <label className="block text-sm font-extrabold text-[#0a0a0a]">CVC</label>
+                            <input
+                              value={cardCvc}
+                              onChange={(e) => setCardCvc(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
+                              placeholder="000"
+                              inputMode="numeric"
+                              className="np-input"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+
+                  <motion.button
+                    disabled={!paymentValid || paying}
+                    whileTap={paymentValid && !paying ? { scale: 0.985 } : undefined}
+                    onClick={confirmPayment}
+                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-[14px] bg-[#0a0a0a] py-4 text-[15px] font-extrabold text-white transition disabled:bg-[#d4d4d8] disabled:text-[#fafafa]"
+                  >
+                    {paying ? (
+                      <>
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                        결제 처리 중…
+                      </>
+                    ) : (
+                      `${cartTotalPrice.toLocaleString()}원 결제하기`
+                    )}
+                  </motion.button>
+                  <p className="mt-3 text-center text-xs text-[#9ca3af]">※ 데모 결제입니다 · 실제 결제는 진행되지 않아요.</p>
                 </div>
               </motion.section>
             )}
