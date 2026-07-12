@@ -86,6 +86,14 @@ type Stage =
   | "payment"
   | "done";
 const EASE = [0.22, 1, 0.36, 1] as const;
+// 공용 테스트 계정 — 개인정보 입력 없이 모든 기능을 바로 체험할 수 있는 공유 게스트 계정
+const COSMAX_GUEST = {
+  id: "cosmax-guest",
+  password: "cosmax-guest-2026",
+  name: "COSMAX 게스트",
+  age: "25",
+  gender: "여성",
+};
 // 로딩(발급) 화면 스캔 바코드용 고정 막대 높이(%) 패턴
 const ANALYZE_BARS = [40, 70, 30, 90, 52, 62, 34, 80, 46, 66, 54, 76, 40, 86, 30, 60, 50, 70, 36, 90, 44, 56, 64, 40, 80, 30, 74, 50, 60, 36, 86, 46, 70, 54, 40, 66, 30, 80, 50, 62, 36, 76, 46, 90, 40, 56];
 
@@ -1110,6 +1118,28 @@ export default function BeautyPassportExperience() {
     setGender(res.account.gender);
     setStage("member");
   }
+  function handleGuestLogin() {
+    let res = authLogin(COSMAX_GUEST.id, COSMAX_GUEST.password);
+    if (!res.ok) {
+      res = authSignup({
+        id: COSMAX_GUEST.id,
+        password: COSMAX_GUEST.password,
+        name: COSMAX_GUEST.name,
+        age: COSMAX_GUEST.age,
+        gender: COSMAX_GUEST.gender,
+      });
+    }
+    if (!res.ok) {
+      setLoginError(res.error);
+      return;
+    }
+    setLoginError("");
+    setLoggedInId(res.account.id);
+    setName(res.account.name);
+    setAge(res.account.age);
+    setGender(res.account.gender);
+    setStage("member");
+  }
   function handleSignup() {
     if (signupPw !== signupPw2) {
       setSignupError("비밀번호가 일치하지 않아요.");
@@ -1376,6 +1406,12 @@ export default function BeautyPassportExperience() {
                   >
                     회원가입
                   </PassportButton>
+                  <PassportButton variant="ghost" onClick={handleGuestLogin}>
+                    COSMAX 계정으로 로그인
+                  </PassportButton>
+                  <p className="text-center font-sans text-[11px] text-[#9ca3af]">
+                    누구나 바로 체험할 수 있는 공용 테스트 계정이에요 · 개인정보는 저장되지 않아요
+                  </p>
                 </div>
 
                 <PassportFooter compact />

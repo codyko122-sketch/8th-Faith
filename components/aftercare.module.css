@@ -1,29 +1,39 @@
-/* aftercare.html 원본 스타일을 그대로 포팅 (디자인 토큰, 여백, 색상, 9:16 여권 프레임까지 동일 유지). */
+/* aftercare.html 원본 스타일을 그대로 포팅 (디자인 토큰, 여백, 색상 유지). */
 /* document.body로 포털되어 렌더링됨(앱 전체 프레임의 perspective 스태킹 컨텍스트를
-   벗어나 실제 브라우저 뷰포트를 aftercare(1).html 원본과 동일하게 100% 채우기 위함) */
+   벗어나기 위함). 다른 탭과 전환 시 비율이 끊겨 보이지 않도록, 프레임 크기·모양은
+   메인 앱 프레임(mx-auto max-w-[480px], 모바일 100dvh 풀블리드, sm: rounded+shadow)과 동일하게 맞춤. */
 .backdrop {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: #dfe1e6;
+  background: linear-gradient(180deg, #c6dcec, #aecbe2);
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  padding: 20px 16px;
   overflow: hidden;
+}
+@media (min-width: 640px) {
+  .backdrop {
+    padding: 24px 0;
+  }
 }
 
 .card {
-  width: min(430px, 94vw);
-  aspect-ratio: 9 / 16;
-  max-height: 96dvh;
+  width: 100%;
+  max-width: 480px;
+  min-height: 100dvh;
   background: #ffffff;
-  border-radius: 28px;
-  box-shadow: 0 24px 60px rgba(17, 17, 17, 0.14);
   padding: 30px 28px 22px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+@media (min-width: 640px) {
+  .card {
+    min-height: calc(100dvh - 3rem);
+    border-radius: 38px;
+    box-shadow: 0 40px 90px rgba(43, 120, 170, 0.4);
+  }
 }
 
 .root {
