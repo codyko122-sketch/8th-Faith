@@ -22,6 +22,7 @@ import {
   login as authLogin,
   findAccount,
   saveSkinToAccount,
+  saveAllergiesToAccount,
   daysAgoLabel,
   getSession,
   clearSession,
@@ -1254,6 +1255,13 @@ export default function BeautyPassportExperience() {
   function toggleSignupAllergy(id: string) {
     setSignupAllergies((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
+  // 체크인 화면에서 알러지 성분 갱신 — 게스트/기존 회원 등 회원가입 화면을 거치지 않은
+  // 경로에서도 등록·수정할 수 있게 한다.
+  function toggleCheckinAllergy(id: string) {
+    const next = userAllergies.includes(id) ? userAllergies.filter((x) => x !== id) : [...userAllergies, id];
+    setUserAllergies(next);
+    if (loggedInId) saveAllergiesToAccount(loggedInId, next);
+  }
   function handleSignup() {
     if (signupPw !== signupPw2) {
       setSignupError("비밀번호가 일치하지 않아요.");
@@ -2048,6 +2056,26 @@ export default function BeautyPassportExperience() {
                       결과는 <b>여권</b>에 저장, 맞춤 케어로 이어져요.
                     </p>
                   </PassportNote>
+                  <div>
+                    <label className="mb-2 block text-[13px] font-extrabold text-[#0a0a0a]">
+                      Allergies <span className="ml-1 font-sans text-[12px] font-medium text-[#9ca3af]">· 알러지·기피 성분 (선택)</span>
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {ALLERGEN_OPTIONS.map((a) => (
+                        <button
+                          key={a.id}
+                          type="button"
+                          onClick={() => toggleCheckinAllergy(a.id)}
+                          className={`rounded-full border-[1.5px] px-3 py-1.5 text-[12.5px] font-semibold transition ${
+                            userAllergies.includes(a.id) ? "border-[#0a0a0a] bg-[#0a0a0a] text-white" : "border-[#e7e7ea] bg-[#f4f4f5] text-[#3f3f46]"
+                          }`}
+                        >
+                          {a.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-1.5 text-[11px] text-[#9ca3af]">등록해두면 제품 추천·성분 스캔·AI 써머리에서 이 성분을 특히 주의해서 알려드려요.</p>
+                  </div>
                   <PassportButton onClick={() => setStage("skin")}>설문 페이지로 이동 →</PassportButton>
                   <PassportButton variant="ghost" onClick={() => setStage(loggedInId ? "member" : "login")}>
                     나중에 하기
