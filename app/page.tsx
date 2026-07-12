@@ -717,6 +717,7 @@ export default function BeautyPassportExperience() {
   const [findPwDone, setFindPwDone] = useState(false);
   const [journeyPhase, setJourneyPhase] = useState<"before" | "during" | "after" | null>(null);
   // 애프터케어 (여행 후)
+  const [acEntry, setAcEntry] = useState<"journey" | "careplan">("journey");
   const [acQ1, setAcQ1] = useState<"yes" | "no" | null>(null);
   const [acQ2, setAcQ2] = useState<"yes" | "no" | null>(null);
   const [acConcerns, setAcConcerns] = useState<string[]>([]);
@@ -1180,6 +1181,7 @@ export default function BeautyPassportExperience() {
     setFindIdName(""); setFindIdResult(null); setFindIdError("");
     setFindPwId(""); setFindPwName(""); setFindPwVerified(false); setFindPwNew(""); setFindPwNew2(""); setFindPwError(""); setFindPwDone(false);
     setJourneyPhase(null);
+    setAcEntry("journey");
     setAcQ1(null); setAcQ2(null); setAcConcerns([]); setAcMode(null); setAcSaved(false);
     setName(""); setAge(""); setGender("");
     setCountryCode(null); setCityName(null);
@@ -1839,7 +1841,10 @@ export default function BeautyPassportExperience() {
                     disabled={!journeyPhase}
                     onClick={() => {
                       if (journeyPhase === "before" || journeyPhase === "during") setStage("travel");
-                      else setStage("acArrival");
+                      else {
+                        setAcEntry("journey");
+                        setStage("acArrival");
+                      }
                     }}
                   >
                     다음 단계 →
@@ -1856,9 +1861,16 @@ export default function BeautyPassportExperience() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
+                className="absolute inset-0"
               >
-                <AcScreenChrome step={0} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode}>
+                <AcScreenChrome
+                  step={0}
+                  eyebrow="ARRIVAL · 입국 심사"
+                  title="즐거운 여행되셨나요?"
+                  subtitle={acSubtitle}
+                  footerCode={acFooterCode}
+                  onBack={() => setStage(acEntry === "careplan" ? "result" : "journey")}
+                >
                   <AcTripCard dest={acDestName} dates={acDestDates} />
                   <p className={acStyles.lead} style={{ marginBottom: 20 }}>
                     입국 심사를 시작할게요
@@ -1887,7 +1899,7 @@ export default function BeautyPassportExperience() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
+                className="absolute inset-0"
               >
                 <AcScreenChrome step={1} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode}>
                   <AcLabel en="Skin Check" ko="피부 점검" />
@@ -1921,7 +1933,7 @@ export default function BeautyPassportExperience() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
+                className="absolute inset-0"
               >
                 <AcScreenChrome step={2} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode}>
                   <AcLabel en="New Concern" ko="새로운 고민" />
@@ -1955,7 +1967,7 @@ export default function BeautyPassportExperience() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
+                className="absolute inset-0"
               >
                 <AcScreenChrome step={3} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode}>
                   <AcLabel en="Declare" ko="피부 신고" />
@@ -1996,9 +2008,16 @@ export default function BeautyPassportExperience() {
                     initial="hidden"
                     animate="show"
                     exit="exit"
-                    className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
+                    className="absolute inset-0"
                   >
-                    <AcScreenChrome step={4} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode}>
+                    <AcScreenChrome
+                      step={4}
+                      eyebrow="ARRIVAL · 입국 심사"
+                      title="즐거운 여행되셨나요?"
+                      subtitle={acSubtitle}
+                      footerCode={acFooterCode}
+                      onBack={() => setStage(isConcern ? "acQ3" : "acQ1")}
+                    >
                       {isConcern ? <AcStampSeal /> : <AcStampRect />}
                       <h2 className={acStyles.resultHead}>
                         {isConcern
@@ -3047,7 +3066,10 @@ export default function BeautyPassportExperience() {
 
                           <button
                             type="button"
-                            onClick={() => setStage("acArrival")}
+                            onClick={() => {
+                              setAcEntry("careplan");
+                              setStage("acArrival");
+                            }}
                             className="mt-4 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.985]"
                           >
                             입국하기 →

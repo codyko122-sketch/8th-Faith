@@ -1,6 +1,28 @@
-/* aftercare.html 원본 스타일을 그대로 포팅 (디자인 토큰, 여백, 색상 동일 유지).
-   원본의 body/.passport(데모용 폰 프레임 배경)만 제외 — 실제 앱에서는 이 화면 자체가
-   이미 풀스크린이라 프레임이 필요 없음. 나머지 컴포넌트 스타일은 전부 원본 그대로. */
+/* aftercare.html 원본 스타일을 그대로 포팅 (디자인 토큰, 여백, 색상, 9:16 여권 프레임까지 동일 유지). */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: #dfe1e6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+  overflow: hidden;
+}
+
+.card {
+  width: min(430px, 94vw);
+  aspect-ratio: 9 / 16;
+  max-height: 96%;
+  background: #ffffff;
+  border-radius: 28px;
+  box-shadow: 0 24px 60px rgba(17, 17, 17, 0.14);
+  padding: 30px 28px 22px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .root {
   --ink: #111111;
   --ink-soft: #6b7280;
@@ -18,9 +40,17 @@
 
   font-family: var(--font);
   color: var(--ink);
-  background: var(--paper);
   -webkit-font-smoothing: antialiased;
 }
+
+.bodyScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.bodyScroll::-webkit-scrollbar { width: 0; }
 
 .top {
   display: flex;
@@ -28,6 +58,22 @@
   align-items: flex-start;
   gap: 12px;
 }
+.backBtn {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  margin-right: 4px;
+  border-radius: 11px;
+  border: 1.5px solid var(--line);
+  background: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--ink);
+}
+.backBtn:active { background: var(--field); }
+.topRow { display: flex; align-items: flex-start; gap: 4px; }
 .eyebrow {
   font-size: 11px;
   font-weight: 700;

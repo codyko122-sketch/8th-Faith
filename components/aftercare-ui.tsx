@@ -17,16 +17,33 @@ export function AcSteps({ current }: { current: number }) {
   );
 }
 
-export function AcHeader({ eyebrow, title, subtitle }: { eyebrow: string; title: ReactNode; subtitle: string }) {
+export function AcHeader({
+  eyebrow,
+  title,
+  subtitle,
+  onBack,
+}: {
+  eyebrow: string;
+  title: ReactNode;
+  subtitle: string;
+  onBack?: () => void;
+}) {
   return (
     <div className={styles.top}>
-      <div>
-        <p className={styles.eyebrow}>{eyebrow}</p>
-        <h1 className={styles.title}>
-          <span>{title}</span>
-          <AftercarePlaneIcon className={styles.plane} />
-        </h1>
-        <p className={styles.subtitle}>{subtitle}</p>
+      <div className={styles.topRow}>
+        {onBack && (
+          <button type="button" onClick={onBack} aria-label="이전 페이지로" className={styles.backBtn}>
+            ‹
+          </button>
+        )}
+        <div>
+          <p className={styles.eyebrow}>{eyebrow}</p>
+          <h1 className={styles.title}>
+            <span>{title}</span>
+            <AftercarePlaneIcon className={styles.plane} />
+          </h1>
+          <p className={styles.subtitle}>{subtitle}</p>
+        </div>
       </div>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/assets/passport-seal.png" alt="Beauty Passport" className={styles.logo} />
@@ -167,6 +184,7 @@ export function AcScreenChrome({
   title,
   subtitle,
   footerCode,
+  onBack,
   children,
 }: {
   step: number;
@@ -174,14 +192,17 @@ export function AcScreenChrome({
   title: ReactNode;
   subtitle: string;
   footerCode: string;
+  onBack?: () => void;
   children: ReactNode;
 }) {
   return (
-    <div className={styles.root}>
-      <AcHeader eyebrow={eyebrow} title={title} subtitle={subtitle} />
-      <AcSteps current={step} />
-      {children}
-      <AcFooter code={footerCode} />
+    <div className={styles.backdrop}>
+      <div className={`${styles.card} ${styles.root}`}>
+        <AcHeader eyebrow={eyebrow} title={title} subtitle={subtitle} onBack={onBack} />
+        <AcSteps current={step} />
+        <div className={styles.bodyScroll}>{children}</div>
+        <AcFooter code={footerCode} />
+      </div>
     </div>
   );
 }
