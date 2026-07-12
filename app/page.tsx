@@ -796,6 +796,9 @@ export default function BeautyPassportExperience() {
   // 계정 (localStorage 기반 — lib/auth.ts)
   const [loggedInId, setLoggedInId] = useState<string | null>(null);
   const [userAllergies, setUserAllergies] = useState<string[]>([]);
+  // 체크인 화면 '직접 입력' 알러지 등록용
+  const [checkinAllergyInput, setCheckinAllergyInput] = useState("");
+  const [checkinAllergyOpen, setCheckinAllergyOpen] = useState(false);
   const [loginId, setLoginId] = useState("");
   const [loginPw, setLoginPw] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -1261,6 +1264,18 @@ export default function BeautyPassportExperience() {
     const next = userAllergies.includes(id) ? userAllergies.filter((x) => x !== id) : [...userAllergies, id];
     setUserAllergies(next);
     if (loggedInId) saveAllergiesToAccount(loggedInId, next);
+  }
+  // 체크인 화면에서 목록에 없는 알러지를 직접 입력해 등록 (쉼표로 여러 개)
+  function addCheckinCustomAllergy() {
+    const parts = checkinAllergyInput.split(",").map((s) => s.trim()).filter(Boolean);
+    if (parts.length === 0) return;
+    // 프리셋 라벨을 그대로 입력하면 해당 id로 정규화 (중복/불일치 방지)
+    const normalized = parts.map((p) => ALLERGEN_OPTIONS.find((o) => o.label === p)?.id ?? p);
+    const next = [...userAllergies];
+    for (const n of normalized) if (!next.includes(n)) next.push(n);
+    setUserAllergies(next);
+    if (loggedInId) saveAllergiesToAccount(loggedInId, next);
+    setCheckinAllergyInput("");
   }
   function handleSignup() {
     if (signupPw !== signupPw2) {
@@ -2073,7 +2088,56 @@ export default function BeautyPassportExperience() {
                           {a.label}
                         </button>
                       ))}
+                      {/* 직접 입력해 등록한 커스텀 알러지 (클릭 시 제거) */}
+                      {userAllergies
+                        .filter((a) => !ALLERGEN_OPTIONS.some((o) => o.id === a))
+                        .map((a) => (
+                          <button
+                            key={`custom-${a}`}
+                            type="button"
+                            onClick={() => toggleCheckinAllergy(a)}
+                            title="눌러서 삭제"
+                            className="rounded-full border-[1.5px] border-[#0a0a0a] bg-[#0a0a0a] px-3 py-1.5 text-[12.5px] font-semibold text-white transition"
+                          >
+                            {a} <span className="ml-0.5 opacity-60">✕</span>
+                          </button>
+                        ))}
+                      {/* 직접 입력 토글 */}
+                      <button
+                        type="button"
+                        onClick={() => setCheckinAllergyOpen((v) => !v)}
+                        className={`rounded-full border-[1.5px] border-dashed px-3 py-1.5 text-[12.5px] font-semibold transition ${
+                          checkinAllergyOpen ? "border-[#0a0a0a] text-[#0a0a0a]" : "border-[#c9c9cf] text-[#3f3f46] hover:border-[#0a0a0a]"
+                        } bg-white`}
+                      >
+                        ＋ 직접 입력
+                      </button>
                     </div>
+                    {checkinAllergyOpen && (
+                      <div className="mt-2 flex gap-1.5">
+                        <input
+                          value={checkinAllergyInput}
+                          onChange={(e) => setCheckinAllergyInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addCheckinCustomAllergy();
+                            }
+                          }}
+                          placeholder="예: 티트리오일, 벤조페논 (쉼표로 여러 개)"
+                          autoFocus
+                          className="flex-1 rounded-[13px] border border-transparent bg-[#f4f4f5] px-4 py-2.5 font-sans text-[13px] text-[#0a0a0a] outline-none transition placeholder:text-[#9ca3af] focus:border-[#0a0a0a] focus:bg-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={addCheckinCustomAllergy}
+                          disabled={!checkinAllergyInput.trim()}
+                          className="flex-none rounded-[13px] bg-[#0a0a0a] px-4 py-2.5 text-[13px] font-bold text-white transition active:scale-95 disabled:bg-[#d4d4d8]"
+                        >
+                          추가
+                        </button>
+                      </div>
+                    )}
                     <p className="mt-1.5 text-[11px] text-[#9ca3af]">등록해두면 제품 추천·성분 스캔·AI 써머리에서 이 성분을 특히 주의해서 알려드려요.</p>
                   </div>
                   <PassportButton onClick={() => setStage("skin")}>설문 페이지로 이동 →</PassportButton>
