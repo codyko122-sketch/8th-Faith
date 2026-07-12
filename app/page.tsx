@@ -61,7 +61,7 @@ import {
   PassportSurveyIcon,
 } from "@/components/passport-ui";
 import { CLIMATE_BY_COUNTRY, CLIMATE_PROFILE, CONCERNS, type Concern } from "@/lib/aftercare-data";
-import { AcScreenChrome, AcLabel, AcOpt, AcChip, AcBtnBar, AcBtn, AcTripCard, AcStampSeal, AcProductCard, acStyles } from "@/components/aftercare-ui";
+import { AcScreenChrome, AcLabel, AcOpt, AcChip, AcBtnBar, AcBtn, AcTripCard, AcStampSeal, acStyles } from "@/components/aftercare-ui";
 import { DestinationCareTab } from "@/components/destination-ui";
 
 type Stage =
@@ -2368,10 +2368,59 @@ export default function BeautyPassportExperience() {
                       )}
 
                       {!isConcern && !isBetter && (
-                        <div className={acStyles.products}>
-                          {acClimateProfile.products.map((p, i) => (
-                            <AcProductCard key={i} {...p} />
-                          ))}
+                        <div className="space-y-3">
+                          {(preTripSnapshot?.recItems ?? []).length === 0 && (
+                            <p className={acStyles.leadSub}>추천 제품을 준비하고 있어요.</p>
+                          )}
+                          {(preTripSnapshot?.recItems ?? []).map(({ p, reason }) => {
+                            const ml = volumeSel[p.id] ?? 20;
+                            const price = samplePrice(p.price, p.fullMl, ml);
+                            const qty = cartQty(p.id, ml);
+                            return (
+                              <div key={p.id} className="rounded-2xl border border-[#e7e7ea] bg-white p-3.5 shadow-[0_8px_24px_rgba(20,30,50,0.05)]">
+                                <button type="button" onClick={() => setDetailId(p.id)} className="flex w-full gap-3 text-left">
+                                  <ProductImage product={p} />
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[10.5px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{p.brand}</span>
+                                      <span className="ml-auto flex items-center gap-0.5 text-[12px] font-bold text-[#ec1c24]">★ {p.rating.toFixed(2)}</span>
+                                    </div>
+                                    <div className="mt-0.5 truncate text-sm font-extrabold text-[#0a0a0a]">{p.name}</div>
+                                    <div className="mt-1 text-[11px] leading-snug text-[#71717a]">{reason}</div>
+                                  </div>
+                                </button>
+                                <ComplianceBadge cosmeticId={p.id} destinationCountry={countryCode} compact />
+                                <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
+                                  <select
+                                    value={ml}
+                                    onChange={(e) => setVolumeSel((v) => ({ ...v, [p.id]: Number(e.target.value) }))}
+                                    className="flex-1 rounded-xl border border-[#e7e7ea] bg-white px-2 py-1.5 text-[12px] text-[#0a0a0a] outline-none focus:border-[#0a0a0a]"
+                                  >
+                                    {SAMPLE_TIERS.map((t) => (
+                                      <option key={t} value={t}>
+                                        {t}ml{t === 20 ? " · 추천" : ""}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <span className="text-sm font-extrabold text-[#0a0a0a]">{price.toLocaleString()}원</span>
+                                  {qty === 0 ? (
+                                    <button
+                                      onClick={() => addSample(p.id, ml)}
+                                      className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
+                                    >
+                                      담기
+                                    </button>
+                                  ) : (
+                                    <div className="flex items-center gap-2 rounded-full bg-[#f4f4f5] px-2 py-1">
+                                      <button onClick={() => decSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">−</button>
+                                      <span className="w-4 text-center text-xs font-bold text-[#0a0a0a]">{qty}</span>
+                                      <button onClick={() => addSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">＋</button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
 
@@ -2465,6 +2514,22 @@ export default function BeautyPassportExperience() {
                             </div>
                           );
                         })()}
+
+                      {cartCount > 0 && (
+                        <div className="mt-1 rounded-2xl border border-[#e7e7ea] bg-[#f9fafb] p-3.5">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-bold text-[#0a0a0a]">🧳 담은 샘플 {cartCount}개</span>
+                            <span className="font-extrabold text-[#0a0a0a]">{cartTotalPrice.toLocaleString()}원</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={goCheckout}
+                            className="mt-2.5 w-full rounded-xl bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.985]"
+                          >
+                            결제하기 →
+                          </button>
+                        </div>
+                      )}
 
                       <AcBtnBar>
                         <AcBtn variant="ghost" onClick={acRestart}>
