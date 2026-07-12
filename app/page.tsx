@@ -1089,7 +1089,8 @@ export default function BeautyPassportExperience() {
       // 마지막 축까지 선택 → 4글자 코드 완성 → 여권에 저장
       const code = axes.join("");
       setSkin(analyzeBaumann(code));
-      if (loggedInId) saveSkinToAccount(loggedInId, code);
+      // 공용 게스트 계정은 여러 사용자가 함께 쓰므로, 진단 기록을 계정에 남기지 않는다.
+      if (loggedInId && loggedInId !== COSMAX_GUEST.id) saveSkinToAccount(loggedInId, code);
       setStage("journey");
     }
   }
@@ -1236,7 +1237,9 @@ export default function BeautyPassportExperience() {
     setName(res.account.name);
     setAge(res.account.age);
     setGender(res.account.gender);
-    setStage("member");
+    // 공용 게스트 계정은 "개인정보는 저장되지 않아요" 안내와 맞게, 이전 사용자가 저장한
+    // 진단 기록을 불러오는 화면(member) 없이 바로 설문 탭으로 보낸다.
+    setStage("checkin");
   }
   function handleSignup() {
     if (signupPw !== signupPw2) {
