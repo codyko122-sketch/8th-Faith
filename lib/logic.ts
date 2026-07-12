@@ -25,6 +25,42 @@ export type CalendarDay = {
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
+// WMO 날씨 코드 → 날씨 상태 이모지 (맑음/구름/비/눈 등)
+export function weatherEmoji(code: number): { icon: string; label: string } {
+  if (code === 0) return { icon: "☀️", label: "맑음" };
+  if (code === 1) return { icon: "🌤️", label: "대체로 맑음" };
+  if (code === 2) return { icon: "⛅", label: "구름 조금" };
+  if (code === 3) return { icon: "☁️", label: "흐림" };
+  if (code === 45 || code === 48) return { icon: "🌫️", label: "안개" };
+  if (code >= 51 && code <= 57) return { icon: "🌦️", label: "이슬비" };
+  if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return { icon: "🌧️", label: "비" };
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return { icon: "🌨️", label: "눈" };
+  if (code >= 95) return { icon: "🌩️", label: "뇌우" };
+  return { icon: "🌤️", label: "대체로 맑음" };
+}
+
+// 실측 코드가 없을 때(계절 기본값) 습도·기온으로 그럴듯한 날씨를 합성. r: 시드 난수(0~1) → 결정적.
+function syntheticWeatherCode(r: number, temp: number, humidity: number): number {
+  if (temp <= 0) return r < 0.5 ? 71 : 3; // 영하: 눈/흐림
+  if (humidity >= 82) {
+    if (r < 0.45) return 61; // 비
+    if (r < 0.7) return 3; // 흐림
+    if (r < 0.9) return 80; // 소나기
+    return 95; // 뇌우
+  }
+  if (humidity >= 68) {
+    if (r < 0.35) return 3; // 흐림
+    if (r < 0.6) return 2; // 구름 조금
+    if (r < 0.8) return 51; // 이슬비
+    return 1;
+  }
+  if (humidity <= 42) return r < 0.75 ? 0 : 1; // 건조: 맑음 위주
+  if (r < 0.4) return 1;
+  if (r < 0.7) return 2;
+  if (r < 0.9) return 3;
+  return 0;
+}
+
 export function buildCalendar(dest: string, days: number): CalendarDay[] {
   const p = DESTINATIONS[dest] ?? FALLBACK;
   let seed = 0;
@@ -43,14 +79,8 @@ export function buildCalendar(dest: string, days: number): CalendarDay[] {
     const uv = Math.max(0, Math.min(12, p.uv + randInt(-2, 2)));
     const dust = Math.max(0, p.dust + randInt(-20, 20));
 
-    const emojis: { icon: string; label: string }[] = [];
-    if (temp >= 30) emojis.push({ icon: "🔥", label: "더운 날" });
-    else if (temp <= 15) emojis.push({ icon: "❄️", label: "쌀쌀함" });
-    else emojis.push({ icon: "☀️", label: "온화함" });
-    if (humidity >= 75) emojis.push({ icon: "💧", label: "습한 날" });
-    else if (humidity <= 35) emojis.push({ icon: "🌵", label: "건조함" });
-    if (dust >= 100) emojis.push({ icon: "😷", label: "미세먼지 나쁨" });
-    else if (dust >= 60) emojis.push({ icon: "🌫️", label: "미세먼지 보통" });
+    // 날씨 상태 이모지(맑음/구름/비 등). 실측 코드가 없어 습도·기온으로 결정적 합성.
+    const emojis = [weatherEmoji(syntheticWeatherCode(rand(), temp, humidity))];
 
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     const dd = String(d.getDate()).padStart(2, "0");
@@ -208,14 +238,7 @@ export function buildCalendarP(p: ClimateProfile, seed: number, days: number, st
     const humidity = Math.min(100, Math.max(10, p.humidity + randInt(-8, 8)));
     const uv = Math.max(0, Math.min(12, p.uv + randInt(-2, 2)));
     const dust = Math.max(0, p.dust + randInt(-20, 20));
-    const emojis: { icon: string; label: string }[] = [];
-    if (temp >= 30) emojis.push({ icon: "🔥", label: "더운 날" });
-    else if (temp <= 15) emojis.push({ icon: "❄️", label: "쌀쌀함" });
-    else emojis.push({ icon: "☀️", label: "온화함" });
-    if (humidity >= 75) emojis.push({ icon: "💧", label: "습한 날" });
-    else if (humidity <= 35) emojis.push({ icon: "🌵", label: "건조함" });
-    if (dust >= 100) emojis.push({ icon: "😷", label: "미세먼지 나쁨" });
-    else if (dust >= 60) emojis.push({ icon: "🌫️", label: "미세먼지 보통" });
+    const emojis = [weatherEmoji(syntheticWeatherCode(rand(), temp, humidity))];
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     const dd = String(d.getDate()).padStart(2, "0");
     cal.push({ date: `${mm}/${dd}`, weekday: WEEKDAYS[d.getDay()], temp, humidity, uv, dust, emojis });
@@ -225,19 +248,14 @@ export function buildCalendarP(p: ClimateProfile, seed: number, days: number, st
 
 // 실제 일별 예보(Open-Meteo) → 캘린더
 export function buildCalendarFromDaily(
-  daily: { dateISO: string; temp: number; humidity: number; uv: number; dust: number }[]
+  daily: { dateISO: string; temp: number; humidity: number; uv: number; dust: number; code?: number }[]
 ): CalendarDay[] {
   return daily.slice(0, 30).map((day) => {
     const d = new Date(day.dateISO);
     const { temp, humidity, uv, dust } = day;
-    const emojis: { icon: string; label: string }[] = [];
-    if (temp >= 30) emojis.push({ icon: "🔥", label: "더운 날" });
-    else if (temp <= 15) emojis.push({ icon: "❄️", label: "쌀쌀함" });
-    else emojis.push({ icon: "☀️", label: "온화함" });
-    if (humidity >= 75) emojis.push({ icon: "💧", label: "습한 날" });
-    else if (humidity <= 35) emojis.push({ icon: "🌵", label: "건조함" });
-    if (dust >= 100) emojis.push({ icon: "😷", label: "미세먼지 나쁨" });
-    else if (dust >= 60) emojis.push({ icon: "🌫️", label: "미세먼지 보통" });
+    // 실측 WMO 날씨 코드가 있으면 그대로, 없으면 습도·기온으로 합성.
+    const code = day.code != null ? day.code : syntheticWeatherCode(0.5, temp, humidity);
+    const emojis = [weatherEmoji(code)];
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     const dd = String(d.getDate()).padStart(2, "0");
     return { date: `${mm}/${dd}`, weekday: WEEKDAYS[d.getDay()], temp, humidity, uv, dust, emojis };

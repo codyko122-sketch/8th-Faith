@@ -128,7 +128,7 @@ export function SkinReport({
         <div className="rounded-[var(--radius-xl)] border border-line bg-card p-6 shadow-soft sm:p-7">
           <h3 className="font-serif text-xl font-semibold">📅 여행 날씨 캘린더</h3>
           <p className="mt-1 text-xs text-muted">
-            🔥더운날 ❄️쌀쌀 ☀️온화 💧습함 🌵건조 😷미세먼지나쁨 🌫️보통
+            ☀️맑음 🌤️대체로맑음 ⛅구름조금 ☁️흐림 🌫️안개 🌦️이슬비 🌧️비 🌨️눈 🌩️뇌우
           </p>
           <div className="scroll-x mt-4 flex gap-2.5 overflow-x-auto pb-2">
             {cal.map((c, k) => (
