@@ -685,19 +685,19 @@ function skinIssueSubindex(p: { temp: number; humidity: number; uv: number; dust
   return { uvExposure, pigment, hydrationLoss, troubleSebum };
 }
 
-// 애프터케어 입국심사 설문(Q1 피부 변화 여부 · Q2 새 고민 여부 · Q3 선택한 고민)으로
+// 애프터케어 입국심사 설문(피부 상태 좋아짐/비슷함/나빠짐 · 나빠졌다면 선택한 고민)으로
 // "여행 후 피부 이슈 지수"를 산출하고, 여행 전 대비 무엇이 좋아지게/나빠지게 했는지 설명한다.
 const AC_CONCERN_WEIGHT: Record<string, number> = { acne: 14, redness: 12, pigment: 12, hydration: 10, pore: 8, wrinkle: 8 };
-function aftercareIndexChange(preScore: number, q1: "yes" | "no" | null, q2: "yes" | "no" | null, concernIds: string[]) {
+function aftercareIndexChange(preScore: number, change: "better" | "same" | "worse" | null, concernIds: string[]) {
   let delta = 0;
   const notes: string[] = [];
-  if (q1 === "no") {
+  if (change === "same") {
     delta = -8;
     notes.push("여행 중 피부 상태가 크게 달라지지 않았어요 — 미리 챙긴 장벽 케어가 잘 맞았어요.");
-  } else if (q1 === "yes" && q2 !== "yes") {
-    delta = 6;
-    notes.push("약간의 컨디션 변화는 느꼈지만, 뚜렷하게 새로 생긴 고민까지는 아니었어요.");
-  } else {
+  } else if (change === "better") {
+    delta = -14;
+    notes.push("여행 후 피부 컨디션이 오히려 좋아졌어요 — 챙겨간 케어가 잘 맞았던 덕분이에요.");
+  } else if (change === "worse") {
     const chosen = concernIds.map((id) => CONCERNS.find((c) => c.id === id)).filter((c): c is Concern => !!c);
     if (chosen.length === 0) {
       delta = 8;
@@ -713,6 +713,65 @@ function aftercareIndexChange(preScore: number, q1: "yes" | "no" | null, q2: "ye
   const level = after >= 70 ? "높음" : after >= 45 ? "보통" : "낮음";
   const color = after >= 70 ? "#e5484d" : after >= 45 ? "#f2a20b" : "#30a46c";
   return { after, delta, level, color, notes };
+}
+
+// 세부 지수(자외선노출/색소침착/수분손실/트러블유수분) 중 각 고민이 주로 영향을 주는 항목
+const AC_CONCERN_SUBINDEX: Record<string, "uvExposure" | "pigment" | "hydrationLoss" | "troubleSebum"> = {
+  wrinkle: "uvExposure",
+  pigment: "pigment",
+  hydration: "hydrationLoss",
+  acne: "troubleSebum",
+  pore: "troubleSebum",
+  redness: "troubleSebum",
+};
+// 결과 화면과 동일한 "게이지 + 세부 지수 바" 구성을 애프터케어 여행 전/후 비교에도 그대로 반영
+function aftercareSubindexChange(
+  before: { uvExposure: number; pigment: number; hydrationLoss: number; troubleSebum: number },
+  change: "better" | "same" | "worse" | null,
+  concernIds: string[]
+) {
+  const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
+  const flat = change === "same" ? -8 : change === "better" ? -14 : 0;
+  const after = { ...before };
+  (Object.keys(after) as (keyof typeof after)[]).forEach((k) => {
+    after[k] = clamp(after[k] + flat);
+  });
+  if (change === "worse") {
+    if (concernIds.length === 0) {
+      (Object.keys(after) as (keyof typeof after)[]).forEach((k) => {
+        after[k] = clamp(after[k] + 8);
+      });
+    } else {
+      concernIds.forEach((id) => {
+        const key = AC_CONCERN_SUBINDEX[id];
+        if (key) after[key] = clamp(after[key] + (AC_CONCERN_WEIGHT[id] ?? 10));
+      });
+    }
+  }
+  return after;
+}
+
+// 여행 후 새로 생긴 고민 → 실제 카탈로그(lib/products.ts) 제품 매칭 (소용량으로 구매 가능하게)
+const CONCERN_COSMETIC_IDS: Record<string, string[]> = {
+  wrinkle: ["anua-pdrn", "innisfree-retinol-cica"],
+  pore: ["numbuzin-no1", "roundlab-dokdo-toner"],
+  pigment: ["goodal-vitac", "numbuzin-no1"],
+  acne: ["beplain-mungbean", "clio-noscarnine"],
+  redness: ["drg-red-blemish", "layerlab-panthenol"],
+  hydration: ["esnature-aqua-toner", "wellage-blue-ampoule"],
+};
+function concernProductMatches(chosenConcerns: Concern[]) {
+  const matches = new Map<string, { p: Cosmetic; concernLabels: string[] }>();
+  chosenConcerns.forEach((concern) => {
+    (CONCERN_COSMETIC_IDS[concern.id] ?? []).forEach((id) => {
+      const p = COSMETICS.find((c) => c.id === id);
+      if (!p) return;
+      const cur = matches.get(id);
+      if (cur) cur.concernLabels.push(concern.label);
+      else matches.set(id, { p, concernLabels: [concern.label] });
+    });
+  });
+  return Array.from(matches.values());
 }
 
 // 스캔 결과 성분 태그 색상 (여권 팔레트)
@@ -1256,7 +1315,7 @@ export default function BeautyPassportExperience() {
     setFindPwId(""); setFindPwName(""); setFindPwVerified(false); setFindPwNew(""); setFindPwNew2(""); setFindPwError(""); setFindPwDone(false);
     setJourneyPhase(null);
     setAcEntry("journey");
-    setAcQ1(null); setAcQ2(null); setAcConcerns([]); setAcMode(null); setAcSaved(false);
+    setAcChange(null); setAcUsedProducts(null); setAcUsedProductIds([]); setAcConcerns([]); setAcMode(null); setAcSaved(false); setFullBuyProduct(null);
     setName(""); setAge(""); setGender("");
     setCountryCode(null); setCityName(null);
     setUseCustom(false); setCustomCountry(""); setCustomCity("");
@@ -1275,9 +1334,9 @@ export default function BeautyPassportExperience() {
     setStage("intro");
   }
 
-  // 애프터케어(여행 후) 결과에서 "여행 전 피부 이슈 지수"와 비교하기 위해, stage와 무관하게
-  // 항상 계산해둔다(result는 stage==="result"가 아니면 null이라 재사용 불가).
-  const preTripIndex = useMemo(() => {
+  // 애프터케어(여행 후) 결과에서 "여행 전 피부 이슈 지수"·"여행 전 추천 제품"과 비교하기 위해,
+  // stage와 무관하게 항상 계산해둔다(result는 stage==="result"가 아니면 null이라 재사용 불가).
+  const preTripSnapshot = useMemo(() => {
     if (!skin) return null;
     const cityProfile = useCustom ? FALLBACK_CLIMATE : city ?? FALLBACK_CLIMATE;
     const profile = weather
@@ -1289,7 +1348,11 @@ export default function BeautyPassportExperience() {
           tag: cityProfile.tag,
         }
       : cityProfile;
-    return skinIssueIndexP(profile, skin.skinTypeForRec, skin.recConcerns);
+    return {
+      index: skinIssueIndexP(profile, skin.skinTypeForRec, skin.recConcerns),
+      sub: skinIssueSubindex(profile, skin.code, skin.recConcerns),
+      recItems: recommendCosmetics(skin.skinTypeForRec, skin.sensitivity, skin.displayConcerns, profile).items,
+    };
   }, [skin, useCustom, city, weather]);
 
   const result = useMemo(() => {
@@ -2035,7 +2098,7 @@ export default function BeautyPassportExperience() {
               </motion.section>
             )}
 
-            {/* 애프터케어 — Q1 */}
+            {/* 애프터케어 — Q1: 피부 상태 변화 */}
             {stage === "acQ1" && (
               <motion.section
                 key="acQ1"
@@ -2048,20 +2111,23 @@ export default function BeautyPassportExperience() {
                 <AcScreenChrome step={1} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode}>
                   <AcLabel en="Skin Check" ko="피부 점검" />
                   <p className={acStyles.lead}>피부 상태가 달라지셨나요?</p>
-                  <p className={acStyles.leadSub}>여행 전과 비교해 피부 컨디션에 변화가 느껴지는지 알려주세요.</p>
-                  <div className={acStyles.choice2}>
-                    <AcOpt selected={acQ1 === "yes"} onClick={() => setAcQ1("yes")} hint="변화가 있어요">
-                      예
+                  <p className={acStyles.leadSub}>여행 전과 비교해 피부 컨디션에 어떤 변화가 느껴지는지 알려주세요.</p>
+                  <div className={acStyles.choice1}>
+                    <AcOpt selected={acChange === "better"} onClick={() => setAcChange("better")} hint="컨디션이 오히려 좋아졌어요">
+                      더 좋아졌어요
                     </AcOpt>
-                    <AcOpt selected={acQ1 === "no"} onClick={() => setAcQ1("no")} hint="비슷해요">
-                      아니요
+                    <AcOpt selected={acChange === "same"} onClick={() => setAcChange("same")} hint="여행 전과 비슷해요">
+                      비슷해요
+                    </AcOpt>
+                    <AcOpt selected={acChange === "worse"} onClick={() => setAcChange("worse")} hint="없던 고민이 생겼어요">
+                      새로운 고민이 생겼어요
                     </AcOpt>
                   </div>
                   <AcBtnBar>
                     <AcBtn variant="ghost" onClick={() => setStage("acArrival")}>
                       ← 이전
                     </AcBtn>
-                    <AcBtn disabled={!acQ1} onClick={acNextQ1}>
+                    <AcBtn disabled={!acChange} onClick={acAfterChange}>
                       다음 →
                     </AcBtn>
                   </AcBtnBar>
@@ -2069,10 +2135,10 @@ export default function BeautyPassportExperience() {
               </motion.section>
             )}
 
-            {/* 애프터케어 — Q2 */}
-            {stage === "acQ2" && (
+            {/* 애프터케어 — 추천 제품 사용 여부 */}
+            {stage === "acUsed" && (
               <motion.section
-                key="acQ2"
+                key="acUsed"
                 variants={stageVariants}
                 initial="hidden"
                 animate="show"
@@ -2080,14 +2146,14 @@ export default function BeautyPassportExperience() {
                 className="absolute inset-0"
               >
                 <AcScreenChrome step={2} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode}>
-                  <AcLabel en="New Concern" ko="새로운 고민" />
-                  <p className={acStyles.lead}>새롭게 생긴 피부 고민이 있나요?</p>
-                  <p className={acStyles.leadSub}>여행 전에는 없었는데 새로 신경 쓰이는 부분이 생겼는지 알려주세요.</p>
+                  <AcLabel en="Product Check" ko="제품 확인" />
+                  <p className={acStyles.lead}>저희가 추천해드린 제품을 사용해보셨나요?</p>
+                  <p className={acStyles.leadSub}>여행 전 맞춤 추천해드린 제품 중 사용하신 게 있는지 알려주세요.</p>
                   <div className={acStyles.choice2}>
-                    <AcOpt selected={acQ2 === "yes"} onClick={() => setAcQ2("yes")} hint="생겼어요">
+                    <AcOpt selected={acUsedProducts === "yes"} onClick={() => setAcUsedProducts("yes")} hint="사용했어요">
                       예
                     </AcOpt>
-                    <AcOpt selected={acQ2 === "no"} onClick={() => setAcQ2("no")} hint="없어요">
+                    <AcOpt selected={acUsedProducts === "no"} onClick={() => setAcUsedProducts("no")} hint="사용 안 했어요">
                       아니요
                     </AcOpt>
                   </div>
@@ -2095,7 +2161,45 @@ export default function BeautyPassportExperience() {
                     <AcBtn variant="ghost" onClick={() => setStage("acQ1")}>
                       ← 이전
                     </AcBtn>
-                    <AcBtn disabled={!acQ2} onClick={acNextQ2}>
+                    <AcBtn disabled={!acUsedProducts} onClick={acNextUsed}>
+                      다음 →
+                    </AcBtn>
+                  </AcBtnBar>
+                </AcScreenChrome>
+              </motion.section>
+            )}
+
+            {/* 애프터케어 — 사용한 제품 선택 */}
+            {stage === "acUsedPick" && (
+              <motion.section
+                key="acUsedPick"
+                variants={stageVariants}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="absolute inset-0"
+              >
+                <AcScreenChrome step={3} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode}>
+                  <AcLabel en="Which One" ko="사용 제품" />
+                  <p className={acStyles.lead}>어떤 제품을 사용하셨나요?</p>
+                  <p className={acStyles.leadSub}>해당하는 제품을 모두 선택해 주세요. (중복 선택 가능)</p>
+                  <div className={acStyles.chips}>
+                    {(preTripSnapshot?.recItems ?? []).map(({ p }) => (
+                      <AcChip
+                        key={p.id}
+                        selected={acUsedProductIds.includes(p.id)}
+                        onClick={() => acToggleUsed(p.id)}
+                        icon="🧴"
+                        label={p.name}
+                        en={p.brand}
+                      />
+                    ))}
+                  </div>
+                  <AcBtnBar>
+                    <AcBtn variant="ghost" onClick={() => setStage("acUsed")}>
+                      ← 이전
+                    </AcBtn>
+                    <AcBtn disabled={acUsedProductIds.length === 0} onClick={() => setStage("acResult")}>
                       다음 →
                     </AcBtn>
                   </AcBtnBar>
@@ -2123,7 +2227,7 @@ export default function BeautyPassportExperience() {
                     ))}
                   </div>
                   <AcBtnBar>
-                    <AcBtn variant="ghost" onClick={() => setStage("acQ2")}>
+                    <AcBtn variant="ghost" onClick={() => setStage("acQ1")}>
                       ← 이전
                     </AcBtn>
                     <AcBtn
@@ -2144,7 +2248,10 @@ export default function BeautyPassportExperience() {
             {stage === "acResult" &&
               (() => {
                 const isConcern = acMode === "concern";
-                const per = acChosenConcerns.length >= 3 ? 1 : acChosenConcerns.length === 2 ? 2 : 3;
+                const isBetter = acMode === "better";
+                const concernMatches = isConcern ? concernProductMatches(acChosenConcerns) : [];
+                const usedItems = (preTripSnapshot?.recItems ?? []).filter(({ p }) => acUsedProductIds.includes(p.id));
+                const backTarget = isConcern ? "acQ3" : isBetter ? (acUsedProducts === "yes" ? "acUsedPick" : "acUsed") : "acQ1";
                 return (
                   <motion.section
                     key="acResult"
@@ -2160,63 +2267,188 @@ export default function BeautyPassportExperience() {
                       title="즐거운 여행되셨나요?"
                       subtitle={acSubtitle}
                       footerCode={acFooterCode}
-                      onBack={() => setStage(isConcern ? "acQ3" : "acQ1")}
+                      onBack={() => setStage(backTarget)}
                     >
                       <AcStampSeal />
                       <h2 className={acStyles.resultHead}>
                         {isConcern
                           ? `'${acChosenConcerns.map((c) => c.label).join(" · ")}' 맞춤 처방`
-                          : acCountryName
-                            ? `${acCountryName} 여행 후 케어`
-                            : "여행지 맞춤 케어"}
+                          : isBetter
+                            ? "좋아진 피부, 계속 이어가요"
+                            : acCountryName
+                              ? `${acCountryName} 여행 후 케어`
+                              : "여행지 맞춤 케어"}
                       </h2>
                       <p className={acStyles.resultSub}>
-                        {isConcern ? "여행에서 새로 생긴 고민을 위한 처방 루틴이에요." : "큰 변화가 없어도, 여행지 기후에 맞춰 피부를 재정비해요."}
+                        {isConcern
+                          ? "여행에서 새로 생긴 고민을 위한 처방 루틴이에요. 회복 기간만 소용량으로 가볍게 챙겨보세요."
+                          : isBetter
+                            ? "여행 전 챙긴 케어가 잘 맞았어요. 어떤 제품이 도움이 됐는지 확인해보세요."
+                            : "큰 변화가 없어도, 여행지 기후에 맞춰 피부를 재정비해요."}
                       </p>
-                      <p className={acStyles.focusline}>
-                        {isConcern ? (
-                          acChosenConcerns.map((c, i) => (
+
+                      {isConcern && (
+                        <p className={acStyles.focusline}>
+                          {acChosenConcerns.map((c, i) => (
                             <span key={c.id}>
                               <b>{c.label}</b> — {c.focus}
                               {i < acChosenConcerns.length - 1 && <br />}
                             </span>
-                          ))
-                        ) : (
-                          <>
-                            <b>{acClimateProfile.label}</b> · {acClimateProfile.focus}
-                          </>
-                        )}
-                      </p>
-                      <div className={acStyles.products}>
-                        {isConcern
-                          ? acChosenConcerns.flatMap((c) => c.products.slice(0, per).map((p, i) => <AcProductCard key={`${c.id}-${i}`} {...p} />))
-                          : acClimateProfile.products.map((p, i) => <AcProductCard key={i} {...p} />)}
-                      </div>
+                          ))}
+                        </p>
+                      )}
+                      {!isConcern && !isBetter && (
+                        <p className={acStyles.focusline}>
+                          <b>{acClimateProfile.label}</b> · {acClimateProfile.focus}
+                        </p>
+                      )}
 
-                      {preTripIndex &&
+                      {isConcern && (
+                        <div className="space-y-3">
+                          {concernMatches.length === 0 && (
+                            <p className={acStyles.leadSub}>선택한 고민에 맞는 제품을 준비 중이에요.</p>
+                          )}
+                          {concernMatches.map(({ p, concernLabels }) => {
+                            const ml = volumeSel[p.id] ?? 20;
+                            const price = samplePrice(p.price, p.fullMl, ml);
+                            const qty = cartQty(p.id, ml);
+                            return (
+                              <div key={p.id} className="rounded-2xl border border-[#e7e7ea] bg-white p-3.5 shadow-[0_8px_24px_rgba(20,30,50,0.05)]">
+                                <button type="button" onClick={() => setDetailId(p.id)} className="flex w-full gap-3 text-left">
+                                  <ProductImage product={p} />
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[10.5px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{p.brand}</span>
+                                      <span className="ml-auto flex items-center gap-0.5 text-[12px] font-bold text-[#ec1c24]">★ {p.rating.toFixed(2)}</span>
+                                    </div>
+                                    <div className="mt-0.5 truncate text-sm font-extrabold text-[#0a0a0a]">{p.name}</div>
+                                    <div className="mt-1 text-[11px] font-semibold text-[#ec1c24]">{concernLabels.join(" · ")} 진정에 도움</div>
+                                  </div>
+                                </button>
+                                <ComplianceBadge cosmeticId={p.id} destinationCountry={countryCode} compact />
+                                <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
+                                  <select
+                                    value={ml}
+                                    onChange={(e) => setVolumeSel((v) => ({ ...v, [p.id]: Number(e.target.value) }))}
+                                    className="flex-1 rounded-xl border border-[#e7e7ea] bg-white px-2 py-1.5 text-[12px] text-[#0a0a0a] outline-none focus:border-[#0a0a0a]"
+                                  >
+                                    {SAMPLE_TIERS.map((t) => (
+                                      <option key={t} value={t}>
+                                        {t}ml{t === 20 ? " · 추천" : ""}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <span className="rounded-full bg-[#f4f4f5] px-2 py-1 text-[10px] font-semibold text-[#3f3f46]">회복 기간용</span>
+                                  <span className="text-sm font-extrabold text-[#0a0a0a]">{price.toLocaleString()}원</span>
+                                  {qty === 0 ? (
+                                    <button
+                                      onClick={() => addSample(p.id, ml)}
+                                      className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
+                                    >
+                                      담기
+                                    </button>
+                                  ) : (
+                                    <div className="flex items-center gap-2 rounded-full bg-[#f4f4f5] px-2 py-1">
+                                      <button onClick={() => decSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">−</button>
+                                      <span className="w-4 text-center text-xs font-bold text-[#0a0a0a]">{qty}</span>
+                                      <button onClick={() => addSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">＋</button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {!isConcern && !isBetter && (
+                        <div className={acStyles.products}>
+                          {acClimateProfile.products.map((p, i) => (
+                            <AcProductCard key={i} {...p} />
+                          ))}
+                        </div>
+                      )}
+
+                      {isBetter && (
+                        <div className="space-y-3">
+                          {usedItems.length === 0 ? (
+                            <p className={acStyles.leadSub}>여행 전 준비했던 케어가 전반적으로 잘 맞았어요. 다음 여행에도 같은 루틴을 이어가 보세요!</p>
+                          ) : (
+                            usedItems.map(({ p, reason }) => (
+                              <div key={p.id} className="rounded-2xl border border-[#e7e7ea] bg-white p-3.5 shadow-[0_8px_24px_rgba(20,30,50,0.05)]">
+                                <div className="flex gap-3">
+                                  <ProductImage product={p} />
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[10.5px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{p.brand}</span>
+                                      <span className="ml-auto flex items-center gap-0.5 text-[12px] font-bold text-[#ec1c24]">★ {p.rating.toFixed(2)}</span>
+                                    </div>
+                                    <div className="mt-0.5 truncate text-sm font-extrabold text-[#0a0a0a]">{p.name}</div>
+                                  </div>
+                                </div>
+                                <p className="mt-2 rounded-xl bg-[#f4f4f5] px-3 py-2 text-[12px] leading-snug text-[#3f3f46]">
+                                  💡 이래서 잘 맞았어요 — {reason}
+                                </p>
+                                <div className="mt-2 flex items-center justify-between border-t border-dashed border-[#e7e7ea] pt-2">
+                                  <div>
+                                    <span className="text-[11px] text-[#9ca3af] line-through">{p.price.toLocaleString()}원</span>
+                                    <span className="ml-1.5 text-sm font-extrabold text-[#ec1c24]">
+                                      {(Math.round((p.price * 0.9) / 100) * 100).toLocaleString()}원
+                                    </span>
+                                    <span className="ml-1 text-[10px] font-bold text-[#ec1c24]">10%↓</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => setFullBuyProduct(p)}
+                                    className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
+                                  >
+                                    본품 구매하기
+                                  </button>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+
+                      {preTripSnapshot &&
                         (() => {
-                          const change = aftercareIndexChange(preTripIndex.score, acQ1, acQ2, acConcerns);
+                          const change = aftercareIndexChange(preTripSnapshot.index.score, acChange, acConcerns);
+                          const subAfter = aftercareSubindexChange(preTripSnapshot.sub, acChange, acConcerns);
                           const dir = change.delta > 2 ? "up" : change.delta < -2 ? "down" : "flat";
                           const dirLabel = dir === "up" ? `+${change.delta} 악화` : dir === "down" ? `${change.delta} 개선` : "변화 없음";
                           return (
                             <div className={acStyles.idxCard}>
                               <div className={acStyles.idxLabel}>Skin Issue Index · 피부 이슈 지수 변화</div>
-                              <div className={acStyles.idxRow}>
-                                <div className={acStyles.idxCol}>
-                                  <div className={acStyles.idxColLabel}>여행 전</div>
-                                  <IndexGauge score={preTripIndex.score} level={preTripIndex.level} />
-                                </div>
-                                <div className={acStyles.idxArrow}>→</div>
-                                <div className={acStyles.idxCol}>
-                                  <div className={acStyles.idxColLabel}>여행 후</div>
-                                  <IndexGauge score={change.after} level={change.level} />
+
+                              <div className={acStyles.idxColLabel}>여행 전</div>
+                              <div className="mt-2 flex items-center gap-4">
+                                <IndexGauge score={preTripSnapshot.index.score} level={preTripSnapshot.index.level} />
+                                <div className="grid flex-1 grid-cols-2 gap-x-3.5 gap-y-2.5">
+                                  <SubindexBar label="자외선 노출" value={preTripSnapshot.sub.uvExposure} />
+                                  <SubindexBar label="색소 침착" value={preTripSnapshot.sub.pigment} />
+                                  <SubindexBar label="수분 손실" value={preTripSnapshot.sub.hydrationLoss} />
+                                  <SubindexBar label="트러블·유수분" value={preTripSnapshot.sub.troubleSebum} />
                                 </div>
                               </div>
+
                               <div className={acStyles.idxDeltaWrap}>
                                 <span className={`${acStyles.idxDelta} ${acStyles[dir]}`}>{dirLabel}</span>
                               </div>
+
+                              <div className={acStyles.idxColLabel} style={{ marginTop: 14 }}>여행 후</div>
+                              <div className="mt-2 flex items-center gap-4">
+                                <IndexGauge score={change.after} level={change.level} />
+                                <div className="grid flex-1 grid-cols-2 gap-x-3.5 gap-y-2.5">
+                                  <SubindexBar label="자외선 노출" value={subAfter.uvExposure} />
+                                  <SubindexBar label="색소 침착" value={subAfter.pigment} />
+                                  <SubindexBar label="수분 손실" value={subAfter.hydrationLoss} />
+                                  <SubindexBar label="트러블·유수분" value={subAfter.troubleSebum} />
+                                </div>
+                              </div>
+
                               {change.notes.length > 0 && (
-                                <div className={acStyles.idxNotes}>
+                                <div className={acStyles.idxNotes} style={{ marginTop: 14 }}>
                                   {change.notes.map((n, i) => (
                                     <div key={i} className={acStyles.idxNote}>
                                       {n}
@@ -2240,6 +2472,7 @@ export default function BeautyPassportExperience() {
                         여권에 저장되었어요
                       </div>
                     )}
+                    {fullBuyProduct && <FullSizeBuyModal product={fullBuyProduct} onClose={() => setFullBuyProduct(null)} />}
                   </motion.section>
                 );
               })()}
@@ -4055,6 +4288,84 @@ function AiDetailModal({
       </motion.div>
     </>
   );
+}
+
+// 애프터케어 "본품 구매 · 10% 할인" 모달 — 공용 샘플 장바구니와 분리된, 단일 제품 전용 주문 흐름.
+// AcScreenChrome과 동일하게 document.body로 포털해 앱 프레임의 perspective 스태킹 컨텍스트를 벗어난다.
+function FullSizeBuyModal({ product, onClose }: { product: Cosmetic; onClose: () => void }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [orderNo, setOrderNoLocal] = useState<string | null>(null);
+  const discounted = Math.round((product.price * 0.9) / 100) * 100;
+  const canOrder = name.trim() && phone.trim() && address.trim();
+
+  const content = (
+    <>
+      <div className="fixed inset-0 z-[110] bg-black/35" onClick={onClose} />
+      <motion.div
+        className="fixed inset-x-0 bottom-0 z-[111] mx-auto max-h-[92%] w-full max-w-[480px] overflow-y-auto rounded-t-[28px] bg-white"
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", stiffness: 320, damping: 34 }}
+      >
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-2 border-b border-[#e7e7ea] bg-white/95 px-5 py-3 backdrop-blur">
+          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Full Size · 본품 구매</div>
+          <button onClick={onClose} className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[#f4f4f5] text-base text-[#0a0a0a]">×</button>
+        </div>
+
+        <div className="px-5 pb-8 pt-4">
+          {orderNo ? (
+            <div className="py-6 text-center">
+              <div className="text-3xl">✅</div>
+              <div className="mt-3 text-lg font-black text-[#0a0a0a]">주문 완료</div>
+              <p className="mt-1.5 text-sm text-[#71717a]">10% 할인가로 본품 주문이 접수됐어요.</p>
+              <div className="mt-4 inline-block rounded-full bg-[#f4f4f5] px-4 py-2 text-sm font-bold text-[#0a0a0a]">주문번호 {orderNo}</div>
+              <button onClick={onClose} className="mt-6 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3.5 text-base font-extrabold text-white transition">닫기</button>
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-3 rounded-2xl border border-[#e7e7ea] p-3.5">
+                <ProductImage product={product} />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10.5px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{product.brand}</div>
+                  <div className="mt-0.5 truncate text-sm font-extrabold text-[#0a0a0a]">{product.name}</div>
+                  <div className="mt-1 text-[11px] text-[#9ca3af]">{product.fullMl}ml · 본품</div>
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    <span className="text-[12px] text-[#9ca3af] line-through">{product.price.toLocaleString()}원</span>
+                    <span className="text-base font-extrabold text-[#ec1c24]">{discounted.toLocaleString()}원</span>
+                    <span className="rounded-full bg-[#fbe7e5] px-2 py-0.5 text-[10px] font-bold text-[#ec1c24]">10% 할인</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Order · 배송 정보</div>
+              <label className="mt-3 block text-sm font-extrabold text-[#0a0a0a]">받는 사람</label>
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="이름" className="np-input" />
+              <label className="mt-3 block text-sm font-extrabold text-[#0a0a0a]">연락처</label>
+              <input value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^0-9-]/g, ""))} placeholder="010-0000-0000" inputMode="tel" className="np-input" />
+              <label className="mt-3 block text-sm font-extrabold text-[#0a0a0a]">배송지</label>
+              <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="주소를 입력하세요" className="np-input" />
+
+              <button
+                disabled={!canOrder}
+                onClick={() => setOrderNoLocal(genOrderNo())}
+                className="mt-6 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3.5 text-base font-extrabold text-white transition disabled:opacity-35"
+              >
+                10% 할인가로 주문하기 · {discounted.toLocaleString()}원
+              </button>
+            </>
+          )}
+        </div>
+      </motion.div>
+    </>
+  );
+
+  if (!mounted) return null;
+  return createPortal(content, document.body);
 }
 
 // [5-detail] 제품 상세 바텀시트
