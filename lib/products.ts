@@ -92,13 +92,15 @@ export function recommendCosmetics(
 
   scored.sort((a, b) => b.s - a.s || b.p.rating - a.p.rating);
 
-  // 클렌징폼은 미세먼지·피지 관리에 늘 중요한데 점수 경쟁만으로는 top-5에서 밀릴 수 있어서,
-  // 지금 피부타입에 가장 잘 맞는 클렌징폼 1개는 항상 추천에 포함되도록 보장한다.
-  const bestCleanser = scored.find((x) => x.p.category === "클렌징");
-  const others = scored.filter((x) => x.p.category !== "클렌징");
-  const top = (bestCleanser ? [bestCleanser, ...others.slice(0, 4)] : others.slice(0, 5)).sort(
-    (a, b) => b.s - a.s || b.p.rating - a.p.rating
-  );
+  // 카테고리별로 가장 점수가 높은 제품 1개만 후보로 남긴다 — "카테고리별 대표" 추천이라는
+  // 취지대로, 같은 카테고리(예: 토너 2개)가 중복으로 추천되지 않게 하고 클렌징폼처럼
+  // 전체 경쟁에서 밀리기 쉬운 카테고리도 항상 하나는 포함되게 한다.
+  const seenCategory = new Set<string>();
+  const top = scored.filter(({ p }) => {
+    if (seenCategory.has(p.category)) return false;
+    seenCategory.add(p.category);
+    return true;
+  });
 
   const items: Recommendation[] = top.map(({ p, matched }) => {
     const bits: string[] = [];

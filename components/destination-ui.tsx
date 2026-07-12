@@ -54,9 +54,11 @@ const PRODUCTS: Product[] = [
     av: [{ s: "s3", l: 80, src: [{ t: "o", label: "@cosme 취급", d: "2025.02" }, { t: "b", label: "여행 후기", d: "2025.01" }] }, { s: "s4", l: 66, src: [{ t: "g", label: "구글맵 리뷰", d: "2024.10" }] }] },
 ];
 
-function score(p: Product) {
+const NEED_CONCERN_OPTIONS = ["미백·톤", "수분", "진정", "트러블"];
+
+function score(p: Product, concerns: string[]) {
   let m = 0;
-  p.c.forEach((c) => { if (SURVEY.concerns.includes(c)) m++; });
+  p.c.forEach((c) => { if (concerns.includes(c)) m++; });
   p.i.forEach((i) => { if (RECO_ING.includes(i)) m++; });
   return m;
 }
@@ -118,6 +120,7 @@ export function DestinationCareTab({
   destinationCountryCode,
   onShowMakeup,
   onCareArrival,
+  orderedItems,
 }: {
   country: Country | null;
   city: City | null;
@@ -126,12 +129,30 @@ export function DestinationCareTab({
   destinationCountryCode: string | null;
   onShowMakeup: () => void;
   onCareArrival: () => void;
+  orderedItems: { id: string; brand: string; name: string }[];
 }) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
   const [storeId, setStoreId] = useState<string | null>(null);
   const [fineOpen, setFineOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [packedIds, setPackedIds] = useState<Set<string>>(new Set());
+  const [needConcerns, setNeedConcerns] = useState<string[]>([]);
+
+  function togglePacked(id: string) {
+    setPackedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleNeed(c: string) {
+    setNeedConcerns((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
+  }
+  const notPacked = orderedItems.filter((o) => !packedIds.has(o.id));
+  // 챙기지 않은 제품이 있거나 직접 고른 고민이 있으면 그 기준으로, 아니면 원래 데모 설문 기준으로 매칭.
+  const effectiveConcerns = needConcerns.length > 0 ? needConcerns : SURVEY.concerns;
 
   const destLabel = city && country ? `${city.name} · ${country.name}` : null;
 
@@ -159,7 +180,7 @@ export function DestinationCareTab({
 
   // ---- 근처 스토어 피드 (데모 데이터 매칭 로직 원본 그대로) ----
   type Scored = { p: Product; match: number; reg: { ing: string; note: string } | null; best: Avail };
-  let list: Scored[] = PRODUCTS.map((p) => ({ p, match: score(p), reg: regOf(p), best: null as unknown as Avail })).filter((x) => x.match > 0);
+  let list: Scored[] = PRODUCTS.map((p) => ({ p, match: score(p, effectiveConcerns), reg: regOf(p), best: null as unknown as Avail })).filter((x) => x.match > 0);
   list = list
     .map((x) => {
       let av = x.p.av.slice();
@@ -278,9 +299,55 @@ export function DestinationCareTab({
         ))}
       </div>
 
+      <div className={styles.packSec}>
+        <div className={styles.recTitle}>내가 챙긴 제품 확인</div>
+        {orderedItems.length > 0 ? (
+          <>
+            <div className={styles.recSub}>여행 전 주문한 제품 중 실제로 챙겨온 걸 체크해주세요.</div>
+            <div className={styles.packList}>
+              {orderedItems.map((o) => {
+                const packed = packedIds.has(o.id);
+                return (
+                  <label key={o.id} className={`${styles.packItem} ${packed ? "" : styles.off}`}>
+                    <input type="checkbox" checked={packed} onChange={() => togglePacked(o.id)} />
+                    <span>{o.brand} {o.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+            {notPacked.length > 0 && (
+              <div className={styles.emptyNote}>
+                {notPacked.map((o) => o.name).join(", ")}은(는) 안 챙겨오셨네요 — 아래에서 지금 필요한 걸 골라보세요.
+              </div>
+            )}
+          </>
+        ) : (
+          <div className={styles.emptyNote}>주문한 제품이 없어요. 아래에서 지금 필요한 걸 골라보시면 근처에서 채울 수 있는 곳을 찾아드려요.</div>
+        )}
+
+        <div className={styles.recTitle} style={{ marginTop: 18, fontSize: 15 }}>지금 필요한 게 있나요?</div>
+        <div className={styles.recSub}>선택하면 아래 추천이 그 고민에 맞춰 바뀌어요. (다중 선택 가능)</div>
+        <div className={styles.needChips}>
+          {NEED_CONCERN_OPTIONS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              className={`${styles.needChip} ${needConcerns.includes(c) ? styles.sel : ""}`}
+              onClick={() => toggleNeed(c)}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className={styles.recSec}>
         <div className={styles.recTitle}>이 성분, 여기서 채우세요</div>
-        <div className={styles.recSub}>BEAUTY PASSPORT에 맞춰 제품 속 주요 성분을 표시했어요.</div>
+        <div className={styles.recSub}>
+          {needConcerns.length > 0
+            ? `선택하신 '${needConcerns.join(", ")}' 고민에 맞춰 제품 속 주요 성분을 표시했어요.`
+            : "BEAUTY PASSPORT에 맞춰 제품 속 주요 성분을 표시했어요."}
+        </div>
 
         {flaggedReal.length > 0 && (
           <div className={styles.customs}>
@@ -344,7 +411,7 @@ export function DestinationCareTab({
                   </div>
                   <div className={styles.rxTags}>
                     {p.c.map((c) => (
-                      <span key={c} className={`${styles.rtag} ${SURVEY.concerns.includes(c) ? styles.match : ""}`}>
+                      <span key={c} className={`${styles.rtag} ${effectiveConcerns.includes(c) ? styles.match : ""}`}>
                         ✓ {c}
                       </span>
                     ))}

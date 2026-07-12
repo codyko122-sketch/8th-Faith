@@ -858,6 +858,7 @@ export default function BeautyPassportExperience() {
   const [resultView, setResultView] = useState<"main" | "pick" | "plan">("main");
   const [showAiDetail, setShowAiDetail] = useState(false);
   const [carePhase, setCarePhase] = useState<0 | 1 | 2>(0);
+  const [deliveryStatusOpen, setDeliveryStatusOpen] = useState(false);
   const [pickCat, setPickCat] = useState(PICK_CATEGORIES[0]);
   const [recTab, setRecTab] = useState<"set" | "compare">("set");
   // [6-3] 수령 방식
@@ -1126,6 +1127,8 @@ export default function BeautyPassportExperience() {
   const cartTotalMl = cartLines.reduce((s, l) => s + l.item.ml * l.item.qty, 0);
   const cartTotalPrice = cartLines.reduce((s, l) => s + l.lineTotal, 0);
   const cartAllUnder100 = cart.every((it) => it.ml <= 100);
+  // 여행 중 탭 "내가 챙긴 제품 확인"에 쓰는, 주문한 제품 목록(용량별 중복 제거)
+  const orderedProducts = Array.from(new Map(cartLines.map((l) => [l.p.id, l.p])).values());
   function toggleChecklist(i: number) {
     setChecklist((c) => c.map((v, idx) => (idx === i ? !v : v)));
   }
@@ -1333,7 +1336,7 @@ export default function BeautyPassportExperience() {
     setPickupAirport(null); setPickupDate(null); setPickupTime(null); setPickupPhone("");
     setPendingReceive(null); setPaymentMethod("card"); setCardNumber(""); setCardExpiry(""); setCardCvc(""); setPaying(false);
     setOrderNo(null); setLockerNo(null);
-    setResultView("main"); setShowAiDetail(false); setCarePhase(0); setPickCat(PICK_CATEGORIES[0]);
+    setResultView("main"); setShowAiDetail(false); setCarePhase(0); setPickCat(PICK_CATEGORIES[0]); setDeliveryStatusOpen(false);
     setStage("intro");
   }
 
@@ -3430,6 +3433,15 @@ export default function BeautyPassportExperience() {
                               📦 소용량 키트 도착 예정일 <b className="text-[#0a0a0a]">{fmtISO(addDaysISO(departDate, -2))}</b> (출발 2일 전)
                             </div>
                           )}
+                          {orderNo && (
+                            <button
+                              type="button"
+                              onClick={() => setDeliveryStatusOpen(true)}
+                              className="mt-2 w-full rounded-xl border-[1.5px] border-[#e7e7ea] bg-white px-3 py-2.5 text-xs font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
+                            >
+                              📦 배송 현황 확인하기
+                            </button>
+                          )}
                           <div className="mt-3 space-y-2">
                             {CHECKLIST_ITEMS.map((item, i) => (
                               <label key={i} className="flex items-center gap-2 text-sm">
@@ -3469,6 +3481,7 @@ export default function BeautyPassportExperience() {
                               setAcEntry("careplan");
                               setStage("acArrival");
                             }}
+                            orderedItems={orderedProducts}
                           />
                         </Card>
                       )}
@@ -3992,6 +4005,23 @@ export default function BeautyPassportExperience() {
             )}
           </AnimatePresence>
 
+          {/* 배송 현황 확인 모달 */}
+          <AnimatePresence>
+            {deliveryStatusOpen && orderNo && (
+              <DeliveryStatusModal
+                key="delivery-status"
+                orderNo={orderNo}
+                lockerNo={lockerNo}
+                method={receiveMethod}
+                dday={dday}
+                pickupAirport={pickupAirport}
+                pickupDate={pickupDate}
+                pickupTime={pickupTime}
+                onClose={() => setDeliveryStatusOpen(false)}
+              />
+            )}
+          </AnimatePresence>
+
           {/* [5-detail] 제품 상세 바텀시트 */}
           <AnimatePresence>
             {detailId && result && (
@@ -4299,6 +4329,96 @@ function AiDetailModal({
               </p>
             </div>
           </div>
+
+          <button onClick={onClose} className="mt-6 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3.5 text-base font-extrabold text-white transition">닫기</button>
+        </div>
+      </motion.div>
+    </>
+  );
+}
+
+// 배송 현황 확인 모달 — 실제 배송 연동은 없는 데모라, 출발까지 남은 일수(D-day)를 기준으로
+// 진행 단계를 추정해서 보여준다.
+function DeliveryStatusModal({
+  orderNo,
+  lockerNo,
+  method,
+  dday,
+  pickupAirport,
+  pickupDate,
+  pickupTime,
+  onClose,
+}: {
+  orderNo: string;
+  lockerNo: string | null;
+  method: "delivery" | "pickup" | null;
+  dday: number | null;
+  pickupAirport: string | null;
+  pickupDate: string | null;
+  pickupTime: string | null;
+  onClose: () => void;
+}) {
+  const isPickup = method === "pickup";
+  const steps = isPickup
+    ? ["결제 완료", "공항 보관함 입고 준비", "보관함 입고 완료", "수령 대기"]
+    : ["결제 완료", "상품 준비 중", "배송 중", "배송 완료"];
+  const current = isPickup
+    ? dday === null ? 1 : dday >= 2 ? 1 : dday >= 0 ? 2 : 3
+    : dday === null ? 1 : dday > 2 ? 1 : dday >= 1 ? 2 : 3;
+
+  return (
+    <>
+      <motion.div className="absolute inset-0 z-[70] bg-black/35" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+      <motion.div
+        className="absolute inset-x-0 bottom-0 z-[71] max-h-[92%] overflow-y-auto rounded-t-[28px] bg-white"
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", stiffness: 320, damping: 34 }}
+      >
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-2 border-b border-[#e7e7ea] bg-white/95 px-5 py-3 backdrop-blur">
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Status · 배송 현황</div>
+            <div className="mt-0.5 text-lg font-black text-[#0a0a0a]">주문번호 {orderNo}</div>
+          </div>
+          <button onClick={onClose} className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[#f4f4f5] text-base text-[#0a0a0a]">×</button>
+        </div>
+
+        <div className="px-5 pb-8 pt-4">
+          <div className="space-y-0">
+            {steps.map((label, i) => {
+              const done = i <= current;
+              return (
+                <div key={label} className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <div className={`flex h-6 w-6 flex-none items-center justify-center rounded-full text-[11px] font-bold ${done ? "bg-[#0a0a0a] text-white" : "bg-[#f4f4f5] text-[#9ca3af]"}`}>
+                      {done ? "✓" : i + 1}
+                    </div>
+                    {i < steps.length - 1 && <div className={`w-[1.5px] flex-1 ${i < current ? "bg-[#0a0a0a]" : "bg-[#e7e7ea]"}`} style={{ minHeight: 28 }} />}
+                  </div>
+                  <div className={`pb-6 text-sm ${done ? "font-bold text-[#0a0a0a]" : "text-[#9ca3af]"}`}>{label}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          {isPickup ? (
+            <div className="rounded-xl bg-[#f4f4f5] p-4 text-center">
+              <div className="text-xs text-[#71717a]">{pickupAirport} 보관함</div>
+              <div className="text-3xl font-black tracking-[0.04em] text-[#ec1c24]">{lockerNo}</div>
+              <div className="text-xs text-[#71717a]">
+                {pickupDate ? fmtISO(pickupDate) : ""} {pickupTime} 이후 수령 가능
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm leading-relaxed text-[#3f3f46]">
+              {current >= 3
+                ? "배송이 완료됐어요. 여행 가방에 잘 챙겨주세요!"
+                : current === 2
+                  ? "지금 배송 중이에요. 출발 전에 도착 예정이에요."
+                  : "상품을 준비하고 있어요. 출발일에 맞춰 배송될 예정이에요."}
+            </p>
+          )}
 
           <button onClick={onClose} className="mt-6 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3.5 text-base font-extrabold text-white transition">닫기</button>
         </div>

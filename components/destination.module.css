@@ -90,6 +90,21 @@
 .btnDark { width: 100%; height: 52px; border-radius: 14px; border: none; background: var(--ink); color: #fff; font-weight: 800; font-size: 14.5px; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 7px; transition: transform 0.15s, background 0.15s; }
 .btnDark:hover { background: #000; transform: translateY(-1px); }
 
+/* ---- 챙긴 제품 확인 · 지금 필요한 제품 ---- */
+.packSec { margin-top: 24px; border-top: 1.5px dashed var(--dash); padding-top: 20px; }
+.packList { display: flex; flex-direction: column; gap: 9px; margin-top: 12px; }
+.packItem { display: flex; align-items: center; gap: 9px; font-size: 13.5px; font-weight: 600; color: var(--ink); cursor: pointer; }
+.packItem input { width: 17px; height: 17px; accent-color: var(--ink); flex: none; }
+.packItem.off { color: var(--muted); }
+.packItem.off span { text-decoration: line-through; }
+
+.needChips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.needChip { font-size: 12.5px; font-weight: 700; padding: 8px 14px; border-radius: 100px; border: 1.5px solid var(--line); background: #fff; color: var(--ink-2); cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.needChip:hover { background: var(--wash); }
+.needChip.sel { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+.emptyNote { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.6; }
+
 /* ---- recommendations ---- */
 .recSec { margin-top: 24px; border-top: 1.5px dashed var(--dash); padding-top: 20px; }
 .recH { font-size: 11px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); }
