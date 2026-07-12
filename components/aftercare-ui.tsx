@@ -117,11 +117,8 @@ export function AcStampRect() {
 export function AcStampSeal() {
   return (
     <div className={styles.stampwrap}>
-      <div className={styles.stampSeal}>
-        <div className={styles.st}>SKIN CLINIC</div>
-        <div className={styles.rx}>℞</div>
-        <div className={styles.sb}>처방 완료</div>
-      </div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/assets/aftercare-stamp.png" alt="처방 완료 도장" className={styles.stampImg} />
     </div>
   );
 }
