@@ -7,7 +7,15 @@ import { MAKEUP_STYLE_NOTES, type MakeupStyleNote } from "@/lib/makeup-style-not
 
 const POLAROID_POS = [styles.p1, styles.p2];
 
-function CountryDetail({ note, onBack }: { note: MakeupStyleNote; onBack: () => void }) {
+function CountryDetail({
+  note,
+  onBack,
+  onBrowseOthers,
+}: {
+  note: MakeupStyleNote;
+  onBack: () => void;
+  onBrowseOthers: () => void;
+}) {
   return (
     <div className={styles.notebook}>
       <div className={styles.topbar}>
@@ -54,6 +62,9 @@ function CountryDetail({ note, onBack }: { note: MakeupStyleNote; onBack: () => 
       </div>
 
       <div className={styles.shareBar}>
+        <button type="button" onClick={onBrowseOthers}>
+          다른 나라 뷰티팁 보기
+        </button>
         <button type="button" onClick={() => alert("공유 기능은 준비 중이에요.")}>
           공유하기
         </button>
@@ -136,7 +147,11 @@ export function StyleNoteModal({
           <button type="button" className={`${styles.close} absolute right-4 top-3`} onClick={onClose} aria-label="닫기">
             ×
           </button>
-          {active ? <CountryDetail note={active} onBack={() => setActiveId(null)} /> : <CountryGrid onSelect={setActiveId} />}
+          {active ? (
+            <CountryDetail note={active} onBack={onClose} onBrowseOthers={() => setActiveId(null)} />
+          ) : (
+            <CountryGrid onSelect={setActiveId} />
+          )}
         </div>
       </motion.div>
     </>
