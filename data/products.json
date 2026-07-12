@@ -1672,5 +1672,221 @@
     ],
     "source_note": "판매처 표기 핵심 성분 기반 근사 기재 — 전성분표 미확인. 서비스 반영 전 브랜드 공식 채널에서 전성분 재확인 필요.",
     "as_of_date": "2026-07-10"
+  },
+  {
+    "product_id": "lotion_roundlab_dokdo_lotion",
+    "cosmetic_id": "roundlab-dokdo-lotion",
+    "display_name": "1025 독도 로션",
+    "display_brand": "라운드랩",
+    "category": "lotion",
+    "ingredients_complete": false,
+    "ingredients_inci": [
+      "정제수",
+      "글리세린",
+      "부틸렌글라이콜",
+      "독도해양심층수",
+      "판테놀",
+      "다이소듐이디티에이"
+    ],
+    "source_note": "판매처 표기 핵심 성분 기반 근사 기재 — 전성분표 미확인. 서비스 반영 전 브랜드 공식 채널에서 전성분 재확인 필요.",
+    "as_of_date": "2026-07-13"
+  },
+  {
+    "product_id": "lotion_anua_heartleaf_lotion",
+    "cosmetic_id": "anua-heartleaf-lotion",
+    "display_name": "어성초 77 히알루론산 수분 진정 로션",
+    "display_brand": "아누아",
+    "category": "lotion",
+    "ingredients_complete": false,
+    "ingredients_inci": [
+      "어성초추출물",
+      "정제수",
+      "글리세린",
+      "히알루론산",
+      "부틸렌글라이콜",
+      "다이소듐이디티에이"
+    ],
+    "source_note": "판매처 표기 핵심 성분 기반 근사 기재 — 전성분표 미확인. 서비스 반영 전 브랜드 공식 채널에서 전성분 재확인 필요.",
+    "as_of_date": "2026-07-13"
+  },
+  {
+    "product_id": "lotion_manyo_bifida_biome_lotion",
+    "cosmetic_id": "manyo-bifida-biome-lotion",
+    "display_name": "비피다 바이옴 앰플 로션",
+    "display_brand": "마녀공장",
+    "category": "lotion",
+    "ingredients_complete": false,
+    "ingredients_inci": [
+      "정제수",
+      "비피다발효용해물",
+      "나이아신아마이드",
+      "글리세린",
+      "부틸렌글라이콜",
+      "다이소듐이디티에이"
+    ],
+    "source_note": "판매처 표기 핵심 성분 기반 근사 기재 — 전성분표 미확인. 서비스 반영 전 브랜드 공식 채널에서 전성분 재확인 필요.",
+    "as_of_date": "2026-07-13"
+  },
+  {
+    "product_id": "lotion_missha_first_essence_lotion",
+    "cosmetic_id": "missha-first-essence-lotion",
+    "display_name": "타임 레볼루션 더 퍼스트 에센스 로션 5X",
+    "display_brand": "미샤",
+    "category": "lotion",
+    "ingredients_complete": false,
+    "ingredients_inci": [
+      "갈락토미세스발효여과물",
+      "정제수",
+      "나이아신아마이드",
+      "글리세린",
+      "부틸렌글라이콜",
+      "다이소듐이디티에이"
+    ],
+    "source_note": "판매처 표기 핵심 성분 기반 근사 기재 — 전성분표 미확인. 서비스 반영 전 브랜드 공식 채널에서 전성분 재확인 필요.",
+    "as_of_date": "2026-07-13"
+  },
+  {
+    "product_id": "lotion_drjart_cicapair_lotion",
+    "cosmetic_id": "drjart-cicapair-lotion",
+    "display_name": "시카페어 인텐시브 수딩 리페어 트리트먼트 로션",
+    "display_brand": "닥터자르트",
+    "category": "lotion",
+    "ingredients_complete": false,
+    "ingredients_inci": [
+      "정제수",
+      "병풀추출물",
+      "마데카소사이드",
+      "글리세린",
+      "부틸렌글라이콜",
+      "다이소듐이디티에이"
+    ],
+    "source_note": "판매처 표기 핵심 성분 기반 근사 기재 — 전성분표 미확인. 서비스 반영 전 브랜드 공식 채널에서 전성분 재확인 필요.",
+    "as_of_date": "2026-07-13"
+  },
+  {
+    "product_id": "lotion_drjart_ceramidin_lotion",
+    "cosmetic_id": "drjart-ceramidin-lotion",
+    "display_name": "세라마이딘 스킨 베리어 모이스처라이징 밀키 로션",
+    "display_brand": "닥터자르트",
+    "category": "lotion",
+    "ingredients_complete": false,
+    "ingredients_inci": [
+      "정제수",
+      "세라마이드엔피",
+      "히알루론산",
+      "글리세린",
+      "부틸렌글라이콜",
+      "다이소듐이디티에이"
+    ],
+    "source_note": "판매처 표기 핵심 성분 기반 근사 기재 — 전성분표 미확인. 서비스 반영 전 브랜드 공식 채널에서 전성분 재확인 필요.",
+    "as_of_date": "2026-07-13"
+  },
+  {
+    "product_id": "lotion_biohealboh_probioderm_emulsion",
+    "cosmetic_id": "biohealboh-probioderm-emulsion",
+    "display_name": "프로바이오덤 리페어 에멀전",
+    "display_brand": "바이오힐보",
+    "category": "lotion",
+    "ingredients_complete": false,
+    "ingredients_inci": [
+      "정제수",
+      "병풀추출물",
+      "유산균발효여과물",
+      "글리세린",
+      "부틸렌글라이콜",
+      "다이소듐이디티에이"
+    ],
+    "source_note": "판매처 표기 핵심 성분 기반 근사 기재 — 전성분표 미확인. 서비스 반영 전 브랜드 공식 채널에서 전성분 재확인 필요.",
+    "as_of_date": "2026-07-13"
+  },
+  {
+    "product_id": "lotion_naturerepublic_snail_emulsion",
+    "cosmetic_id": "naturerepublic-snail-emulsion",
+    "display_name": "스네일 솔루션 에멀전",
+    "display_brand": "네이처리퍼블릭",
+    "category": "lotion",
+    "ingredients_complete": false,
+    "ingredients_inci": [
+      "달팽이점액여과물",
+      "정제수",
+      "글리세린",
+      "부틸렌글라이콜",
+      "다이소듐이디티에이"
+    ],
+    "source_note": "판매처 표기 핵심 성분 기반 근사 기재 — 전성분표 미확인. 서비스 반영 전 브랜드 공식 채널에서 전성분 재확인 필요.",
+    "as_of_date": "2026-07-13"
+  },
+  {
+    "product_id": "lotion_bringgreen_bluebean_pdrn_lotion",
+    "cosmetic_id": "bringgreen-bluebean-pdrn-lotion",
+    "display_name": "블루빈 B5 PDRN 마일드 로션",
+    "display_brand": "브링그린",
+    "category": "lotion",
+    "ingredients_complete": false,
+    "ingredients_inci": [
+      "정제수",
+      "소듐디엔에이",
+      "판테놀",
+      "글리세린",
+      "부틸렌글라이콜",
+      "다이소듐이디티에이"
+    ],
+    "note": "PDRN(INCI: 소듐디엔에이)은 연어 정소 유래 원료 — 국가별 동식물 검역·바이오시큐리티 절차가 있을 수 있어 verify_needed로 표시됨.",
+    "source_note": "판매처 표기 핵심 성분 기반 근사 기재 — 전성분표 미확인. 서비스 반영 전 브랜드 공식 채널에서 전성분 재확인 필요.",
+    "as_of_date": "2026-07-13"
+  },
+  {
+    "product_id": "lotion_dalba_white_truffle_lotion",
+    "cosmetic_id": "dalba-white-truffle-lotion",
+    "display_name": "화이트 트러플 모이스처라이징 세럼 로션",
+    "display_brand": "달바",
+    "category": "lotion",
+    "ingredients_complete": false,
+    "ingredients_inci": [
+      "정제수",
+      "화이트트러플추출물",
+      "나이아신아마이드",
+      "글리세린",
+      "부틸렌글라이콜",
+      "다이소듐이디티에이"
+    ],
+    "source_note": "판매처 표기 핵심 성분 기반 근사 기재 — 전성분표 미확인. 서비스 반영 전 브랜드 공식 채널에서 전성분 재확인 필요.",
+    "as_of_date": "2026-07-13"
+  },
+  {
+    "product_id": "lotion_missha_superaqua_emulsion",
+    "cosmetic_id": "missha-superaqua-emulsion",
+    "display_name": "수퍼 아쿠아 울트라 히알론 에멀전",
+    "display_brand": "미샤",
+    "category": "lotion",
+    "ingredients_complete": false,
+    "ingredients_inci": [
+      "정제수",
+      "히알루론산",
+      "글리세린",
+      "부틸렌글라이콜",
+      "다이소듐이디티에이"
+    ],
+    "source_note": "판매처 표기 핵심 성분 기반 근사 기재 — 전성분표 미확인. 서비스 반영 전 브랜드 공식 채널에서 전성분 재확인 필요.",
+    "as_of_date": "2026-07-13"
+  },
+  {
+    "product_id": "lotion_drg_red_blemish_multi_fluid",
+    "cosmetic_id": "drg-red-blemish-multi-fluid",
+    "display_name": "레드 블레미쉬 멀티 플루이드",
+    "display_brand": "닥터지",
+    "category": "lotion",
+    "ingredients_complete": false,
+    "ingredients_inci": [
+      "정제수",
+      "병풀추출물",
+      "마데카소사이드",
+      "알란토인",
+      "글리세린",
+      "부틸렌글라이콜",
+      "다이소듐이디티에이"
+    ],
+    "source_note": "판매처 표기 핵심 성분 기반 근사 기재 — 전성분표 미확인. 서비스 반영 전 브랜드 공식 채널에서 전성분 재확인 필요.",
+    "as_of_date": "2026-07-13"
   }
 ]
