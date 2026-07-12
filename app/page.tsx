@@ -15,6 +15,7 @@ import {
   type Cosmetic,
 } from "@/lib/products";
 import { StyleNoteModal } from "@/components/style-note";
+import { DestinationPicker } from "@/components/destination-picker";
 import { ComplianceBadge } from "@/components/compliance-badge";
 import { IngredientSafety } from "@/components/ingredient-safety";
 import {
@@ -240,7 +241,6 @@ function DotGlobe() {
     const lz = 0.74;
     // 비행기 궤적 타이밍(ms): 지연 후 지구본을 한 바퀴 돌아 화면 밖으로
     const PLANE_DELAY = 800;
-    const PLANE_DUR = 4200;
     const camZ = 4.2; // 카메라 위치 (0,0,camZ), -z 를 바라봄
     const Rw = 1.4; // 지구본 월드 반경
 
@@ -316,20 +316,23 @@ function DotGlobe() {
       }
       angle += 0.005;
 
-      // ── 도트 비행기 (지구본을 도는 3D 궤도, 뒤로 가면 가려짐) ──
-      const t = (elapsed - PLANE_DELAY) / PLANE_DUR;
-      if (t >= 0 && t <= 1) {
+      // ── 도트 비행기: 지구본 주위를 도는 궤도 (뒤로 가면 지구본에 가려짐) ──
+      if (elapsed >= PLANE_DELAY) {
+        const ms = elapsed - PLANE_DELAY;
         const S = 0.42; // 기체 크기(작게)
-        const fade = Math.min(1, t / 0.1) * Math.min(1, (1 - t) / 0.14);
-        // 지구본 주위 궤도 위치 (front = +z 카메라 쪽)
-        const orbit = (tt: number): [number, number, number] => {
-          const e = easeInOut(tt);
-          const theta = -2.6 + 3.9 * e; // 뒤(좌)에서 앞(우)으로 회전
-          const rho = Rw * (1.14 + 1.5 * tt * tt); // 후반부 바깥으로 이탈
-          return [rho * Math.sin(theta), Gcy + Rw * (-0.2 + 0.95 * e), rho * Math.cos(theta)];
+        const fade = Math.min(1, ms / 500); // 부드럽게 등장
+        // 지구본 주위 원궤도. 궤도면을 살짝 기울여 3D로 도는 느낌.
+        const R = Rw * 1.3; // 궤도 반경(지구본 반경보다 크게)
+        const incl = 0.3; // 궤도면 기울기
+        const speed = 0.0013; // 각속도(rad/ms)
+        const theta0 = 0.3; // 시작 각(앞쪽에서 보이게)
+        const orbit = (tms: number): [number, number, number] => {
+          const th = theta0 + speed * tms;
+          const st = Math.sin(th), ct = Math.cos(th);
+          return [R * ct, Gcy - R * st * Math.sin(incl), R * st * Math.cos(incl)];
         };
-        const P0 = orbit(t);
-        const P1 = orbit(Math.min(1, t + 0.02));
+        const P0 = orbit(ms);
+        const P1 = orbit(ms + 16); // 다음 프레임 위치로 진행방향(기수) 산출
         // 진행방향(기수) 기준 정규직교 기저
         let fx = P1[0] - P0[0], fy = P1[1] - P0[1], fz = P1[2] - P0[2];
         const fl = Math.hypot(fx, fy, fz) || 1;
@@ -340,7 +343,7 @@ function DotGlobe() {
         const ux = fy * rz - fz * ry; // cross(forward, right)
         const uy = fz * rx - fx * rz;
         const uz = fx * ry - fy * rx;
-        const roll = -0.5; // 뱅크
+        const roll = -0.45; // 선회 뱅크(일정)
         const cr = Math.cos(roll), sr = Math.sin(roll);
         // 오클루전용 상수 (카메라-구 교차)
         const ocY = -Gcy, ocZ = camZ; // (O - Sc), O=(0,0,camZ) Sc=(0,Gcy,0)
@@ -356,7 +359,7 @@ function DotGlobe() {
           const wx = P0[0] + S * (rx * rlx + ux * rly + fx * rlz);
           const wy = P0[1] + S * (ry * rlx + uy * rly + fy * rlz);
           const wz = P0[2] + S * (rz * rlx + uz * rly + fz * rlz);
-          // 지구본에 가려지는가? (카메라→점 선분이 구를 먼저 통과)
+          // 지구본에 가려지는가? (카메라→점 선분이 구를 먼저 통과) — 접근 구간엔 앞에 있어 자연히 통과
           const dx = wx, dy = wy, dz = wz - camZ;
           const a = dx * dx + dy * dy + dz * dz;
           const bq = 2 * (dy * ocY + dz * ocZ);
@@ -2725,105 +2728,20 @@ export default function BeautyPassportExperience() {
                 <p className="mt-1.5 font-sans text-sm text-[#71717a]">Select your destination</p>
 
                 <div className="mt-5 flex flex-col gap-4">
-                  {/* 나라 */}
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <label className="text-[13px] font-extrabold text-[#0a0a0a]">
-                        Country <span className="ml-1 font-sans text-[12px] font-medium text-[#9ca3af]">· 나라</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setUseCustom((v) => !v);
-                          setCountryCode(null);
-                          setCityName(null);
-                        }}
-                        className="font-sans text-xs font-bold text-[#ec1c24]"
-                      >
-                        {useCustom ? "목록에서 선택" : "직접 입력"}
-                      </button>
-                    </div>
-                    {useCustom ? (
-                      <div className="mt-2 flex flex-col gap-2.5">
-                        <input
-                          value={customCountry}
-                          onChange={(e) => setCustomCountry(e.target.value)}
-                          placeholder="나라 (예: 포르투갈)"
-                          className="w-full rounded-[13px] border border-transparent bg-[#f4f4f5] px-4 py-[15px] font-sans text-sm text-[#0a0a0a] outline-none transition placeholder:text-[#9ca3af] focus:border-[#0a0a0a] focus:bg-white"
-                        />
-                        <input
-                          value={customCity}
-                          onChange={(e) => setCustomCity(e.target.value)}
-                          placeholder="도시 (예: 리스본)"
-                          className="w-full rounded-[13px] border border-transparent bg-[#f4f4f5] px-4 py-[15px] font-sans text-sm text-[#0a0a0a] outline-none transition placeholder:text-[#9ca3af] focus:border-[#0a0a0a] focus:bg-white"
-                        />
-                      </div>
-                    ) : (
-                      <div className="relative mt-2">
-                        <select
-                          value={countryCode ?? ""}
-                          onChange={(e) => selectCountry(e.target.value)}
-                          className="w-full appearance-none rounded-[13px] border border-transparent bg-[#f4f4f5] px-4 py-[15px] font-sans text-sm text-[#0a0a0a] outline-none transition focus:border-[#0a0a0a] focus:bg-white"
-                        >
-                          <option value="" disabled>
-                            나라를 선택하세요
-                          </option>
-                          {COUNTRIES.map((c) => (
-                            <option key={c.code} value={c.code}>
-                              {c.flag} {c.name}
-                            </option>
-                          ))}
-                        </select>
-                        <svg
-                          className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={2.5}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M6 9l6 6 6-6" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 도시 (나라 연동) */}
-                  {!useCustom && country && (
-                    <div>
-                      <label className="text-[13px] font-extrabold text-[#0a0a0a]">
-                        City <span className="ml-1 font-sans text-[12px] font-medium text-[#9ca3af]">· 도시</span>
-                      </label>
-                      <div className="relative mt-2">
-                        <select
-                          value={cityName ?? ""}
-                          onChange={(e) => setCityName(e.target.value)}
-                          className="w-full appearance-none rounded-[13px] border border-transparent bg-[#f4f4f5] px-4 py-[15px] font-sans text-sm text-[#0a0a0a] outline-none transition focus:border-[#0a0a0a] focus:bg-white"
-                        >
-                          <option value="" disabled>
-                            도시를 선택하세요
-                          </option>
-                          {country.cities.map((ci) => (
-                            <option key={ci.name} value={ci.name}>
-                              {ci.name}
-                            </option>
-                          ))}
-                        </select>
-                        <svg
-                          className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={2.5}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M6 9l6 6 6-6" />
-                        </svg>
-                      </div>
-                    </div>
-                  )}
+                  {/* 나라(자동완성 검색) → 추천 도시 칩 */}
+                  <DestinationPicker
+                    countries={COUNTRIES}
+                    countryCode={countryCode}
+                    cityName={cityName}
+                    useCustom={useCustom}
+                    customCountry={customCountry}
+                    customCity={customCity}
+                    setCountryCode={setCountryCode}
+                    setCityName={setCityName}
+                    setUseCustom={setUseCustom}
+                    setCustomCountry={setCustomCountry}
+                    setCustomCity={setCustomCity}
+                  />
 
                   {/* 날짜 */}
                   <div>
