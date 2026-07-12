@@ -1867,7 +1867,6 @@ export default function BeautyPassportExperience() {
                   title="즐거운 여행되셨나요?"
                   subtitle={acSubtitle}
                   footerCode={acFooterCode}
-                  onBack={() => setStage(acEntry === "careplan" ? "result" : "journey")}
                 >
                   <AcTripCard dest={acDestName} dates={acDestDates} />
                   <p className={acStyles.lead} style={{ marginBottom: 20 }}>
@@ -1881,7 +1880,10 @@ export default function BeautyPassportExperience() {
                     딱 맞는 애프터케어를 처방해드려요.
                   </p>
                   <AcBtnBar>
-                    <AcBtn block onClick={() => setStage("acQ1")}>
+                    <AcBtn variant="ghost" onClick={() => setStage(acEntry === "careplan" ? "result" : "journey")}>
+                      ← 이전
+                    </AcBtn>
+                    <AcBtn onClick={() => setStage("acQ1")}>
                       심사 시작하기 →
                     </AcBtn>
                   </AcBtnBar>

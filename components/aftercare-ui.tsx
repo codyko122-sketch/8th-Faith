@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import styles from "./aftercare.module.css";
 import { AftercarePlaneIcon, AftercareLuggageIcon } from "./aftercare-icons";
 
@@ -195,7 +196,12 @@ export function AcScreenChrome({
   onBack?: () => void;
   children: ReactNode;
 }) {
-  return (
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const content = (
     <div className={styles.backdrop}>
       <div className={`${styles.card} ${styles.root}`}>
         <AcHeader eyebrow={eyebrow} title={title} subtitle={subtitle} onBack={onBack} />
@@ -205,4 +211,9 @@ export function AcScreenChrome({
       </div>
     </div>
   );
+
+  // 앱 전체 프레임의 perspective 스태킹 컨텍스트를 벗어나 실제 브라우저 뷰포트를
+  // aftercare(1).html 원본과 동일하게 채우기 위해 document.body로 포털.
+  if (!mounted) return null;
+  return createPortal(content, document.body);
 }

@@ -1,7 +1,10 @@
 /* aftercare.html 원본 스타일을 그대로 포팅 (디자인 토큰, 여백, 색상, 9:16 여권 프레임까지 동일 유지). */
+/* document.body로 포털되어 렌더링됨(앱 전체 프레임의 perspective 스태킹 컨텍스트를
+   벗어나 실제 브라우저 뷰포트를 aftercare(1).html 원본과 동일하게 100% 채우기 위함) */
 .backdrop {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: 100;
   background: #dfe1e6;
   display: flex;
   align-items: center;
@@ -13,7 +16,7 @@
 .card {
   width: min(430px, 94vw);
   aspect-ratio: 9 / 16;
-  max-height: 96%;
+  max-height: 96dvh;
   background: #ffffff;
   border-radius: 28px;
   box-shadow: 0 24px 60px rgba(17, 17, 17, 0.14);
