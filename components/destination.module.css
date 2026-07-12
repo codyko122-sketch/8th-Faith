@@ -1,0 +1,195 @@
+/* beauty-passport-destination.html 원본 스타일을 그대로 포팅 (디자인 토큰·여백·색상 동일 유지).
+   원본의 phone/scroll/topbar(데모 폰 프레임+뒤로가기+로고) 는 제외 — 이미 앱의
+   "여행 케어 플랜" 페이지 안(여행 중 탭)에 들어가므로 그 프레임을 그대로 씀. */
+.root {
+  --ink: #1a1a1c;
+  --ink-2: #3a3a3c;
+  --body: #8a8a8e;
+  --muted: #9c9ca1;
+  --faint: #c3c3c8;
+  --card: #ffffff;
+  --field: #efeff1;
+  --field-2: #e7e7ea;
+  --wash: #f5f5f6;
+  --red: #e5322a;
+  --red-deep: #c42920;
+  --amber: #c42920;
+  --amber-bg: #fdebea;
+  --amber-line: #f3b1ab;
+  --line: #e4e4e7;
+  --dash: #d3d3d8;
+  --siren: url('data:image/png;base64,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');
+  --copyicon: url('data:image/png;base64,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');
+  --mapicon: url('data:image/png;base64,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');
+  font-family: var(--font-noto-sans), "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+.num { font-variant-numeric: tabular-nums; }
+.icoSiren { display: inline-block; background: var(--siren) center/contain no-repeat; vertical-align: -2px; flex: none; }
+.icoSiren.sm { width: 12px; height: 12px; }
+.icoSiren.md { width: 15px; height: 15px; }
+.icoSiren.lg { width: 20px; height: 20px; vertical-align: middle; }
+
+.titleIco { display: inline-block; width: 30px; height: 30px; flex: none; background-color: var(--ink); -webkit-mask: var(--mapicon) center/contain no-repeat; mask: var(--mapicon) center/contain no-repeat; }
+.title { font-weight: 800; font-size: 20px; line-height: 1.22; letter-spacing: -0.02em; margin: 0; display: flex; align-items: center; gap: 8px; }
+.subtitle { color: var(--muted); font-size: 13px; margin-top: 6px; font-weight: 500; }
+
+/* ---- country field ---- */
+.fieldLabel { display: flex; align-items: baseline; justify-content: space-between; margin: 20px 0 10px; }
+.fieldLabel .l { font-size: 14px; font-weight: 800; color: var(--ink); }
+.fieldLabel .l span { color: var(--muted); font-weight: 500; font-size: 13px; margin-left: 4px; }
+
+.search { position: relative; }
+.searchBox { display: flex; align-items: center; gap: 10px; background: var(--field); border-radius: 13px; padding: 15px 16px; cursor: pointer; transition: background 0.15s; border: none; width: 100%; font-family: inherit; text-align: left; }
+.searchBox:hover { background: var(--field-2); }
+.searchBox svg.sc { stroke: var(--muted); flex-shrink: 0; }
+.searchBox .txt { flex: 1; font-size: 14.5px; color: var(--muted); font-weight: 500; }
+.searchBox .txt.filled { color: var(--ink); font-weight: 600; }
+.searchBox svg.chev { stroke: var(--muted); flex-shrink: 0; transition: transform 0.2s; }
+.search.open svg.chev { transform: rotate(180deg); }
+
+.dropdown { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 14px 34px rgba(20, 20, 20, 0.14); z-index: 30; overflow: hidden; }
+.ddSearch { padding: 11px 13px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 9px; }
+.ddSearch svg { stroke: var(--muted); flex-shrink: 0; }
+.ddSearch input { border: none; outline: none; flex: 1; font-family: inherit; font-size: 14px; color: var(--ink); background: none; }
+.ddList { max-height: 190px; overflow-y: auto; }
+.ddItem { padding: 12px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: background 0.12s; width: 100%; border: none; background: none; font-family: inherit; text-align: left; }
+.ddItem:hover { background: var(--wash); }
+.ddItem .cc { width: 26px; height: 26px; border-radius: 7px; background: var(--field); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.ddItem .ci { flex: 1; }
+.ddItem .cn { font-size: 14px; font-weight: 600; }
+.ddItem .co { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+
+/* ---- map + GPS ---- */
+.gpsBar { display: flex; align-items: center; gap: 8px; margin: 16px 0 9px; }
+.gpsChip { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--red-deep); background: #fce8e6; border-radius: 100px; padding: 4px 9px; }
+.gpsChip .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--red); animation: pulse 1.8s infinite; }
+.gpsLoc { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+.gpsLoc span { color: var(--muted); font-weight: 500; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+.map { position: relative; height: 130px; border-radius: 14px; overflow: hidden; background: var(--wash); border: 1px solid var(--line); }
+.map svg.grid { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.55; }
+.pin { position: absolute; transform: translate(-50%, -100%); cursor: pointer; border: none; background: none; padding: 0; font-family: inherit; }
+.pin .h { width: 23px; height: 23px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--card); border: 2px solid var(--ink);
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(20, 20, 20, 0.18); transition: all 0.16s; }
+.pin .h span { transform: rotate(45deg); font-size: 8.5px; font-weight: 800; }
+.pin.sel .h, .pin:hover .h { background: var(--ink); }
+.pin.sel .h span, .pin:hover .h span { color: #fff; }
+.me { position: absolute; transform: translate(-50%, -50%); }
+.me .c { width: 12px; height: 12px; border-radius: 50%; background: var(--red); border: 2px solid #fff; box-shadow: 0 0 0 4px rgba(229, 50, 42, 0.2); }
+.me .rg { position: absolute; inset: -8px; border-radius: 50%; border: 1.5px solid rgba(229, 50, 42, 0.4); animation: radar 2.4s infinite; }
+@keyframes radar { 0% { transform: scale(0.6); opacity: 0.8; } 100% { transform: scale(1.7); opacity: 0; } }
+
+/* ---- bottom CTAs ---- */
+.bottomCta { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; }
+.btnLine { width: 100%; height: 52px; border-radius: 14px; border: 1px solid var(--line); background: #fff; color: var(--ink); font-weight: 800; font-size: 14.5px; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 7px; transition: background 0.15s; }
+.btnLine:hover { background: var(--field); }
+.btnDark { width: 100%; height: 52px; border-radius: 14px; border: none; background: var(--ink); color: #fff; font-weight: 800; font-size: 14.5px; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 7px; transition: transform 0.15s, background 0.15s; }
+.btnDark:hover { background: #000; transform: translateY(-1px); }
+
+/* ---- recommendations ---- */
+.recSec { margin-top: 24px; border-top: 1.5px dashed var(--dash); padding-top: 20px; }
+.recH { font-size: 11px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); }
+.recTitle { font-weight: 800; font-size: 19px; letter-spacing: -0.02em; margin-top: 0; line-height: 1.3; }
+.recSub { font-size: 11.5px; color: var(--muted); margin-top: 8px; font-weight: 500; letter-spacing: -0.015em; }
+
+/* customs banner */
+.customs { margin-top: 16px; border: 1.5px dashed var(--red); background: var(--amber-bg); border-radius: 13px; padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; }
+.customs .ci2 { font-size: 16px; flex-shrink: 0; line-height: 1.3; }
+.customs .ct { font-size: 12.5px; font-weight: 700; color: var(--amber); }
+.customs .cd { font-size: 11.5px; color: #b23a32; line-height: 1.55; margin-top: 3px; }
+
+.feedHead { display: flex; justify-content: space-between; align-items: baseline; margin: 20px 0 12px; }
+.feedHead .n { font-size: 11px; color: var(--muted); letter-spacing: 0.05em; font-weight: 700; }
+.feedHead .n b { color: var(--red-deep); font-size: 14px; }
+.feedHead .st { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
+
+.rxCard { border: 1px solid var(--line); border-radius: 16px; padding: 15px; margin-bottom: 12px; background: var(--card); }
+.rxCard.flagged { border-color: var(--amber-line); }
+.rxTop { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+.rxNo { font-size: 11px; font-weight: 800; color: var(--red-deep); letter-spacing: 0.04em; }
+.rxLine { flex: 1; height: 1px; border-top: 1px dashed var(--dash); }
+.aiBadge { font-size: 9px; font-weight: 800; letter-spacing: 0.04em; color: var(--ink); background: var(--wash); border: 1px solid var(--line); border-radius: 100px; padding: 3px 8px; display: inline-flex; align-items: center; gap: 5px; text-transform: uppercase; }
+.aiBadge .sp { width: 5px; height: 5px; border-radius: 50%; background: var(--red); animation: pulse 1.8s infinite; }
+.custBadge { font-size: 9px; font-weight: 800; letter-spacing: 0.03em; color: var(--amber); background: var(--amber-bg); border: 1px solid var(--amber-line); border-radius: 100px; padding: 3px 8px; display: inline-flex; align-items: center; gap: 4px; }
+
+.rxProdrow { display: flex; gap: 12px; }
+.rxThumb { width: 50px; height: 62px; border-radius: 10px; flex-shrink: 0; background: var(--ink); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 20px; }
+.rxBrand { font-size: 10px; letter-spacing: 0.05em; color: var(--muted); text-transform: uppercase; font-weight: 700; }
+.rxName { font-weight: 800; font-size: 14.5px; line-height: 1.3; margin-top: 2px; letter-spacing: -0.01em; }
+.rxJp { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; color: var(--muted); text-decoration: none; margin-top: 0; font-weight: 500; transition: color 0.14s; }
+.rxJp:hover { color: var(--ink); text-decoration: underline; }
+.rxJp .ext { font-size: 9px; }
+.rxJpRow { display: flex; align-items: center; gap: 8px; margin-top: 3px; flex-wrap: wrap; }
+.rxCopy { font-size: 12px; line-height: 1; font-weight: 700; color: var(--muted); background: transparent; border: none; border-radius: 0; padding: 2px; cursor: pointer; font-family: inherit; transition: all 0.14s; flex: none; display: inline-flex; align-items: center; justify-content: center; }
+.copyIco { display: block; width: 14px; height: 14px; background-color: var(--muted); -webkit-mask: var(--copyicon) center/contain no-repeat; mask: var(--copyicon) center/contain no-repeat; transition: background-color 0.14s; }
+.rxCopy:hover .copyIco { background-color: var(--ink); }
+.rxCopy:hover { color: var(--ink); }
+.rxCopy.done { color: var(--ink); background: transparent; border: none; }
+.rxPrice { font-size: 13px; font-weight: 900; color: var(--ink); margin-top: 5px; letter-spacing: -0.01em; }
+.rxPrice .krw { color: var(--muted); font-weight: 500; font-size: 10.5px; }
+.rxTags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.rtag { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--line); color: var(--body); }
+.rtag.match { background: var(--ink); border-color: var(--ink); color: #fff; }
+.rtag.reg { background: var(--amber-bg); border-color: var(--amber-line); color: var(--amber); }
+.rtag.warn { background: #fff; border-color: var(--red); color: var(--red); }
+
+.custNote { margin-top: 12px; background: var(--amber-bg); border-radius: 10px; padding: 10px 12px; display: flex; gap: 8px; align-items: flex-start; }
+.custNote .ic { font-size: 14px; flex-shrink: 0; }
+.custNote .nt { font-size: 11.5px; line-height: 1.5; color: #b23a32; }
+.custNote .nt b { color: var(--amber); font-weight: 800; display: block; margin-bottom: 2px; }
+
+.rxDiv { border-top: 1px dashed var(--dash); margin: 13px 0; }
+.rxStore { display: flex; align-items: center; gap: 10px; }
+.rxStore .sc { width: 24px; height: 24px; border-radius: 6px; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; flex-shrink: 0; }
+.rxStore .sn { font-weight: 800; font-size: 13px; }
+.rxStore .sm { font-size: 11px; color: var(--muted); margin-top: 1px; display: flex; gap: 6px; align-items: center; font-weight: 500; }
+
+.gauge { margin-top: 12px; padding-left: 34px; }
+.gTop { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+.gLab { font-size: 11px; color: var(--body); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.gWord { font-size: 9.5px; font-weight: 800; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.02em; }
+.wh { background: var(--ink); color: #fff; }
+.wm { background: var(--field-2); color: var(--ink-2); }
+.wl { background: var(--wash); color: var(--muted); }
+.gVal { font-size: 12px; font-weight: 800; }
+.gBar { height: 6px; background: var(--field-2); border-radius: 100px; overflow: hidden; }
+.gBar i { display: block; height: 100%; border-radius: 100px; transition: width 0.5s cubic-bezier(0.2, 0.7, 0.3, 1); }
+.bh { background: var(--ink); }
+.bm { background: #8f8f8f; }
+.bl { background: var(--faint); }
+
+.srcs { margin-top: 12px; padding-left: 34px; }
+.srcLab { font-size: 9px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-bottom: 7px; font-weight: 700; }
+.srcChips { display: flex; flex-wrap: wrap; gap: 6px; }
+.src { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--body); border: 1px dashed var(--dash); border-radius: 100px; padding: 4px 9px; font-weight: 500; text-decoration: none; cursor: pointer; transition: all 0.14s; }
+.src:hover { border-style: solid; border-color: var(--ink); color: var(--ink); }
+.src .ext { color: var(--faint); font-size: 9px; margin-left: 1px; }
+.src:hover .ext { color: var(--ink); }
+.src i { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.src .d { font-size: 9.5px; color: var(--muted); font-weight: 600; }
+.so i { background: var(--red); }
+.sb i { background: var(--ink); }
+.sg i { background: var(--faint); }
+
+.contacts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-top: 14px; }
+.cbtn { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 4px; border-radius: 11px; border: 1px solid var(--line); background: var(--card); color: var(--ink); text-decoration: none; transition: all 0.15s; cursor: pointer; }
+.cbtn:hover { background: var(--ink); border-color: var(--ink); color: #fff; }
+.cbtn:hover svg { stroke: #fff; }
+.cbtn svg { stroke: var(--ink); }
+.cbtn span { font-size: 10px; font-weight: 600; }
+.cHint { text-align: center; font-size: 9.5px; letter-spacing: 0.02em; color: var(--muted); margin-top: 10px; font-weight: 600; }
+
+.fine { border-top: 1.5px dashed var(--dash); margin-top: 16px; padding-top: 6px; }
+.fineT { width: 100%; background: none; border: none; cursor: pointer; padding: 12px 2px; display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase; font-weight: 700; font-family: inherit; }
+.fineT:hover { color: var(--ink); }
+.fineT .chev { transition: transform 0.25s; }
+.fine.open .fineT .chev { transform: rotate(180deg); }
+.fineBody { max-height: 0; overflow: hidden; transition: max-height 0.32s ease; }
+.fine.open .fineBody { max-height: 360px; }
+.fineBody .in { padding: 0 2px 12px; font-size: 11px; line-height: 1.7; color: var(--body); }
+.fineBody h4 { font-size: 11.5px; color: var(--ink); font-weight: 700; margin: 8px 0 6px; }
+.fineBody p { margin-bottom: 8px; }

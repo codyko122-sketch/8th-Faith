@@ -14,7 +14,6 @@ import {
   COSMETICS,
   type Cosmetic,
 } from "@/lib/products";
-import { MAKEUP_STYLE_NOTES } from "@/lib/makeup-style-notes";
 import { StyleNoteModal } from "@/components/style-note";
 import { ComplianceBadge } from "@/components/compliance-badge";
 import { IngredientSafety } from "@/components/ingredient-safety";
@@ -61,6 +60,7 @@ import {
 } from "@/components/passport-ui";
 import { CLIMATE_BY_COUNTRY, CLIMATE_PROFILE, CONCERNS } from "@/lib/aftercare-data";
 import { AcScreenChrome, AcLabel, AcOpt, AcChip, AcBtnBar, AcBtn, AcTripCard, AcStampRect, AcStampSeal, AcProductCard, acStyles } from "@/components/aftercare-ui";
+import { DestinationCareTab } from "@/components/destination-ui";
 
 type Stage =
   | "intro"
@@ -744,7 +744,6 @@ export default function BeautyPassportExperience() {
   const [volumeSel, setVolumeSel] = useState<Record<string, number>>({});
   // 여정 타임라인
   const [checklist, setChecklist] = useState<boolean[]>(Array(CHECKLIST_ITEMS.length).fill(false));
-  const [deliveryRequested, setDeliveryRequested] = useState(false);
   // [6-2] 장바구니 시트
   const [cartOpen, setCartOpen] = useState(false);
   // 여행지 대표 메이크업 스타일노트
@@ -953,7 +952,6 @@ export default function BeautyPassportExperience() {
 
   const country = COUNTRIES.find((c) => c.code === countryCode) ?? null;
   const city = country?.cities.find((ci) => ci.name === cityName) ?? null;
-  const makeupNote = MAKEUP_STYLE_NOTES.find((n) => n.countryCode === countryCode) ?? null;
 
   const acCountryName = country?.name ?? (useCustom ? customCountry.trim() : "");
   const acClimateKey = CLIMATE_BY_COUNTRY[acCountryName] ?? "temperate";
@@ -1190,7 +1188,7 @@ export default function BeautyPassportExperience() {
     setQIndex(0); setAxes(Array(BAUMANN_AXES.length).fill(null));
     setAnalyzing(false); setSkin(null);
     setWeather(null); setDetailId(null); setCart([]); setVolumeSel({});
-    setChecklist(Array(CHECKLIST_ITEMS.length).fill(false)); setDeliveryRequested(false);
+    setChecklist(Array(CHECKLIST_ITEMS.length).fill(false));
     setCartOpen(false); setReceiveMethod(null);
     setDeliveryBefore(true); setDeliveryAfter(false);
     setDeliveryName(""); setDeliveryPhone(""); setDeliveryAddress(""); setDeliveryNote("");
@@ -3023,57 +3021,21 @@ export default function BeautyPassportExperience() {
 
                       {carePhase === 1 && (
                         <Card>
-                          <CardTitle>🧳 여행 중 · 오늘의 피부 브리핑</CardTitle>
-                          <ul className="mt-2 space-y-1.5">
-                            {result.index.notes.map((n, k) => (
-                              <li key={k} className="flex gap-2 text-sm text-[#3f3f46]">
-                                <span className="text-[#ec1c24]">•</span>
-                                {n}
-                              </li>
-                            ))}
-                          </ul>
-                          <div className="mt-3 rounded-xl bg-[#f4f4f5] px-4 py-3 text-[13px] leading-relaxed text-[#3f3f46]">
-                            🧴 소용량 키트를 미리 다 챙겨왔으니 현지 구매 걱정 없어요!
-                          </div>
-                          {!deliveryRequested ? (
-                            <button
-                              onClick={() => setDeliveryRequested(true)}
-                              className="mt-3 w-full rounded-[14px] border-[1.5px] border-[#e7e7ea] bg-white px-4 py-2.5 text-sm font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
-                            >
-                              현지/추가 배송 요청 →
-                            </button>
-                          ) : (
-                            <div className="mt-3 rounded-[14px] bg-[#f4f4f5] px-4 py-2.5 text-center text-sm font-semibold text-[#0a0a0a]">
-                              배송 요청이 접수됐어요 🚚
-                            </div>
-                          )}
-
-                          {makeupNote && (
-                            <div className="mt-4 border-t border-dashed border-[#e7e7ea] pt-4">
-                              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">현지 메이크업</div>
-                              <p className="mt-1.5 text-sm leading-relaxed text-[#3f3f46]">
-                                {makeupNote.country}에서 통하는 포인트 메이크업 팁을 사진과 함께 확인해보세요.
-                              </p>
-                              <button
-                                type="button"
-                                onClick={() => setMakeupOpen(true)}
-                                className="mt-2.5 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.985]"
-                              >
-                                {makeupNote.country}의 대표메이크업 보기 →
-                              </button>
-                            </div>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => {
+                          <DestinationCareTab
+                            country={country}
+                            city={city}
+                            onSelectDestination={(code, cName) => {
+                              selectCountry(code);
+                              setCityName(cName);
+                            }}
+                            recItems={result.recItems}
+                            destinationCountryCode={countryCode}
+                            onShowMakeup={() => setMakeupOpen(true)}
+                            onCareArrival={() => {
                               setAcEntry("careplan");
                               setStage("acArrival");
                             }}
-                            className="mt-4 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.985]"
-                          >
-                            입국하기 →
-                          </button>
+                          />
                         </Card>
                       )}
 
