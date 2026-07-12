@@ -34,23 +34,23 @@ const STORES: Record<string, Store> = {
 };
 type SrcType = "o" | "b" | "g";
 type Avail = { s: string; l: number; src: { t: SrcType; label: string; d: string }[] };
-type Product = { id: string; brand: string; name: string; jp: string; c: string[]; i: string[]; y: number; av: Avail[] };
+type Product = { id: string; brand: string; name: string; jp: string; c: string[]; i: string[]; y: number; av: Avail[]; image?: string };
 const PRODUCTS: Product[] = [
-  { id: "p1", brand: "HADA LABO", name: "고쿠준 히알루론산 로션", jp: "肌ラボ 極潤ヒアルロン液", c: ["수분"], i: ["히알루론산"], y: 990,
+  { id: "p1", brand: "HADA LABO", name: "고쿠준 히알루론산 로션", jp: "肌ラボ 極潤ヒアルロン液", c: ["수분"], i: ["히알루론산"], y: 990, image: "/assets/jp-products/hadalabo-gokujyun-lotion.jpg",
     av: [{ s: "s1", l: 90, src: [{ t: "o", label: "공식 취급", d: "2025.03" }, { t: "b", label: "여행 후기", d: "2025.02" }] }, { s: "s2", l: 86, src: [{ t: "b", label: "하울 후기", d: "2025.01" }] }] },
-  { id: "p3", brand: "MELANO CC", name: "약용 비타민C 미용액", jp: "メラノCC 薬用しみ集中対策 美容液", c: ["미백·톤"], i: ["비타민C"], y: 1180,
+  { id: "p3", brand: "MELANO CC", name: "약용 비타민C 미용액", jp: "メラノCC 薬用しみ集中対策 美容液", c: ["미백·톤"], i: ["비타민C"], y: 1180, image: "/assets/jp-products/melanocc-vitaminc-essence.jpg",
     av: [{ s: "s1", l: 88, src: [{ t: "b", label: "여행 후기", d: "2025.02" }] }, { s: "s6", l: 74, src: [{ t: "g", label: "구글맵 리뷰", d: "2024.11" }] }] },
-  { id: "p4", brand: "IHADA", name: "약용 밤 (고보습)", jp: "イハダ 薬用バーム 高保湿", c: ["진정"], i: ["판테놀"], y: 1540,
+  { id: "p4", brand: "IHADA", name: "약용 밤 (고보습)", jp: "イハダ 薬用バーム 高保湿", c: ["진정"], i: ["판테놀"], y: 1540, image: "/assets/jp-products/ihada-medicated-balm.webp",
     av: [{ s: "s6", l: 86, src: [{ t: "o", label: "약국 취급", d: "2025.03" }, { t: "g", label: "구글맵 리뷰", d: "2025.01" }] }, { s: "s1", l: 64, src: [{ t: "b", label: "입고 언급", d: "2024.10" }] }] },
-  { id: "p5", brand: "CURÉL", name: "인텐시브 모이스처 크림", jp: "キュレル 潤浸保湿 フェイスクリーム", c: ["수분", "진정"], i: ["세라마이드"], y: 2400,
+  { id: "p5", brand: "CURÉL", name: "인텐시브 모이스처 크림", jp: "キュレル 潤浸保湿 フェイスクリーム", c: ["수분", "진정"], i: ["세라마이드"], y: 2400, image: "/assets/jp-products/curel-moisture-cream.jpg",
     av: [{ s: "s1", l: 84, src: [{ t: "o", label: "공식 취급", d: "2025.02" }] }, { s: "s6", l: 78, src: [{ t: "g", label: "구글맵 리뷰", d: "2024.12" }] }] },
-  { id: "p8", brand: "SABORINO", name: "아침 올인원 마스크", jp: "サボリーノ 目ざまシート", c: ["수분"], i: [], y: 1400,
+  { id: "p8", brand: "SABORINO", name: "아침 올인원 마스크", jp: "サボリーノ 目ざまシート", c: ["수분"], i: [], y: 1400, image: "/assets/jp-products/saborino-morning-mask.jpg",
     av: [{ s: "s4", l: 82, src: [{ t: "o", label: "매장 취급", d: "2025.02" }] }, { s: "s1", l: 76, src: [{ t: "b", label: "여행 후기", d: "2024.12" }] }] },
-  { id: "p9", brand: "ANUA", name: "어성초 77 토너 (K뷰티)", jp: "アヌア ドクダミ77 トナー", c: ["진정", "트러블"], i: ["어성초"], y: 1900,
+  { id: "p9", brand: "ANUA", name: "어성초 77 토너 (K뷰티)", jp: "アヌア ドクダミ77 トナー", c: ["진정", "트러블"], i: ["어성초"], y: 1900, image: "/assets/jp-products/anua-heartleaf-toner.jpg",
     av: [{ s: "s3", l: 84, src: [{ t: "o", label: "@cosme 취급", d: "2025.03" }, { t: "b", label: "여행 후기", d: "2025.01" }] }] },
-  { id: "p12", brand: "ONE THING", name: "나이아신아마이드 토너", jp: "ワンシング ナイアシンアマイド トナー", c: ["미백·톤"], i: ["나이아신아마이드"], y: 1100,
+  { id: "p12", brand: "ONE THING", name: "나이아신아마이드 토너", jp: "ワンシング ナイアシンアマイド トナー", c: ["미백·톤"], i: ["나이아신아마이드"], y: 1100, image: "/assets/jp-products/onething-niacinamide-toner.jpg",
     av: [{ s: "s3", l: 82, src: [{ t: "o", label: "@cosme 취급", d: "2025.02" }] }, { s: "s5", l: 70, src: [{ t: "g", label: "구글맵 리뷰", d: "2024.12" }] }] },
-  { id: "p11", brand: "AMPLEUR", name: "럭셔리 화이트 컨센트레이트 HQ", jp: "アンプルール ラグジュアリーホワイト コンセントレートHQ", c: ["미백·톤"], i: ["하이드로퀴논"], y: 5500,
+  { id: "p11", brand: "AMPLEUR", name: "럭셔리 화이트 컨센트레이트 HQ", jp: "アンプルール ラグジュアリーホワイト コンセントレートHQ", c: ["미백·톤"], i: ["하이드로퀴논"], y: 5500, image: "/assets/jp-products/ampleur-luxury-white-hq.jpg",
     av: [{ s: "s3", l: 80, src: [{ t: "o", label: "@cosme 취급", d: "2025.02" }, { t: "b", label: "여행 후기", d: "2025.01" }] }, { s: "s4", l: 66, src: [{ t: "g", label: "구글맵 리뷰", d: "2024.10" }] }] },
 ];
 
@@ -109,6 +109,17 @@ function ChevronIcon({ className }: { className?: string }) {
     <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
       <path d="M6 9l6 6 6-6" />
     </svg>
+  );
+}
+// 제품 실사진 — 없거나 로드 실패 시 이름 첫 글자 플레이스홀더로 폴백
+function ProdThumb({ product }: { product: Product }) {
+  const [err, setErr] = useState(false);
+  if (!product.image || err) {
+    return <div className={styles.rxThumb}>{product.name.charAt(0)}</div>;
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={product.image} alt={product.name} onError={() => setErr(true)} className={styles.rxThumb} style={{ objectFit: "cover" }} />
   );
 }
 
@@ -393,7 +404,7 @@ export function DestinationCareTab({
                 )}
               </div>
               <div className={styles.rxProdrow}>
-                <div className={styles.rxThumb}>{p.name.charAt(0)}</div>
+                <ProdThumb product={p} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className={styles.rxBrand}>{p.brand}</div>
                   <div className={styles.rxName}>{p.name}</div>
