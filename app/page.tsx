@@ -77,6 +77,7 @@ type Stage =
   | "checkin"
   | "journey"
   | "travel"
+  | "duringTrip"
   | "skin"
   | "scan"
   | "acArrival"
@@ -858,7 +859,7 @@ export default function BeautyPassportExperience() {
   const [findPwDone, setFindPwDone] = useState(false);
   const [journeyPhase, setJourneyPhase] = useState<"before" | "during" | "after" | null>(null);
   // 애프터케어 (여행 후)
-  const [acEntry, setAcEntry] = useState<"journey" | "careplan">("journey");
+  const [acEntry, setAcEntry] = useState<"journey" | "careplan" | "duringTrip">("journey");
   const [acChange, setAcChange] = useState<"better" | "same" | "worse" | null>(null);
   const [acUsedProducts, setAcUsedProducts] = useState<"yes" | "no" | null>(null);
   const [acUsedProductIds, setAcUsedProductIds] = useState<string[]>([]);
@@ -2233,7 +2234,8 @@ export default function BeautyPassportExperience() {
                   <PassportButton
                     disabled={!journeyPhase}
                     onClick={() => {
-                      if (journeyPhase === "before" || journeyPhase === "during") setStage("travel");
+                      if (journeyPhase === "before") setStage("travel");
+                      else if (journeyPhase === "during") setStage("duringTrip");
                       else {
                         setAcEntry("journey");
                         setStage("acArrival");
@@ -2242,6 +2244,40 @@ export default function BeautyPassportExperience() {
                   >
                     다음 단계 →
                   </PassportButton>
+                </div>
+              </motion.section>
+            )}
+
+            {/* 여행 중 — 목적지 케어(지도·근처 매장) 전용 화면. 여행 전·중·후 탭 없이 바로 진입 */}
+            {stage === "duringTrip" && (
+              <motion.section
+                key="duringTrip"
+                variants={stageVariants}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
+              >
+                <button type="button" onClick={() => setStage("journey")} className="font-sans text-[11px] font-semibold text-[#9ca3af]">
+                  ‹ 이전
+                </button>
+                <div className="mt-3">
+                  <DestinationCareTab
+                    country={country}
+                    city={city}
+                    onSelectDestination={(code, cName) => {
+                      selectCountry(code);
+                      setCityName(cName);
+                    }}
+                    recItems={result?.recItems ?? []}
+                    destinationCountryCode={countryCode}
+                    onShowMakeup={() => setMakeupOpen(true)}
+                    onCareArrival={() => {
+                      setAcEntry("duringTrip");
+                      setStage("acArrival");
+                    }}
+                    orderedItems={orderedProducts}
+                  />
                 </div>
               </motion.section>
             )}
@@ -2275,7 +2311,7 @@ export default function BeautyPassportExperience() {
                     딱 맞는 애프터케어를 처방해드려요.
                   </p>
                   <AcBtnBar>
-                    <AcBtn variant="ghost" onClick={() => setStage(acEntry === "careplan" ? "result" : "journey")}>
+                    <AcBtn variant="ghost" onClick={() => setStage(acEntry === "careplan" ? "result" : acEntry === "duringTrip" ? "duringTrip" : "journey")}>
                       ← 이전
                     </AcBtn>
                     <AcBtn onClick={() => setStage("acQ1")}>
