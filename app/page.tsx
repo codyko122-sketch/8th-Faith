@@ -2557,7 +2557,9 @@ export default function BeautyPassportExperience() {
                     PASSPORT
                   </h1>
                   <p className="mt-3 max-w-[260px] font-sans text-[13.5px] leading-relaxed text-[#71717a]">
-                    여행지 기후와 내 피부 상태를 결합해 맞춤 여권을 발급하고 있어요.
+                    여행지 기후와 내 피부 상태를 결합해
+                    <br />
+                    맞춤 여권을 발급하고 있어요.
                   </p>
                   <div className="relative mt-9 h-[70px] w-[210px] overflow-hidden">
                     <div className="flex h-full items-end justify-center gap-[1.5px]">
