@@ -1126,27 +1126,6 @@
     "as_of_date": "2026-07-10"
   },
   {
-    "product_id": "sunscreen_hiuh_vita_waterful_sun_essence",
-    "cosmetic_id": "hiuh-vita-waterful-sun-essence",
-    "display_name": "NEW 비타 워터풀 선에센스",
-    "display_brand": "히읗",
-    "category": "sunscreen",
-    "ingredients_complete": false,
-    "ingredients_inci": [
-      "정제수",
-      "글리세린",
-      "부틸렌글라이콜",
-      "다이메티콘",
-      "나이아신아마이드",
-      "비타민C유도체",
-      "히알루론산",
-      "판테놀",
-      "트로메타민"
-    ],
-    "source_note": "판매처 표기 핵심 성분 기반 근사 기재 — 전성분표 미확인. 서비스 반영 전 브랜드 공식 채널에서 전성분 재확인 필요.",
-    "as_of_date": "2026-07-10"
-  },
-  {
     "product_id": "sunscreen_scinic_enjoy_mild_sun_essence",
     "cosmetic_id": "scinic-enjoy-mild-sun-essence",
     "display_name": "엔조이 슈퍼 마일드 수분 선에센스",
@@ -1568,7 +1547,7 @@
   {
     "product_id": "mask_drg_red_blemish_soothing_mask",
     "cosmetic_id": "drg-red-blemish-soothing-mask",
-    "display_name": "레드 블레미쉬 딥 수딩 마스크",
+    "display_name": "레드 블레미쉬 쿨 수딩 마스크",
     "display_brand": "닥터지",
     "category": "mask",
     "ingredients_complete": false,
