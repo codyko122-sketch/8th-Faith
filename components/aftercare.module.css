@@ -26,8 +26,11 @@
   padding: 30px 28px 22px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
+.card::-webkit-scrollbar { width: 0; }
 @media (min-width: 640px) {
   .card {
     min-height: calc(100dvh - 3rem);
@@ -56,14 +59,12 @@
   -webkit-font-smoothing: antialiased;
 }
 
+/* 카드 전체가 한 번에 스크롤되므로(다른 탭들과 동일한 패턴), 내부에서 별도로
+   높이를 채우거나 스크롤하지 않고 콘텐츠 높이만큼만 차지하게 함 — 짧은 콘텐츠에서
+   푸터가 화면 맨 아래로 멀리 떨어져 보이는 현상 방지. */
 .bodyScroll {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
+  flex: none;
 }
-.bodyScroll::-webkit-scrollbar { width: 0; }
 
 .top {
   display: flex;
@@ -183,14 +184,6 @@
 
 .stampImg { width: 230px; max-width: 82%; height: auto; display: block; }
 
-.stampRect {
-  border: 2.5px solid var(--stamp); color: var(--stamp); border-radius: 12px;
-  padding: 9px 17px; text-align: center; transform: rotate(-7deg); letter-spacing: 0.06em;
-}
-.stampRect .s1 { font-size: 10px; font-weight: 700; letter-spacing: 0.22em; }
-.stampRect .s2 { font-size: 19px; font-weight: 900; letter-spacing: 0.02em; margin: 2px 0; }
-.stampRect .s3 { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; }
-
 .resultHead { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 4px; }
 .resultSub { font-size: 13px; color: var(--ink-soft); margin: 0 0 16px; line-height: 1.5; }
 
@@ -199,6 +192,22 @@
   padding: 12px 16px; margin: 0 0 16px; line-height: 1.55; font-weight: 600;
 }
 .focusline b { color: var(--ink); }
+
+/* 피부 이슈 지수 변화(여행 전 → 여행 후) */
+.idxCard { border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin: 0 0 16px; background: #fff; }
+.idxLabel { font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 12px; }
+.idxRow { display: flex; align-items: center; justify-content: center; gap: 16px; }
+.idxCol { text-align: center; }
+.idxColLabel { font-size: 10.5px; color: var(--ink-faint); font-weight: 600; margin-bottom: 4px; }
+.idxArrow { font-size: 18px; color: var(--ink-faint); }
+.idxDeltaWrap { text-align: center; margin-top: 12px; }
+.idxDelta { display: inline-block; padding: 5px 12px; border-radius: 100px; font-size: 12px; font-weight: 800; }
+.idxDelta.up { background: #fdecea; color: #c0322b; }
+.idxDelta.down { background: #e7f6ee; color: #1f9d57; }
+.idxDelta.flat { background: var(--field); color: var(--ink-soft); }
+.idxNotes { margin-top: 14px; display: grid; gap: 8px; }
+.idxNote { font-size: 12px; color: var(--ink-soft); line-height: 1.5; padding-left: 14px; position: relative; }
+.idxNote::before { content: ""; position: absolute; left: 0; top: 6px; width: 5px; height: 5px; border-radius: 50%; background: var(--stamp); }
 
 .products { display: flex; flex-direction: column; gap: 12px; }
 .product { border: 1px solid var(--line); border-radius: var(--radius-field); padding: 15px 18px; }

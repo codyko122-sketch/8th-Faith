@@ -120,18 +120,6 @@ export function AcTripCard({ dest, dates }: { dest: string; dates: string }) {
   );
 }
 
-export function AcStampRect() {
-  return (
-    <div className={styles.stampwrap}>
-      <div className={styles.stampRect}>
-        <div className={styles.s1}>BEAUTY PASSPORT</div>
-        <div className={styles.s2}>CLEARED</div>
-        <div className={styles.s3}>CLIMATE CARE</div>
-      </div>
-    </div>
-  );
-}
-
 export function AcStampSeal() {
   return (
     <div className={styles.stampwrap}>

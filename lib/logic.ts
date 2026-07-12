@@ -18,6 +18,7 @@ export type CalendarDay = {
   weekday: string;
   temp: number;
   humidity: number;
+  uv: number;
   dust: number;
   emojis: { icon: string; label: string }[];
 };
@@ -39,6 +40,7 @@ export function buildCalendar(dest: string, days: number): CalendarDay[] {
 
     const temp = p.temp + randInt(-3, 3);
     const humidity = Math.min(100, Math.max(10, p.humidity + randInt(-8, 8)));
+    const uv = Math.max(0, Math.min(12, p.uv + randInt(-2, 2)));
     const dust = Math.max(0, p.dust + randInt(-20, 20));
 
     const emojis: { icon: string; label: string }[] = [];
@@ -57,6 +59,7 @@ export function buildCalendar(dest: string, days: number): CalendarDay[] {
       weekday: WEEKDAYS[d.getDay()],
       temp,
       humidity,
+      uv,
       dust,
       emojis,
     });
@@ -203,6 +206,7 @@ export function buildCalendarP(p: ClimateProfile, seed: number, days: number, st
     d.setDate(start.getDate() + i);
     const temp = p.temp + randInt(-3, 3);
     const humidity = Math.min(100, Math.max(10, p.humidity + randInt(-8, 8)));
+    const uv = Math.max(0, Math.min(12, p.uv + randInt(-2, 2)));
     const dust = Math.max(0, p.dust + randInt(-20, 20));
     const emojis: { icon: string; label: string }[] = [];
     if (temp >= 30) emojis.push({ icon: "🔥", label: "더운 날" });
@@ -214,18 +218,18 @@ export function buildCalendarP(p: ClimateProfile, seed: number, days: number, st
     else if (dust >= 60) emojis.push({ icon: "🌫️", label: "미세먼지 보통" });
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     const dd = String(d.getDate()).padStart(2, "0");
-    cal.push({ date: `${mm}/${dd}`, weekday: WEEKDAYS[d.getDay()], temp, humidity, dust, emojis });
+    cal.push({ date: `${mm}/${dd}`, weekday: WEEKDAYS[d.getDay()], temp, humidity, uv, dust, emojis });
   }
   return cal;
 }
 
 // 실제 일별 예보(Open-Meteo) → 캘린더
 export function buildCalendarFromDaily(
-  daily: { dateISO: string; temp: number; humidity: number; dust: number }[]
+  daily: { dateISO: string; temp: number; humidity: number; uv: number; dust: number }[]
 ): CalendarDay[] {
   return daily.slice(0, 30).map((day) => {
     const d = new Date(day.dateISO);
-    const { temp, humidity, dust } = day;
+    const { temp, humidity, uv, dust } = day;
     const emojis: { icon: string; label: string }[] = [];
     if (temp >= 30) emojis.push({ icon: "🔥", label: "더운 날" });
     else if (temp <= 15) emojis.push({ icon: "❄️", label: "쌀쌀함" });
@@ -236,6 +240,6 @@ export function buildCalendarFromDaily(
     else if (dust >= 60) emojis.push({ icon: "🌫️", label: "미세먼지 보통" });
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     const dd = String(d.getDate()).padStart(2, "0");
-    return { date: `${mm}/${dd}`, weekday: WEEKDAYS[d.getDay()], temp, humidity, dust, emojis };
+    return { date: `${mm}/${dd}`, weekday: WEEKDAYS[d.getDay()], temp, humidity, uv, dust, emojis };
   });
 }

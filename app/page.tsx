@@ -38,6 +38,8 @@ import {
   type SavedProduct,
 } from "@/lib/auth";
 import type { ScanResult } from "@/lib/scan-types";
+import type { AiSummaryResult } from "@/lib/ai-summary-types";
+import { getWaterQuality } from "@/lib/water-quality-data";
 import {
   PassportTopBar,
   PassportEyebrow,
@@ -58,8 +60,8 @@ import {
   PassportBeachIcon,
   PassportSurveyIcon,
 } from "@/components/passport-ui";
-import { CLIMATE_BY_COUNTRY, CLIMATE_PROFILE, CONCERNS } from "@/lib/aftercare-data";
-import { AcScreenChrome, AcLabel, AcOpt, AcChip, AcBtnBar, AcBtn, AcTripCard, AcStampRect, AcStampSeal, AcProductCard, acStyles } from "@/components/aftercare-ui";
+import { CLIMATE_BY_COUNTRY, CLIMATE_PROFILE, CONCERNS, type Concern } from "@/lib/aftercare-data";
+import { AcScreenChrome, AcLabel, AcOpt, AcChip, AcBtnBar, AcBtn, AcTripCard, AcStampSeal, AcProductCard, acStyles } from "@/components/aftercare-ui";
 import { DestinationCareTab } from "@/components/destination-ui";
 
 type Stage =
@@ -76,7 +78,8 @@ type Stage =
   | "scan"
   | "acArrival"
   | "acQ1"
-  | "acQ2"
+  | "acUsed"
+  | "acUsedPick"
   | "acQ3"
   | "acResult"
   | "result"
@@ -682,6 +685,36 @@ function skinIssueSubindex(p: { temp: number; humidity: number; uv: number; dust
   return { uvExposure, pigment, hydrationLoss, troubleSebum };
 }
 
+// 애프터케어 입국심사 설문(Q1 피부 변화 여부 · Q2 새 고민 여부 · Q3 선택한 고민)으로
+// "여행 후 피부 이슈 지수"를 산출하고, 여행 전 대비 무엇이 좋아지게/나빠지게 했는지 설명한다.
+const AC_CONCERN_WEIGHT: Record<string, number> = { acne: 14, redness: 12, pigment: 12, hydration: 10, pore: 8, wrinkle: 8 };
+function aftercareIndexChange(preScore: number, q1: "yes" | "no" | null, q2: "yes" | "no" | null, concernIds: string[]) {
+  let delta = 0;
+  const notes: string[] = [];
+  if (q1 === "no") {
+    delta = -8;
+    notes.push("여행 중 피부 상태가 크게 달라지지 않았어요 — 미리 챙긴 장벽 케어가 잘 맞았어요.");
+  } else if (q1 === "yes" && q2 !== "yes") {
+    delta = 6;
+    notes.push("약간의 컨디션 변화는 느꼈지만, 뚜렷하게 새로 생긴 고민까지는 아니었어요.");
+  } else {
+    const chosen = concernIds.map((id) => CONCERNS.find((c) => c.id === id)).filter((c): c is Concern => !!c);
+    if (chosen.length === 0) {
+      delta = 8;
+      notes.push("새로운 고민이 생겼다고 답하셨어요 — 다음엔 어떤 부분인지 골라주시면 더 정확하게 알려드릴 수 있어요.");
+    } else {
+      chosen.forEach((c) => {
+        delta += AC_CONCERN_WEIGHT[c.id] ?? 10;
+        notes.push(`${c.label} 고민이 새로 생겼어요 — ${c.focus}`);
+      });
+    }
+  }
+  const after = Math.max(0, Math.min(100, Math.round(preScore + delta)));
+  const level = after >= 70 ? "높음" : after >= 45 ? "보통" : "낮음";
+  const color = after >= 70 ? "#e5484d" : after >= 45 ? "#f2a20b" : "#30a46c";
+  return { after, delta, level, color, notes };
+}
+
 // 스캔 결과 성분 태그 색상 (여권 팔레트)
 const SCAN_PILL: Record<string, string> = {
   key: "bg-[#0a0a0a] text-white",
@@ -726,11 +759,13 @@ export default function BeautyPassportExperience() {
   const [journeyPhase, setJourneyPhase] = useState<"before" | "during" | "after" | null>(null);
   // 애프터케어 (여행 후)
   const [acEntry, setAcEntry] = useState<"journey" | "careplan">("journey");
-  const [acQ1, setAcQ1] = useState<"yes" | "no" | null>(null);
-  const [acQ2, setAcQ2] = useState<"yes" | "no" | null>(null);
+  const [acChange, setAcChange] = useState<"better" | "same" | "worse" | null>(null);
+  const [acUsedProducts, setAcUsedProducts] = useState<"yes" | "no" | null>(null);
+  const [acUsedProductIds, setAcUsedProductIds] = useState<string[]>([]);
   const [acConcerns, setAcConcerns] = useState<string[]>([]);
-  const [acMode, setAcMode] = useState<"concern" | "destination" | null>(null);
+  const [acMode, setAcMode] = useState<"concern" | "destination" | "better" | null>(null);
   const [acSaved, setAcSaved] = useState(false);
+  const [fullBuyProduct, setFullBuyProduct] = useState<Cosmetic | null>(null);
   // 여행지
   const [countryCode, setCountryCode] = useState<string | null>(null);
   const [cityName, setCityName] = useState<string | null>(null);
@@ -745,6 +780,10 @@ export default function BeautyPassportExperience() {
   const [analyzing, setAnalyzing] = useState(false);
   const [skin, setSkin] = useState<SkinResult | null>(null);
   const [weather, setWeather] = useState<WeatherResult | null>(null);
+  // AI 써머리 — 날씨·미세먼지·수질을 종합한 AI 생성 코멘트
+  const [aiSummary, setAiSummary] = useState<AiSummaryResult | null>(null);
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
+  const aiSummaryKeyRef = useRef<string | null>(null);
   const [shared, setShared] = useState(false);
   // 제품 상세 + 샘플 장바구니
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -1172,28 +1211,35 @@ export default function BeautyPassportExperience() {
     setSkin(analyzeBaumann(account.skinCode));
     setStage("journey");
   }
-  function acNextQ1() {
-    if (acQ1 === "yes") setStage("acQ2");
-    else {
+  function acAfterChange() {
+    if (acChange === "worse") {
+      setAcMode("concern");
+      setStage("acQ3");
+    } else if (acChange === "better") {
+      setAcMode("better");
+      setStage("acUsed");
+    } else {
       setAcMode("destination");
       setStage("acResult");
     }
   }
-  function acNextQ2() {
-    if (acQ2 === "yes") setStage("acQ3");
-    else {
-      setAcMode("destination");
-      setStage("acResult");
-    }
+  function acNextUsed() {
+    if (acUsedProducts === "yes") setStage("acUsedPick");
+    else setStage("acResult");
   }
   function acToggleConcern(id: string) {
     setAcConcerns((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
+  function acToggleUsed(id: string) {
+    setAcUsedProductIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
   function acRestart() {
-    setAcQ1(null);
-    setAcQ2(null);
+    setAcChange(null);
+    setAcUsedProducts(null);
+    setAcUsedProductIds([]);
     setAcConcerns([]);
     setAcMode(null);
+    setFullBuyProduct(null);
     setStage("acArrival");
   }
   function acSave() {
@@ -1229,6 +1275,23 @@ export default function BeautyPassportExperience() {
     setStage("intro");
   }
 
+  // 애프터케어(여행 후) 결과에서 "여행 전 피부 이슈 지수"와 비교하기 위해, stage와 무관하게
+  // 항상 계산해둔다(result는 stage==="result"가 아니면 null이라 재사용 불가).
+  const preTripIndex = useMemo(() => {
+    if (!skin) return null;
+    const cityProfile = useCustom ? FALLBACK_CLIMATE : city ?? FALLBACK_CLIMATE;
+    const profile = weather
+      ? {
+          temp: weather.temp,
+          humidity: weather.humidity,
+          uv: weather.uv,
+          dust: weather.dust > 0 ? weather.dust : cityProfile.dust,
+          tag: cityProfile.tag,
+        }
+      : cityProfile;
+    return skinIssueIndexP(profile, skin.skinTypeForRec, skin.recConcerns);
+  }, [skin, useCustom, city, weather]);
+
   const result = useMemo(() => {
     if (stage !== "result" || !skin) return null;
     const cityProfile = useCustom ? FALLBACK_CLIMATE : city ?? FALLBACK_CLIMATE;
@@ -1244,6 +1307,7 @@ export default function BeautyPassportExperience() {
       : cityProfile;
     const wxSource = weather ? "실시간 예보" : "계절 기본값";
     const placeLabel = useCustom ? `${customCountry} · ${customCity}` : `${country?.name ?? ""} · ${city?.name ?? ""}`;
+    const waterQuality = getWaterQuality(useCustom ? customCountry : country?.name);
     const seedStr = useCustom ? customCity : city?.name ?? "";
     let seed = 0;
     for (const ch of seedStr) seed += ch.charCodeAt(0);
@@ -1257,6 +1321,7 @@ export default function BeautyPassportExperience() {
       profile,
       wxSource,
       placeLabel,
+      waterQuality,
       days,
       index: skinIssueIndexP(profile, skin.skinTypeForRec, skin.recConcerns),
       calendar:
@@ -1267,6 +1332,49 @@ export default function BeautyPassportExperience() {
       recItems: rec.items,
     };
   }, [stage, useCustom, city, country, customCountry, customCity, departDate, arriveDate, skin, weather]);
+
+  // AI 써머리 — 결과 화면 진입 시 실측 날씨·미세먼지 + 목적지 수질 + 바우만 피부타입으로 AI 코멘트 생성
+  useEffect(() => {
+    if (!result || !skin) return;
+    const key = JSON.stringify({ place: result.placeLabel, profile: result.profile, code: skin.code, days: result.days });
+    if (aiSummaryKeyRef.current === key) return;
+    aiSummaryKeyRef.current = key;
+    let cancelled = false;
+    setAiSummaryLoading(true);
+    fetch("/api/ai-summary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        placeLabel: result.placeLabel,
+        days: result.days,
+        profile: result.profile,
+        waterQuality: result.waterQuality,
+        skin: {
+          code: skin.code,
+          base: skin.base,
+          sensitivity: skin.sensitivity,
+          skinTypeForRec: skin.skinTypeForRec,
+          displayConcerns: skin.displayConcerns,
+        },
+        name,
+        age,
+        gender,
+      }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: AiSummaryResult | null) => {
+        if (!cancelled && data) setAiSummary(data);
+      })
+      .catch(() => {
+        /* 실패 시 아래 렌더에서 규칙 기반 코멘트로 폴백 */
+      })
+      .finally(() => {
+        if (!cancelled) setAiSummaryLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [result, skin, name, age, gender]);
 
   const dday = departDate ? daysUntil(departDate) : null;
 
@@ -2054,7 +2162,7 @@ export default function BeautyPassportExperience() {
                       footerCode={acFooterCode}
                       onBack={() => setStage(isConcern ? "acQ3" : "acQ1")}
                     >
-                      {isConcern ? <AcStampSeal /> : <AcStampRect />}
+                      <AcStampSeal />
                       <h2 className={acStyles.resultHead}>
                         {isConcern
                           ? `'${acChosenConcerns.map((c) => c.label).join(" · ")}' 맞춤 처방`
@@ -2084,6 +2192,42 @@ export default function BeautyPassportExperience() {
                           ? acChosenConcerns.flatMap((c) => c.products.slice(0, per).map((p, i) => <AcProductCard key={`${c.id}-${i}`} {...p} />))
                           : acClimateProfile.products.map((p, i) => <AcProductCard key={i} {...p} />)}
                       </div>
+
+                      {preTripIndex &&
+                        (() => {
+                          const change = aftercareIndexChange(preTripIndex.score, acQ1, acQ2, acConcerns);
+                          const dir = change.delta > 2 ? "up" : change.delta < -2 ? "down" : "flat";
+                          const dirLabel = dir === "up" ? `+${change.delta} 악화` : dir === "down" ? `${change.delta} 개선` : "변화 없음";
+                          return (
+                            <div className={acStyles.idxCard}>
+                              <div className={acStyles.idxLabel}>Skin Issue Index · 피부 이슈 지수 변화</div>
+                              <div className={acStyles.idxRow}>
+                                <div className={acStyles.idxCol}>
+                                  <div className={acStyles.idxColLabel}>여행 전</div>
+                                  <IndexGauge score={preTripIndex.score} level={preTripIndex.level} />
+                                </div>
+                                <div className={acStyles.idxArrow}>→</div>
+                                <div className={acStyles.idxCol}>
+                                  <div className={acStyles.idxColLabel}>여행 후</div>
+                                  <IndexGauge score={change.after} level={change.level} />
+                                </div>
+                              </div>
+                              <div className={acStyles.idxDeltaWrap}>
+                                <span className={`${acStyles.idxDelta} ${acStyles[dir]}`}>{dirLabel}</span>
+                              </div>
+                              {change.notes.length > 0 && (
+                                <div className={acStyles.idxNotes}>
+                                  {change.notes.map((n, i) => (
+                                    <div key={i} className={acStyles.idxNote}>
+                                      {n}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
                       <AcBtnBar>
                         <AcBtn variant="ghost" onClick={acRestart}>
                           처음으로
@@ -2722,11 +2866,11 @@ export default function BeautyPassportExperience() {
                                   <p className="mt-1 text-xs text-[#71717a]">{result.placeLabel} · 좌우로 넘겨보세요</p>
                                   <div className="scroll-x mt-3 flex gap-1.5 overflow-x-auto pb-1">
                                     {result.calendar.map((c, k) => {
-                                      const hot = c.emojis.some((e) => e.icon === "🔥");
+                                      const hot = c.uv >= 8;
                                       return (
                                         <div
                                           key={k}
-                                          className={`relative w-[66px] flex-none overflow-hidden rounded-xl border px-1.5 py-2 text-center ${
+                                          className={`relative w-[96px] flex-none overflow-hidden rounded-xl border px-2 py-2 text-center ${
                                             hot ? "border-[#f6d0d0] bg-gradient-to-b from-white to-[#fef6f6]" : "border-[#e7e7ea] bg-white"
                                           }`}
                                         >
@@ -2736,14 +2880,14 @@ export default function BeautyPassportExperience() {
                                           </div>
                                           <div className="my-1 text-lg leading-none">{c.emojis.map((e) => e.icon).join("")}</div>
                                           <div className="text-[11px] font-bold text-[#0a0a0a]">{c.temp}℃</div>
-                                          <div className="mt-0.5 text-[9px] leading-tight text-[#9ca3af]">습도 {c.humidity}% · 미세먼지 {c.dust}</div>
+                                          <div className={`mt-0.5 text-[9px] leading-tight ${hot ? "text-[#ec1c24]" : "text-[#9ca3af]"}`}>습도 {c.humidity}% · UV {c.uv} · 미세먼지 {c.dust}</div>
                                         </div>
                                       );
                                     })}
                                   </div>
                                   <div className="mt-2 flex gap-3 text-[10.5px] text-[#71717a]">
                                     <span className="inline-flex items-center gap-1">
-                                      <i className="inline-block h-[3px] w-3.5 rounded bg-[#ec1c24]" />더운 날
+                                      <i className="inline-block h-[3px] w-3.5 rounded bg-[#ec1c24]" />자외선 강함
                                     </span>
                                     <span className="inline-flex items-center gap-1">
                                       <i className="inline-block h-[3px] w-3.5 rounded bg-[#9ca3af]" />보통
@@ -2762,14 +2906,28 @@ export default function BeautyPassportExperience() {
                                       <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">{result.profile.tag}</span>
                                     )}
                                     <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">UV {result.profile.uv}</span>
+                                    <span className="rounded-full bg-[#eef6fb] px-2.5 py-1 text-[10.5px] font-bold text-[#2b6b86]">💧 수질 {result.waterQuality.level}</span>
                                   </div>
-                                  <p className="mt-2.5 text-[13.5px] leading-relaxed text-[#444]">💬 {comboComment(result.profile, skin.skinTypeForRec)}</p>
+                                  {aiSummaryLoading && !aiSummary ? (
+                                    <p className="mt-2.5 animate-pulse text-[13.5px] leading-relaxed text-[#9ca3af]">💬 AI가 여행지 날씨·미세먼지·수질을 분석하고 있어요…</p>
+                                  ) : (
+                                    <p className="mt-2.5 text-[13.5px] leading-relaxed text-[#444]">
+                                      💬 {aiSummary?.summary ?? comboComment(result.profile, skin.skinTypeForRec)}
+                                    </p>
+                                  )}
+                                  {aiSummary && aiSummary.tips.length > 0 && (
+                                    <ul className="mt-2 space-y-1">
+                                      {aiSummary.tips.map((tip, i) => (
+                                        <li key={i} className="text-[12.5px] leading-relaxed text-[#3f3f46]">{tip}</li>
+                                      ))}
+                                    </ul>
+                                  )}
                                   <button
                                     type="button"
                                     onClick={() => setShowAiDetail(true)}
                                     className="mt-3.5 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.985]"
                                   >
-                                    📋 상세보기 — AI 판단 · 날씨 · 성분 · 루틴
+                                    📋 상세보기 — AI 판단 · 날씨 · 수질 · 성분 · 루틴
                                   </button>
                                 </div>
                               </div>
@@ -3606,7 +3764,7 @@ export default function BeautyPassportExperience() {
           {/* AI 판단 상세 모달 */}
           <AnimatePresence>
             {showAiDetail && skin && result && (
-              <AiDetailModal key="ai-detail" skin={skin} result={result} onClose={() => setShowAiDetail(false)} />
+              <AiDetailModal key="ai-detail" skin={skin} result={result} aiSummary={aiSummary} onClose={() => setShowAiDetail(false)} />
             )}
           </AnimatePresence>
         </div>
@@ -3729,17 +3887,37 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="block text-sm font-semibold text-[#2b6b86]">{children}</label>;
 }
 
+// 피부 이슈 지수 게이지 — 결과 화면의 원형 게이지와 완전히 동일한 스타일(재사용)
+function IndexGauge({ score, level }: { score: number; level: string }) {
+  return (
+    <div
+      className="relative mx-auto mt-1 grid h-[88px] w-[88px] flex-none place-items-center rounded-full"
+      style={{ background: `conic-gradient(#ec1c24 ${score}%, #f4f4f5 0)` }}
+    >
+      <div className="absolute h-[68px] w-[68px] rounded-full bg-white" />
+      <div className="relative text-center leading-none">
+        <div className="text-2xl font-black text-[#0a0a0a]">{score}</div>
+        <div className="text-[9px] text-[#9ca3af]">/ 100</div>
+        <div className="mt-0.5 text-[9px] font-extrabold tracking-[0.06em] text-[#ec1c24]">{level}</div>
+      </div>
+    </div>
+  );
+}
+
 // AI 판단 상세 모달 — 상세보기 버튼에서 열리는 바텀시트
 function AiDetailModal({
   skin,
   result,
+  aiSummary,
   onClose,
 }: {
   skin: SkinResult;
   result: {
     profile: { temp: number; humidity: number; uv: number; dust: number; tag?: string };
     calendar: { date: string; weekday: string; temp: number; humidity: number; dust: number; emojis: { icon: string; label: string }[] }[];
+    waterQuality: { level: string; note: string };
   };
+  aiSummary: AiSummaryResult | null;
   onClose: () => void;
 }) {
   const bt = BAUMANN_TYPES[skin.code];
@@ -3793,6 +3971,20 @@ function AiDetailModal({
               ))}
             </tbody>
           </table>
+
+          {/* 수질 */}
+          <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Water Quality · 여행지 수돗물</div>
+          <div className="mt-3 rounded-xl border border-[#e7e7ea] bg-[#f9fbfc] p-3">
+            <span className="rounded-full bg-[#eef6fb] px-2.5 py-1 text-[11px] font-bold text-[#2b6b86]">💧 {result.waterQuality.level}</span>
+            <p className="mt-2 text-[12px] leading-relaxed text-[#3f3f46]">{result.waterQuality.note}</p>
+          </div>
+          {aiSummary && aiSummary.tips.length > 0 && (
+            <ul className="mt-3 space-y-1.5">
+              {aiSummary.tips.map((tip, i) => (
+                <li key={i} className="text-[12px] leading-relaxed text-[#3f3f46]">{tip}</li>
+              ))}
+            </ul>
+          )}
 
           {/* 바우만 4축 */}
           <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Baumann Axis · 피부 타입 4축</div>
