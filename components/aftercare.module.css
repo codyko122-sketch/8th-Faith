@@ -218,8 +218,8 @@
 .product .why { font-size: 13px; color: var(--ink-soft); line-height: 1.55; margin: 0; }
 
 .footer { border-top: 1px dashed var(--line); margin-top: 18px; padding-top: 16px; text-align: center; }
-/* 바코드는 로그인(PassportBarcode) 비율로 통일 — 균일 2px 막대 · gap 1.5px · 높이 44px */
+/* 바코드는 로그인(PassportBarcode) 비율로 통일 — 균일 2.5px 막대 · gap 1.5px · 높이 56px */
 .footer .cap { font-size: 11px; font-weight: 800; letter-spacing: 0.32em; color: var(--ink); margin-bottom: 10px; }
-.barcode { display: flex; justify-content: center; align-items: flex-end; gap: 1.5px; height: 44px; }
-.barcode i { display: block; width: 2px; background: var(--ink); }
+.barcode { display: flex; justify-content: center; align-items: flex-end; gap: 1.5px; height: 56px; }
+.barcode i { display: block; width: 2.5px; background: var(--ink); }
 .code { margin-top: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.28em; color: var(--stamp); font-variant-numeric: tabular-nums; }

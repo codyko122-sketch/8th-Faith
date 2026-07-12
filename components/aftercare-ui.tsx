@@ -141,12 +141,12 @@ export function AcProductCard({ cat, name, ing, why }: { cat: string; name: stri
 }
 
 export function AcBarcode({ seedKey }: { seedKey: string }) {
-  // 로그인 화면 바코드(PassportBarcode)와 동일 스펙: 균일 2px 막대, 높이만 26~44px로 변주
+  // 로그인 화면 바코드(PassportBarcode)와 동일 스펙: 균일 2.5px 막대, 높이만 32~56px로 변주
   const [bars] = useState(() => {
     let seed = 0;
     for (const ch of seedKey || "BP") seed = (seed * 31 + ch.charCodeAt(0)) % 100000;
     const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
-    return Array.from({ length: 46 }, () => Math.round(rnd() * 18 + 26));
+    return Array.from({ length: 46 }, () => Math.round(rnd() * 24 + 32));
   });
   return (
     <div className={styles.barcode}>

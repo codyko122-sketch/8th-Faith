@@ -3929,12 +3929,26 @@ export default function BeautyPassportExperience() {
                     )}
                   </div>
 
-                  <button
-                    onClick={restart}
-                    className="mt-8 w-full rounded-[14px] border-[1.5px] border-[#e7e7ea] bg-white px-6 py-4 text-[15px] font-extrabold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
-                  >
-                    처음으로 ↺
-                  </button>
+                  <div className="mt-8 flex w-full gap-3">
+                    <button
+                      onClick={restart}
+                      className="flex-1 rounded-[14px] border-[1.5px] border-[#e7e7ea] bg-white px-6 py-4 text-[15px] font-extrabold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
+                    >
+                      처음으로 ↺
+                    </button>
+                    <div className="flex-1">
+                      <PrimaryButton
+                        onClick={() => {
+                          setChecklist((c) => c.map((v, i) => (i === 1 ? true : v)));
+                          setCarePhase(0);
+                          setResultView("plan");
+                          setStage("result");
+                        }}
+                      >
+                        여행 케어플랜 보기 →
+                      </PrimaryButton>
+                    </div>
+                  </div>
                 </div>
               </motion.section>
             )}

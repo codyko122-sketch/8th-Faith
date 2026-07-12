@@ -159,11 +159,11 @@ export function PassportOptionCard({
 }
 
 export function PassportBarcode({ compact }: { compact?: boolean } = {}) {
-  const [widths] = useState(() => Array.from({ length: 46 }, () => Math.round(Math.random() * 18 + 26)));
+  const [widths] = useState(() => Array.from({ length: 46 }, () => Math.round(Math.random() * 24 + 32)));
   return (
-    <div className={`flex items-end justify-center gap-[1.5px] ${compact ? "my-[9px] h-11" : "my-3 h-11"}`}>
+    <div className={`flex items-end justify-center gap-[1.5px] ${compact ? "my-[9px] h-14" : "my-3 h-14"}`}>
       {widths.map((h, i) => (
-        <span key={i} className="w-[2px] bg-[#0a0a0a]" style={{ height: h }} />
+        <span key={i} className="w-[2.5px] bg-[#0a0a0a]" style={{ height: h }} />
       ))}
     </div>
   );

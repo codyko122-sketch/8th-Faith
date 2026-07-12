@@ -31,6 +31,11 @@ export const COSMETICS: Cosmetic[] = [
   { id: "roundlab-birch-sun", brand: "라운드랩", name: "자작나무 수분 선크림 SPF50+", category: "선크림", ingredients: ["자작나무수액"], forTypes: ["건성", "중성", "복합", "민감"], concerns: ["수분"], rating: 4.6, feel: "촉촉", desc: "촉촉하게 발리는 데일리 수분 선크림", fullMl: 50, price: 19000, safety: [], oliveYoungUrl: "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000149135", linkType: "direct" },
   { id: "roundlab-dokdo-toner", brand: "라운드랩", name: "1025 독도 토너", category: "토너", ingredients: ["미네랄", "진정"], forTypes: ["지성", "복합", "민감"], concerns: ["트러블"], rating: 4.6, feel: "산뜻", desc: "자극 없이 결을 정돈하는 진정 토너", fullMl: 200, price: 20000, safety: ["저자극"], oliveYoungUrl: "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000132162", linkType: "direct" },
   { id: "beplain-mungbean", brand: "비플레인", name: "녹두 약산성 클렌징폼", category: "클렌징", ingredients: ["약산성", "녹두"], forTypes: ["지성", "복합", "민감"], concerns: ["트러블"], rating: 4.63, feel: "산뜻", desc: "피지·모공 관리에 좋은 약산성 클렌징", fullMl: 80, price: 12000, safety: ["약산성"], oliveYoungUrl: "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000142520", linkType: "direct" },
+  { id: "toriden-divein-cleansing", brand: "토리든", name: "다이브인 저분자 히알루론산 클렌징 폼", category: "클렌징", ingredients: ["히알루론산", "저분자"], forTypes: ["건성", "민감", "복합"], concerns: ["수분"], rating: 4.7, feel: "촉촉", desc: "세안 후에도 당기지 않게 속보습을 남기는 저자극 폼", fullMl: 150, price: 16000, safety: ["약산성", "저자극"], oliveYoungUrl: "https://www.oliveyoung.co.kr/store/search/getSearchMain.do?query=" + encodeURIComponent("토리든 다이브인 저분자 히알루론산 클렌징 폼"), linkType: "search" },
+  { id: "esnature-aqua-rice-cleansing", brand: "에스네이처", name: "아쿠아 라이스 약산성 클렌징 폼", category: "클렌징", ingredients: ["쌀추출물", "약산성"], forTypes: ["건성", "중성", "복합"], concerns: ["수분"], rating: 4.7, feel: "산뜻", desc: "쌀 성분으로 순하게 씻어내는 약산성 데일리 폼", fullMl: 150, price: 15000, safety: ["약산성"], oliveYoungUrl: "https://www.oliveyoung.co.kr/store/search/getSearchMain.do?query=" + encodeURIComponent("에스네이처 아쿠아 라이스 약산성 클렌징 폼"), linkType: "search" },
+  { id: "shenli-kelp-cleansing", brand: "션리", name: "다시마 앰플 클렌징폼", category: "클렌징", ingredients: ["다시마", "미네랄"], forTypes: ["지성", "복합", "중성"], concerns: ["수분", "트러블"], rating: 4.5, feel: "촉촉", desc: "다시마 앰플 성분으로 세안 후에도 속당김 없이 촉촉하게", fullMl: 120, price: 15000, safety: [], oliveYoungUrl: "https://www.oliveyoung.co.kr/store/search/getSearchMain.do?query=" + encodeURIComponent("션리 다시마 앰플 클렌징폼"), linkType: "search" },
+  { id: "suiskin-sprout-cleansing", brand: "수이스킨", name: "어린새싹 딥 클렌징 폼", category: "클렌징", ingredients: ["새싹추출물"], forTypes: ["지성", "복합"], concerns: ["트러블"], rating: 4.6, feel: "산뜻", desc: "모공 속 노폐물까지 개운하게 씻어내는 딥 클렌징 폼", fullMl: 120, price: 14000, safety: [], oliveYoungUrl: "https://www.oliveyoung.co.kr/store/search/getSearchMain.do?query=" + encodeURIComponent("수이스킨 어린새싹 딥 클렌징 폼"), linkType: "search" },
+  { id: "illiyoon-ceramide-wash", brand: "일리윤", name: "세라마이드 아토 6.0 탑투토 워시", category: "클렌징", ingredients: ["세라마이드"], forTypes: ["건성", "민감"], concerns: ["수분"], rating: 4.7, feel: "보습", desc: "얼굴부터 몸까지, 순하게 세안하며 장벽을 지키는 약산성 워시", fullMl: 500, price: 17000, safety: ["약산성", "저자극"], oliveYoungUrl: "https://www.oliveyoung.co.kr/store/search/getSearchMain.do?query=" + encodeURIComponent("일리윤 세라마이드 아토 6.0 탑투토 워시"), linkType: "search" },
   { id: "goodal-vitac", brand: "구달", name: "청귤 비타C 잡티케어 세럼", category: "세럼", ingredients: ["비타민C"], forTypes: ["중성", "복합", "지성"], concerns: ["기미"], rating: 4.5, feel: "산뜻", desc: "비타민C로 잡티·톤 케어하는 브라이트닝 세럼", fullMl: 30, price: 27000, safety: [], oliveYoungUrl: "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000162325", linkType: "direct" },
   { id: "drg-red-blemish", brand: "닥터지", name: "레드 블레미쉬 클리어 수딩 크림", category: "크림", ingredients: ["센텔라", "시카"], forTypes: ["민감", "복합", "지성"], concerns: ["트러블"], rating: 4.5, feel: "진정", desc: "붉은기·민감을 진정시키는 수딩크림", fullMl: 70, price: 30000, safety: ["진정", "저자극"], oliveYoungUrl: "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000164615", linkType: "direct" },
   { id: "layerlab-panthenol", brand: "레이어랩", name: "니오좀 판테놀 5% 세럼", category: "세럼", ingredients: ["판테놀"], forTypes: ["민감", "건성"], concerns: ["수분", "트러블"], rating: 4.6, feel: "진정", desc: "판테놀 고함량으로 예민해진 피부를 진정시키는 세럼", fullMl: 40, price: 34000, safety: ["진정"], oliveYoungUrl: "https://www.oliveyoung.co.kr/store/search/getSearchMain.do?query=" + encodeURIComponent("레이어랩 니오좀 판테놀 5% 세럼"), linkType: "search" },
@@ -86,13 +91,21 @@ export function recommendCosmetics(
   });
 
   scored.sort((a, b) => b.s - a.s || b.p.rating - a.p.rating);
-  const top = scored.slice(0, 5);
+
+  // 클렌징폼은 미세먼지·피지 관리에 늘 중요한데 점수 경쟁만으로는 top-5에서 밀릴 수 있어서,
+  // 지금 피부타입에 가장 잘 맞는 클렌징폼 1개는 항상 추천에 포함되도록 보장한다.
+  const bestCleanser = scored.find((x) => x.p.category === "클렌징");
+  const others = scored.filter((x) => x.p.category !== "클렌징");
+  const top = (bestCleanser ? [bestCleanser, ...others.slice(0, 4)] : others.slice(0, 5)).sort(
+    (a, b) => b.s - a.s || b.p.rating - a.p.rating
+  );
 
   const items: Recommendation[] = top.map(({ p, matched }) => {
     const bits: string[] = [];
     if (p.forTypes.includes(skin)) bits.push(`${skinTypeForRec} 피부 적합`);
     if (p.ingredients[0]) bits.push(`${p.ingredients[0]} 함유`);
     if (hiUV && p.category === "선크림") bits.push("강한 자외선 차단");
+    else if (hiDust && p.category === "클렌징") bits.push("미세먼지 많은 날 클렌징 케어");
     else if (dry && p.concerns.includes("수분")) bits.push("건조한 기후 속보습");
     else if (hotHumid && p.feel === "산뜻") bits.push("습한 날 산뜻하게");
     else if (matched[0]) bits.push(`'${matched[0]}' 고민 케어`);
