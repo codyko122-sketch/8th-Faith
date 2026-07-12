@@ -705,7 +705,7 @@ function comboComment(p: { temp: number; humidity: number; uv: number; dust: num
   return `${env} 여행지에서 ${type} 피부라면 ${advice[type] ?? "기본 보습과 자외선 차단을 챙기세요."}`;
 }
 
-// 피부 이슈 지수 세부 항목(자외선노출/색소침착/수분손실/트러블·유수분) — 여행지 기후 × Baumann 코드로 산출
+// 피부 자극 지수 세부 항목(자외선노출/색소침착/수분손실/트러블·유수분) — 여행지 기후 × Baumann 코드로 산출
 function skinIssueSubindex(p: { temp: number; humidity: number; uv: number; dust: number }, code: string, concerns: string[]) {
   const dry = code[0] === "D";
   const oily = code[0] === "O";
@@ -721,7 +721,7 @@ function skinIssueSubindex(p: { temp: number; humidity: number; uv: number; dust
 }
 
 // 애프터케어 입국심사 설문(피부 상태 좋아짐/비슷함/나빠짐 · 나빠졌다면 선택한 고민)으로
-// "여행 후 피부 이슈 지수"를 산출하고, 여행 전 대비 무엇이 좋아지게/나빠지게 했는지 설명한다.
+// "여행 후 피부 자극 지수"를 산출하고, 여행 전 대비 무엇이 좋아지게/나빠지게 했는지 설명한다.
 const AC_CONCERN_WEIGHT: Record<string, number> = { acne: 14, redness: 12, pigment: 12, hydration: 10, pore: 8, wrinkle: 8 };
 function aftercareIndexChange(preScore: number, change: "better" | "same" | "worse" | null, concernIds: string[]) {
   let delta = 0;
@@ -1426,7 +1426,7 @@ export default function BeautyPassportExperience() {
     setStage("intro");
   }
 
-  // 애프터케어(여행 후) 결과에서 "여행 전 피부 이슈 지수"·"여행 전 추천 제품"과 비교하기 위해,
+  // 애프터케어(여행 후) 결과에서 "여행 전 피부 자극 지수"·"여행 전 추천 제품"과 비교하기 위해,
   // stage와 무관하게 항상 계산해둔다(result는 stage==="result"가 아니면 null이라 재사용 불가).
   const preTripSnapshot = useMemo(() => {
     if (!skin) return null;
@@ -2656,7 +2656,7 @@ export default function BeautyPassportExperience() {
                           const dirLabel = dir === "up" ? `+${change.delta} 악화` : dir === "down" ? `${change.delta} 개선` : "변화 없음";
                           return (
                             <div className={acStyles.idxCard}>
-                              <div className={acStyles.idxLabel}>Skin Issue Index · 피부 이슈 지수 변화</div>
+                              <div className={acStyles.idxLabel}>Skin Irritation Index · 피부 자극 지수 변화</div>
 
                               <div className={acStyles.idxColLabel}>여행 전</div>
                               <div className="mt-2 flex items-center gap-4">
@@ -3182,7 +3182,7 @@ export default function BeautyPassportExperience() {
 
                   {resultView === "main" && (
                     <>
-                      {/* 보딩패스 요약 + 피부 이슈 지수 + 날씨 캘린더 + AI 써머리 (통합 카드) */}
+                      {/* 보딩패스 요약 + 피부 자극 지수 + 날씨 캘린더 + AI 써머리 (통합 카드) */}
                       {skin &&
                         (() => {
                           const bt = BAUMANN_TYPES[skin.code];
@@ -3241,10 +3241,10 @@ export default function BeautyPassportExperience() {
                                   </div>
                                 </div>
 
-                                {/* 피부 이슈 지수 */}
+                                {/* 피부 자극 지수 */}
                                 <div className="mt-[17px] border-t border-dashed border-[#e7e7ea] pt-[17px]">
-                                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Skin Issue Index</div>
-                                  <h3 className="mt-0.5 text-[15px] font-extrabold text-[#0a0a0a]">📊 피부 이슈 지수</h3>
+                                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Skin Irritation Index</div>
+                                  <h3 className="mt-0.5 text-[15px] font-extrabold text-[#0a0a0a]">📊 피부 자극 지수</h3>
                                   <div className="mt-3 flex items-center gap-4">
                                     <div
                                       className="relative grid h-[88px] w-[88px] flex-none place-items-center rounded-full"
@@ -3676,7 +3676,7 @@ export default function BeautyPassportExperience() {
                             })}
                           </div>
                           <div className="mt-3 flex items-center justify-between rounded-xl bg-[#f4f4f5] px-4 py-3">
-                            <span className="text-sm text-[#3f3f46]">이번 여행 피부 이슈 지수</span>
+                            <span className="text-sm text-[#3f3f46]">이번 여행 피부 자극 지수</span>
                             <span className="text-lg font-black text-[#0a0a0a]">
                               {result.index.score} · {result.index.level}
                             </span>
@@ -4335,7 +4335,7 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="block text-sm font-semibold text-[#2b6b86]">{children}</label>;
 }
 
-// 피부 이슈 지수 게이지 — 결과 화면의 원형 게이지와 완전히 동일한 스타일(재사용)
+// 피부 자극 지수 게이지 — 결과 화면의 원형 게이지와 완전히 동일한 스타일(재사용)
 function IndexGauge({ score, level }: { score: number; level: string }) {
   return (
     <div

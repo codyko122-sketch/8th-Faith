@@ -48,7 +48,7 @@ export function SkinReport({
     `${dest}은(는) ${p.tag} 기후로 평균 최고 ${p.temp}℃, 습도 ${p.humidity}%, ` +
     `UV ${p.uv}, 미세먼지 ${p.dust} 수준입니다. ${skinType} 피부` +
     (concerns.length ? `·${concerns.join("/")} 고민` : "") +
-    `을(를) 고려할 때 ${days}일 여행 동안 피부 이슈 발생 가능성은 '${idx.level}'으로 예상됩니다.`;
+    `을(를) 고려할 때 ${days}일 여행 동안 피부 자극 발생 가능성은 '${idx.level}'으로 예상됩니다.`;
 
   const metrics = [
     { icon: "🌡️", label: "평균기온", value: `${p.temp}℃` },
@@ -90,10 +90,10 @@ export function SkinReport({
         </div>
       </Reveal>
 
-      {/* 피부 이슈 지수 */}
+      {/* 피부 자극 지수 */}
       <Reveal i={2}>
         <div className="rounded-[var(--radius-xl)] border border-line bg-card p-6 shadow-soft sm:p-7">
-          <h3 className="font-serif text-xl font-semibold">📊 피부 이슈 지수</h3>
+          <h3 className="font-serif text-xl font-semibold">📊 피부 자극 지수</h3>
           <div className="mt-3 flex items-baseline gap-2.5">
             <span className="font-serif text-5xl font-extrabold" style={{ color: idx.color }}>
               {idx.score}
