@@ -4456,11 +4456,11 @@ function AiDetailModal({
           <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Ingredients · 성분 가이드</div>
           <div className="mt-3 grid grid-cols-2 gap-4">
             <div>
-              <div className="text-xs font-extrabold text-[#1f9d57]">👍 추천 성분</div>
+              <div className="text-xs font-extrabold text-[#0a0a0a]">👍 추천 성분</div>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {care.good.length ? (
                   care.good.map((g) => (
-                    <span key={g} className="rounded-full border border-[#1f9d57] bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#1f9d57]">{g}</span>
+                    <span key={g} className="rounded-full border border-[#0a0a0a] bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#0a0a0a]">{g}</span>
                   ))
                 ) : (
                   <span className="text-[11px] text-[#9ca3af]">추천 성분 정보가 없어요</span>
