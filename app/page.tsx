@@ -40,6 +40,7 @@ import {
 import type { ScanResult } from "@/lib/scan-types";
 import type { AiSummaryResult } from "@/lib/ai-summary-types";
 import { getWaterQuality } from "@/lib/water-quality-data";
+import { ALLERGEN_OPTIONS, allergenLabel } from "@/lib/allergens-data";
 import {
   PassportTopBar,
   PassportEyebrow,
@@ -793,6 +794,7 @@ export default function BeautyPassportExperience() {
   const [gender, setGender] = useState("");
   // 계정 (localStorage 기반 — lib/auth.ts)
   const [loggedInId, setLoggedInId] = useState<string | null>(null);
+  const [userAllergies, setUserAllergies] = useState<string[]>([]);
   const [loginId, setLoginId] = useState("");
   const [loginPw, setLoginPw] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -802,6 +804,8 @@ export default function BeautyPassportExperience() {
   const [signupPw2, setSignupPw2] = useState("");
   const [signupAge, setSignupAge] = useState("");
   const [signupGender, setSignupGender] = useState("");
+  const [signupAllergies, setSignupAllergies] = useState<string[]>([]);
+  const [signupAllergyOther, setSignupAllergyOther] = useState("");
   const [signupError, setSignupError] = useState("");
   const [rememberId, setRememberId] = useState(false);
   const [autoLoginChecked, setAutoLoginChecked] = useState(false);
@@ -942,7 +946,7 @@ export default function BeautyPassportExperience() {
       const res = await fetch("/api/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: dataUrl }),
+        body: JSON.stringify({ image: dataUrl, allergyIngredients: userAllergies.map(allergenLabel) }),
       });
       if (!res.ok) {
         const e = (await res.json().catch(() => ({}))) as { error?: string };
@@ -1203,6 +1207,7 @@ export default function BeautyPassportExperience() {
     setName(account.name);
     setAge(account.age);
     setGender(account.gender);
+    setUserAllergies(account.allergyIngredients ?? []);
     return true;
   }
   function handleLogin() {
@@ -1218,6 +1223,7 @@ export default function BeautyPassportExperience() {
     setName(res.account.name);
     setAge(res.account.age);
     setGender(res.account.gender);
+    setUserAllergies(res.account.allergyIngredients ?? []);
     setStage("member");
   }
   function handleGuestLogin() {
@@ -1240,16 +1246,24 @@ export default function BeautyPassportExperience() {
     setName(res.account.name);
     setAge(res.account.age);
     setGender(res.account.gender);
+    setUserAllergies([]);
     // 공용 게스트 계정은 "개인정보는 저장되지 않아요" 안내와 맞게, 이전 사용자가 저장한
     // 진단 기록을 불러오는 화면(member) 없이 바로 설문 탭으로 보낸다.
     setStage("checkin");
+  }
+  function toggleSignupAllergy(id: string) {
+    setSignupAllergies((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
   function handleSignup() {
     if (signupPw !== signupPw2) {
       setSignupError("비밀번호가 일치하지 않아요.");
       return;
     }
-    const res = authSignup({ id: signupId, password: signupPw, name: signupName, age: signupAge, gender: signupGender });
+    const allergyIngredients = [
+      ...signupAllergies,
+      ...signupAllergyOther.split(",").map((s) => s.trim()).filter(Boolean),
+    ];
+    const res = authSignup({ id: signupId, password: signupPw, name: signupName, age: signupAge, gender: signupGender, allergyIngredients });
     if (!res.ok) {
       setSignupError(res.error);
       return;
@@ -1259,6 +1273,7 @@ export default function BeautyPassportExperience() {
     setName(res.account.name);
     setAge(res.account.age);
     setGender(res.account.gender);
+    setUserAllergies(res.account.allergyIngredients ?? []);
     setStage("checkin");
   }
   function handleLogout() {
@@ -1266,6 +1281,7 @@ export default function BeautyPassportExperience() {
     setAutoLogin(false);
     setAutoLoginChecked(false);
     setLoggedInId(null);
+    setUserAllergies([]);
     setLoginId(getRememberedId() ?? ""); setLoginPw(""); setLoginError("");
     setStage("login");
   }
@@ -1311,18 +1327,12 @@ export default function BeautyPassportExperience() {
     setAcSaved(true);
     setTimeout(() => setAcSaved(false), 1800);
   }
-  function restart() {
-    clearSession();
-    setAutoLogin(false);
-    setAutoLoginChecked(false);
-    setLoggedInId(null); setLoginId(getRememberedId() ?? ""); setLoginPw(""); setLoginError("");
-    setSignupName(""); setSignupId(""); setSignupPw(""); setSignupPw2(""); setSignupAge(""); setSignupGender(""); setSignupError("");
-    setFindIdName(""); setFindIdResult(null); setFindIdError("");
-    setFindPwId(""); setFindPwName(""); setFindPwVerified(false); setFindPwNew(""); setFindPwNew2(""); setFindPwError(""); setFindPwDone(false);
+  // "다시하기"(로그인 유지, 진단·여행·결제 진행 상태만 리셋)와 "완전 초기화"(로그아웃 포함)가
+  // 공유하는 부분 — 여행 계획/진단/장바구니/주문 상태만 초기화한다.
+  function resetTripState() {
     setJourneyPhase(null);
     setAcEntry("journey");
     setAcChange(null); setAcUsedProducts(null); setAcUsedProductIds([]); setAcConcerns([]); setAcMode(null); setAcSaved(false); setFullBuyProduct(null);
-    setName(""); setAge(""); setGender("");
     setCountryCode(null); setCityName(null);
     setUseCustom(false); setCustomCountry(""); setCustomCity("");
     setDepartDate(null); setArriveDate(null);
@@ -1337,6 +1347,26 @@ export default function BeautyPassportExperience() {
     setPendingReceive(null); setPaymentMethod("card"); setCardNumber(""); setCardExpiry(""); setCardCvc(""); setPaying(false);
     setOrderNo(null); setLockerNo(null);
     setResultView("main"); setShowAiDetail(false); setCarePhase(0); setPickCat(PICK_CATEGORIES[0]); setDeliveryStatusOpen(false);
+  }
+  // 다시하기 — 로그인은 유지한 채 진단·여행 계획만 새로 시작
+  function restartTrip() {
+    resetTripState();
+    setStage("checkin");
+  }
+  // 처음으로 — 아무 데이터도 지우지 않고 로그인 홈(또는 로그인 화면)으로만 이동
+  function goHome() {
+    setStage(loggedInId ? "member" : "login");
+  }
+  function restart() {
+    clearSession();
+    setAutoLogin(false);
+    setAutoLoginChecked(false);
+    setLoggedInId(null); setUserAllergies([]); setLoginId(getRememberedId() ?? ""); setLoginPw(""); setLoginError("");
+    setSignupName(""); setSignupId(""); setSignupPw(""); setSignupPw2(""); setSignupAge(""); setSignupGender(""); setSignupAllergies([]); setSignupAllergyOther(""); setSignupError("");
+    setFindIdName(""); setFindIdResult(null); setFindIdError("");
+    setFindPwId(""); setFindPwName(""); setFindPwVerified(false); setFindPwNew(""); setFindPwNew2(""); setFindPwError(""); setFindPwDone(false);
+    setName(""); setAge(""); setGender("");
+    resetTripState();
     setStage("intro");
   }
 
@@ -1357,9 +1387,9 @@ export default function BeautyPassportExperience() {
     return {
       index: skinIssueIndexP(profile, skin.skinTypeForRec, skin.recConcerns),
       sub: skinIssueSubindex(profile, skin.code, skin.recConcerns),
-      recItems: recommendCosmetics(skin.skinTypeForRec, skin.sensitivity, skin.displayConcerns, profile).items,
+      recItems: recommendCosmetics(skin.skinTypeForRec, skin.sensitivity, skin.displayConcerns, profile, userAllergies).items,
     };
-  }, [skin, useCustom, city, weather]);
+  }, [skin, useCustom, city, weather, userAllergies]);
 
   const result = useMemo(() => {
     if (stage !== "result" || !skin) return null;
@@ -1383,8 +1413,8 @@ export default function BeautyPassportExperience() {
     const start = departDate ? new Date(departDate) : new Date();
     const days = departDate && arriveDate ? diffDays(departDate, arriveDate) : 5;
 
-    // 피부타입 + 고민 + 여행지 날씨로 실제 제품 필터·스코어링
-    const rec = recommendCosmetics(skin.skinTypeForRec, skin.sensitivity, skin.displayConcerns, profile);
+    // 피부타입 + 고민 + 여행지 날씨 + 알러지 성분으로 실제 제품 필터·스코어링
+    const rec = recommendCosmetics(skin.skinTypeForRec, skin.sensitivity, skin.displayConcerns, profile, userAllergies);
 
     return {
       profile,
@@ -1400,7 +1430,7 @@ export default function BeautyPassportExperience() {
       recSummary: rec.summary,
       recItems: rec.items,
     };
-  }, [stage, useCustom, city, country, customCountry, customCity, departDate, arriveDate, skin, weather]);
+  }, [stage, useCustom, city, country, customCountry, customCity, departDate, arriveDate, skin, weather, userAllergies]);
 
   // AI 써머리 — 결과 화면 진입 시 실측 날씨·미세먼지 + 목적지 수질 + 바우만 피부타입으로 AI 코멘트 생성
   useEffect(() => {
@@ -1425,6 +1455,7 @@ export default function BeautyPassportExperience() {
           skinTypeForRec: skin.skinTypeForRec,
           displayConcerns: skin.displayConcerns,
         },
+        allergyIngredients: userAllergies.map(allergenLabel),
         name,
         age,
         gender,
@@ -1443,7 +1474,7 @@ export default function BeautyPassportExperience() {
     return () => {
       cancelled = true;
     };
-  }, [result, skin, name, age, gender]);
+  }, [result, skin, name, age, gender, userAllergies]);
 
   const dday = departDate ? daysUntil(departDate) : null;
 
@@ -1830,6 +1861,32 @@ export default function BeautyPassportExperience() {
                         </button>
                       ))}
                     </div>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-[13px] font-extrabold text-[#0a0a0a]">
+                      Allergies <span className="ml-1 font-sans text-[12px] font-medium text-[#9ca3af]">· 알러지·기피 성분 (선택)</span>
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {ALLERGEN_OPTIONS.map((a) => (
+                        <button
+                          key={a.id}
+                          type="button"
+                          onClick={() => toggleSignupAllergy(a.id)}
+                          className={`rounded-full border-[1.5px] px-3 py-1.5 text-[12.5px] font-semibold transition ${
+                            signupAllergies.includes(a.id) ? "border-[#0a0a0a] bg-[#0a0a0a] text-white" : "border-[#e7e7ea] bg-[#f4f4f5] text-[#3f3f46]"
+                          }`}
+                        >
+                          {a.label}
+                        </button>
+                      ))}
+                    </div>
+                    <input
+                      value={signupAllergyOther}
+                      onChange={(e) => setSignupAllergyOther(e.target.value)}
+                      placeholder="목록에 없으면 직접 입력 (쉼표로 구분)"
+                      className="mt-2 w-full rounded-[13px] border border-transparent bg-[#f4f4f5] px-4 py-3 font-sans text-[13px] text-[#0a0a0a] outline-none transition placeholder:text-[#9ca3af] focus:border-[#0a0a0a] focus:bg-white"
+                    />
+                    <p className="mt-1.5 text-[11px] text-[#9ca3af]">등록해두면 제품 추천·성분 스캔·AI 써머리에서 이 성분을 특히 주의해서 알려드려요.</p>
                   </div>
                   <PassportError>{signupError}</PassportError>
                 </div>
@@ -2533,10 +2590,13 @@ export default function BeautyPassportExperience() {
 
                       <AcBtnBar>
                         <AcBtn variant="ghost" onClick={acRestart}>
-                          처음으로
+                          다시하기
                         </AcBtn>
                         <AcBtn onClick={acSave}>맞춤 제품 담기 →</AcBtn>
                       </AcBtnBar>
+                      <PassportBackLink onClick={goHome}>
+                        <b className="font-extrabold text-[#0a0a0a]">처음으로</b> 돌아가기
+                      </PassportBackLink>
                     </AcScreenChrome>
                     {acSaved && (
                       <div className="fixed bottom-7 left-1/2 z-[80] -translate-x-1/2 rounded-full bg-[#111111] px-[22px] py-[13px] text-[13px] font-bold text-white shadow-lg">
@@ -3075,7 +3135,10 @@ export default function BeautyPassportExperience() {
             {stage === "result" && result && (
               <motion.section key="result" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto bg-white px-7 pb-8 pt-5">
                 <div className="min-h-full">
-                  <div className="mb-3 text-center font-sans text-[10px] font-bold uppercase tracking-[0.28em] text-[#71717a]">{name || "여행자"}님의 뷰티 여권</div>
+                  <button type="button" onClick={goHome} className="font-sans text-[11px] font-semibold text-[#9ca3af]">
+                    ‹ 처음으로
+                  </button>
+                  <div className="mb-3 mt-1 text-center font-sans text-[10px] font-bold uppercase tracking-[0.28em] text-[#71717a]">{name || "여행자"}님의 뷰티 여권</div>
 
                   {resultView === "main" && (
                     <>
@@ -3584,7 +3647,7 @@ export default function BeautyPassportExperience() {
                       {/* 하단 버튼 */}
                       <div className="mt-8 flex gap-3">
                         <button
-                          onClick={restart}
+                          onClick={restartTrip}
                           className="flex-1 rounded-[14px] border-[1.5px] border-[#e7e7ea] bg-white px-6 py-4 text-[15px] font-extrabold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
                         >
                           다시하기 ↺
@@ -4009,7 +4072,7 @@ export default function BeautyPassportExperience() {
 
                   <div className="mt-8 flex w-full gap-3">
                     <button
-                      onClick={restart}
+                      onClick={goHome}
                       className="flex-1 rounded-[14px] border-[1.5px] border-[#e7e7ea] bg-white px-6 py-4 text-[15px] font-extrabold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
                     >
                       처음으로 ↺

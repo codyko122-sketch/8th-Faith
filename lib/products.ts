@@ -2,6 +2,8 @@
 // fullMl/price 는 카테고리 기준 근사값(수정 가능), oliveYoungUrl 은 제품명 검색 링크.
 // image: 실제 제품 이미지 URL을 넣으면 노출, 비어 있으면 브랜드 컬러 플레이스홀더로 폴백.
 
+import { allergyRiskForProduct } from "./allergens-data";
+
 export type Cosmetic = {
   id: string;
   brand: string;
@@ -59,7 +61,8 @@ export function recommendCosmetics(
   skinTypeForRec: string,
   sensitivity: string,
   concerns: string[],
-  wx: WxProfile
+  wx: WxProfile,
+  userAllergies: string[] = []
 ): { summary: string; items: Recommendation[] } {
   const skin = normType(skinTypeForRec);
   const dry = wx.humidity <= 45;
@@ -87,7 +90,11 @@ export function recommendCosmetics(
       if (p.concerns.includes("기미")) s += 1;
     }
     if (hiDust && (p.concerns.includes("트러블") || p.category === "클렌징")) s += 1;
-    return { p, s, matched };
+    // 등록된 알러지 성분과 겹치는 제품은 완전히 배제하지 않고 순위만 낮춰서, 대안이 없을 때도
+    // "⚠️ 주의" 표시와 함께 여전히 확인할 수 있게 한다(오탐 가능성이 있는 로컬 매칭이라 강제 제외는 과함).
+    const allergyRisk = allergyRiskForProduct(userAllergies, p.ingredients, p.safety);
+    if (allergyRisk.length) s -= 3;
+    return { p, s, matched, allergyRisk };
   });
 
   scored.sort((a, b) => b.s - a.s || b.p.rating - a.p.rating);
@@ -102,8 +109,9 @@ export function recommendCosmetics(
     return true;
   });
 
-  const items: Recommendation[] = top.map(({ p, matched }) => {
+  const items: Recommendation[] = top.map(({ p, matched, allergyRisk }) => {
     const bits: string[] = [];
+    if (allergyRisk.length) bits.push(`⚠️ ${allergyRisk.join("·")} 주의`);
     if (p.forTypes.includes(skin)) bits.push(`${skinTypeForRec} 피부 적합`);
     if (p.ingredients[0]) bits.push(`${p.ingredients[0]} 함유`);
     if (hiUV && p.category === "선크림") bits.push("강한 자외선 차단");

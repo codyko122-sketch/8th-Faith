@@ -19,6 +19,7 @@ export type Account = {
   skinUpdatedAt: string | null;
   createdAt: string;
   savedProducts?: SavedProduct[];
+  allergyIngredients?: string[]; // 알러지·기피 성분 (lib/allergens-data.ts 아이디 또는 자유 입력 텍스트)
 };
 
 const ACCOUNTS_KEY = "beauty-passport:accounts";
@@ -67,6 +68,7 @@ export function signup(input: {
   name: string;
   age: string;
   gender: string;
+  allergyIngredients?: string[];
 }): { ok: true; account: Account } | { ok: false; error: string } {
   const id = input.id.trim();
   const name = input.name.trim();
@@ -85,6 +87,7 @@ export function signup(input: {
     skinCode: null,
     skinUpdatedAt: null,
     createdAt: new Date().toISOString(),
+    allergyIngredients: input.allergyIngredients ?? [],
   };
   writeAccounts([...readAccounts(), account]);
   setSession(id);
@@ -148,6 +151,14 @@ export function saveSkinToAccount(id: string, skinCode: string) {
   const idx = accounts.findIndex((a) => a.id === id);
   if (idx === -1) return;
   accounts[idx] = { ...accounts[idx], skinCode, skinUpdatedAt: new Date().toISOString() };
+  writeAccounts(accounts);
+}
+
+export function saveAllergiesToAccount(id: string, allergyIngredients: string[]) {
+  const accounts = readAccounts();
+  const idx = accounts.findIndex((a) => a.id === id);
+  if (idx === -1) return;
+  accounts[idx] = { ...accounts[idx], allergyIngredients };
   writeAccounts(accounts);
 }
 
