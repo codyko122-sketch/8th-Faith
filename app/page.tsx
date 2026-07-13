@@ -1619,6 +1619,9 @@ export default function BeautyPassportExperience() {
   const [findPwError, setFindPwError] = useState("");
   const [findPwDone, setFindPwDone] = useState(false);
   const [journeyPhase, setJourneyPhase] = useState<"before" | "during" | "after" | null>(null);
+  // "여행 중"·"여행 후"로 넘어갈 때, 직전에 "여행 전"에서 입력해둔 여행지 정보가 있으면
+  // 이어서 쓸지 새로 입력할지 고르게 하는 중간 화면(위치를 매번 다시 고르지 않도록 하는 임시 GPS 대체 장치)
+  const [journeyGate, setJourneyGate] = useState<"during" | "after" | null>(null);
   // 애프터케어 (여행 후)
   const [acEntry, setAcEntry] = useState<"journey" | "careplan" | "duringTrip">("journey");
   const [acChange, setAcChange] = useState<"better" | "same" | "worse" | null>(null);
@@ -2101,6 +2104,38 @@ export default function BeautyPassportExperience() {
     setUseCustom(false);
     setCountryCode(code);
     setCityName(null);
+  }
+  // "새 여행이에요" 선택 시 이전 목적지 정보를 지워서 다시 고르게 한다.
+  function startNewDestination() {
+    setCountryCode(null);
+    setCityName(null);
+    setUseCustom(false);
+    setCustomCountry("");
+    setCustomCity("");
+  }
+  // 여행 전에 입력해둔 목적지 정보가 있으면 이어가기/새 여행 선택 화면을 띄우고,
+  // 없으면 곧장 다음 화면으로 보낸다.
+  function goToJourneyPhase(target: "during" | "after") {
+    if (countryCode && cityName) {
+      setJourneyGate(target);
+      return;
+    }
+    if (target === "during") setStage("duringTrip");
+    else {
+      setAcEntry("journey");
+      setStage("acArrival");
+    }
+  }
+  function resolveJourneyGate(useExisting: boolean) {
+    const target = journeyGate;
+    if (!target) return;
+    if (!useExisting) startNewDestination();
+    setJourneyGate(null);
+    if (target === "during") setStage("duringTrip");
+    else {
+      setAcEntry("journey");
+      setStage("acArrival");
+    }
   }
   function tryAutoLogin(): boolean {
     if (!isAutoLoginEnabled()) return false;
@@ -3116,16 +3151,56 @@ export default function BeautyPassportExperience() {
                     disabled={!journeyPhase}
                     onClick={() => {
                       if (journeyPhase === "before") setStage("travel");
-                      else if (journeyPhase === "during") setStage("duringTrip");
-                      else {
-                        setAcEntry("journey");
-                        setStage("acArrival");
-                      }
+                      else if (journeyPhase === "during") goToJourneyPhase("during");
+                      else if (journeyPhase === "after") goToJourneyPhase("after");
                     }}
                   >
                     다음 단계 →
                   </PassportButton>
                 </div>
+
+                {journeyGate && (
+                  <div className="absolute inset-0 z-[85] flex flex-col justify-end bg-white/85 px-7 pb-8 pt-16 backdrop-blur-md">
+                    <div className="mb-2 text-center font-sans text-[11px] font-extrabold uppercase tracking-[0.2em] text-[#9ca3af]">
+                      여행 정보 이어가기
+                    </div>
+                    <p className="mb-5 text-center text-sm text-[#3f3f46]">
+                      직전에 입력한 여행 정보가 있어요. 이어서 쓸까요?
+                    </p>
+                    <div className="flex gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => resolveJourneyGate(true)}
+                        className="flex-1 rounded-2xl border-[1.5px] border-[#0a0a0a] bg-[#0a0a0a] px-4 py-4 text-left text-white transition active:scale-[0.985]"
+                      >
+                        <div className="text-[11px] font-bold text-white/70">이어가기</div>
+                        <div className="mt-1 truncate text-[15px] font-extrabold">
+                          {country?.flag ?? "✈️"} {city?.name ?? country?.name ?? "여행지"}
+                        </div>
+                        {(departDate || arriveDate) && (
+                          <div className="mt-0.5 truncate text-[11px] text-white/70">
+                            {[departDate, arriveDate].filter(Boolean).map((d) => fmtISO(d as string)).join(" – ")}
+                          </div>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => resolveJourneyGate(false)}
+                        className="flex-1 rounded-2xl border-[1.5px] border-[#e7e7ea] bg-white px-4 py-4 text-left transition active:bg-[#f4f4f5]"
+                      >
+                        <div className="text-[11px] font-bold text-[#9ca3af]">NEW</div>
+                        <div className="mt-1 text-[15px] font-extrabold text-[#0a0a0a]">새 여행이에요</div>
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setJourneyGate(null)}
+                      className="mt-4 text-center text-xs font-semibold text-[#9ca3af]"
+                    >
+                      취소
+                    </button>
+                  </div>
+                )}
               </motion.section>
             )}
 
@@ -5212,7 +5287,16 @@ export default function BeautyPassportExperience() {
 
                   <div className="mt-8 flex w-full gap-3">
                     <button
-                      onClick={() => setStage(checkoutTiming === "after" ? "acResult" : "result")}
+                      onClick={() => {
+                        if (checkoutTiming === "after") {
+                          setStage("acResult");
+                        } else {
+                          // 직접 고르기·여행 케어 플랜 등 다른 서브뷰에 있다가 장바구니로 갔더라도,
+                          // 결제 완료 후 "이전으로"는 항상 원래 보딩패스 요약 화면으로 돌아간다.
+                          setResultView("main");
+                          setStage("result");
+                        }
+                      }}
                       className="flex-1 rounded-[14px] border-[1.5px] border-[#e7e7ea] bg-white px-6 py-4 text-[15px] font-extrabold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
                     >
                       ← 이전으로

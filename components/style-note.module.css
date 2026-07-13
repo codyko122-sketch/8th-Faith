@@ -4,8 +4,7 @@
   --paper-alt: #efe8da;
   --ink: #1f2a24;
   --ink-soft: #62716a;
-  --sky: #3e7cb1;
-  --sky-dark: #2b5980;
+  --brand-red: #ec1c24;
   --coral: #e8785a;
   --mint: #6fae8b;
   --line: #dce3d8;
@@ -62,7 +61,7 @@
 .eyebrowScript {
   font-family: var(--font-script);
   font-size: 22px;
-  color: var(--sky-dark);
+  color: var(--brand-red);
   font-weight: 700;
 }
 
@@ -255,7 +254,7 @@
 .pointLabel {
   font-family: var(--font-script);
   font-size: 24px;
-  color: var(--sky-dark);
+  color: var(--brand-red);
   margin-bottom: 4px;
 }
 
@@ -297,7 +296,7 @@
   gap: 6px;
   font-size: 12.5px;
   font-weight: 800;
-  color: var(--sky-dark);
+  color: var(--brand-red);
   margin-bottom: 6px;
 }
 
