@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const LINKS = [
-  { href: "/diagnose", label: "진단 시작" },
   { href: "/ingredients", label: "성분 검색" },
 ];
 

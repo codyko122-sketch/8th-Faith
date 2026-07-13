@@ -281,13 +281,6 @@ function AcTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onOpenC
               <span className="text-[15px]">🔍</span>
               <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">성분 가이드</span>
             </a>
-            <a
-              href="/diagnose"
-              className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
-            >
-              <span className="text-[15px]">🧭</span>
-              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">여행 피부 진단</span>
-            </a>
             <button
               type="button"
               onClick={() => {

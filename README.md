@@ -39,11 +39,9 @@ npm run start
 app/
   layout.tsx          공통 레이아웃 · 폰트 · 내비게이션
   page.tsx            홈(랜딩)
-  diagnose/page.tsx   피부 진단 폼 + 리포트
   ingredients/page.tsx 성분 검색
 components/
   site-nav.tsx        상단 내비게이션
-  skin-report.tsx     진단 결과 리포트
   kit-form.tsx        소용량 키트 신청 폼
 lib/
   data.ts             기후 프로파일 · 제품 카탈로그
