@@ -1,5 +1,5 @@
 .root {
-  --paper: #f7f9f5;
+  --paper: #ffffff;
   --card: #ffffff;
   --paper-alt: #efe8da;
   --ink: #1f2a24;
@@ -328,7 +328,7 @@
 }
 
 .shareBar button.primary {
-  background: var(--sky);
-  border-color: var(--sky);
+  background: #0a0a0a;
+  border-color: #0a0a0a;
   color: #fff;
 }
