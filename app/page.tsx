@@ -3050,7 +3050,10 @@ export default function BeautyPassportExperience() {
                 exit="exit"
                 className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
               >
-                <PassportTopBar onBack={() => setStage("member")} />
+                <ZigZagTopBar {...zigZagTopBarProps} />
+                <button type="button" onClick={() => setStage("member")} className="font-sans text-[11px] font-semibold text-[#9ca3af]">
+                  ‹ 이전
+                </button>
                 <PassportEyebrow>Boarding · 탑승</PassportEyebrow>
                 <PassportTitle>
                   YOUR
@@ -3114,6 +3117,7 @@ export default function BeautyPassportExperience() {
                 exit="exit"
                 className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
               >
+                <ZigZagTopBar {...zigZagTopBarProps} />
                 <button type="button" onClick={() => setStage("journey")} className="font-sans text-[11px] font-semibold text-[#9ca3af]">
                   ‹ 이전
                 </button>
@@ -3755,6 +3759,7 @@ export default function BeautyPassportExperience() {
                 exit="exit"
                 className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
               >
+                <ZigZagTopBar {...zigZagTopBarProps} />
                 <div className="flex items-center justify-between">
                   <div className="font-sans text-[12px] font-extrabold text-[#3f3f46]">STEP 2 / 2 · 여행 정보</div>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
