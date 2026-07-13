@@ -4688,7 +4688,9 @@ export default function BeautyPassportExperience() {
                   >
                     <div className="text-3xl">📦</div>
                     <div className="mt-2 text-lg font-black text-[#0a0a0a]">배송으로 받기</div>
-                    <p className="mt-1 text-sm text-[#71717a]">출발 전 미리 집(또는 원하는 곳)에서 받아보세요.</p>
+                    <p className="mt-1 text-sm text-[#71717a]">
+                      {checkoutTiming === "after" ? "여행지에서 돌아온 뒤 집(또는 원하는 곳)에서 받아보세요." : "출발 전 미리 집(또는 원하는 곳)에서 받아보세요."}
+                    </p>
                   </motion.button>
 
                   <motion.button
@@ -4698,7 +4700,9 @@ export default function BeautyPassportExperience() {
                   >
                     <div className="text-3xl">🛄</div>
                     <div className="mt-2 text-lg font-black text-[#0a0a0a]">공항에서 픽업</div>
-                    <p className="mt-1 text-sm text-[#71717a]">짐을 줄이고 출국 당일 공항 보관함에서 바로 받으세요.</p>
+                    <p className="mt-1 text-sm text-[#71717a]">
+                      {checkoutTiming === "after" ? "짐을 줄이고 입국 당일 공항 보관함에서 바로 받으세요." : "짐을 줄이고 출국 당일 공항 보관함에서 바로 받으세요."}
+                    </p>
                   </motion.button>
                 </div>
               </motion.section>
@@ -4718,25 +4722,22 @@ export default function BeautyPassportExperience() {
 
                   <Card>
                     <CardTitle>배송 시점</CardTitle>
-                    <div className="mt-3 space-y-2">
-                      <label className="flex items-center justify-between rounded-xl border border-[#e7e7ea] px-4 py-3">
-                        <div>
+                    <div className="mt-3">
+                      {checkoutTiming === "before" ? (
+                        <div className="rounded-xl border border-[#e7e7ea] px-4 py-3">
                           <div className="text-sm font-semibold text-[#0a0a0a]">출국 전 배송</div>
                           <div className="text-xs text-[#71717a]">
                             {departDate ? `예상 도착 ${fmtISO(addDaysISO(departDate, -2))} (출발 2일 전)` : "출발일을 먼저 선택해 주세요"}
                           </div>
                         </div>
-                        <input type="checkbox" checked={deliveryBefore} onChange={(e) => setDeliveryBefore(e.target.checked)} className="h-5 w-5 accent-[#0a0a0a]" />
-                      </label>
-                      <label className="flex items-center justify-between rounded-xl border border-[#e7e7ea] px-4 py-3">
-                        <div>
+                      ) : (
+                        <div className="rounded-xl border border-[#e7e7ea] px-4 py-3">
                           <div className="text-sm font-semibold text-[#0a0a0a]">여행 후 케어 배송</div>
                           <div className="text-xs text-[#71717a]">
                             {arriveDate ? `예상 도착 ${fmtISO(addDaysISO(arriveDate, 3))} (귀국 후)` : "도착일을 먼저 선택해 주세요"}
                           </div>
                         </div>
-                        <input type="checkbox" checked={deliveryAfter} onChange={(e) => setDeliveryAfter(e.target.checked)} className="h-5 w-5 accent-[#0a0a0a]" />
-                      </label>
+                      )}
                     </div>
                   </Card>
 
@@ -4818,13 +4819,15 @@ export default function BeautyPassportExperience() {
                     <DateField
                       label="픽업 날짜"
                       value={pickupDate}
-                      min={todayISO()}
-                      max={departDate ?? undefined}
+                      min={checkoutTiming === "after" ? (arriveDate ?? todayISO()) : todayISO()}
+                      max={checkoutTiming === "after" ? undefined : (departDate ?? undefined)}
                       onChange={setPickupDate}
                       tone="passport"
                     />
                     <p className="mt-1 text-xs text-[#71717a]">
-                      출발일({departDate ? fmtISO(departDate) : "미정"}) 이후는 선택할 수 없어요 · 출발 당일 픽업을 권장해요.
+                      {checkoutTiming === "after"
+                        ? `도착일(${arriveDate ? fmtISO(arriveDate) : "미정"}) 이전으로는 선택할 수 없어요 · 도착 당일 픽업을 권장해요.`
+                        : `출발일(${departDate ? fmtISO(departDate) : "미정"}) 이후는 선택할 수 없어요 · 출발 당일 픽업을 권장해요.`}
                     </p>
 
                     <label className="mt-3 block text-sm font-extrabold text-[#0a0a0a]">픽업 시간</label>
@@ -4838,7 +4841,9 @@ export default function BeautyPassportExperience() {
                         <option key={t} value={t}>{t}</option>
                       ))}
                     </select>
-                    <p className="mt-1 text-xs text-[#71717a]">✈️ 출발 시각 최소 2시간 전 픽업을 권장해요.</p>
+                    {checkoutTiming !== "after" && (
+                      <p className="mt-1 text-xs text-[#71717a]">✈️ 출발 시각 최소 2시간 전 픽업을 권장해요.</p>
+                    )}
                   </Card>
 
                   <Card>
