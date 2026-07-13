@@ -4361,14 +4361,8 @@ export default function BeautyPassportExperience() {
                               <ComplianceBadge cosmeticId={p.id} destinationCountry={countryCode} compact lang={lang} />
 
                               {rec.full ? (
-                                <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
-                                  <span className="flex-1 rounded-xl bg-[#fbe7e5] px-2.5 py-1.5 text-[11px] font-bold text-[#ec1c24]">{t("본품 추천", lang)} · {p.fullMl}ml</span>
-                                  <button
-                                    onClick={() => setFullBuyProduct(p)}
-                                    className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
-                                  >
-                                    {t("본품 구매하기", lang)}
-                                  </button>
+                                <div className="mt-2 border-t border-dashed border-[#e7e7ea] pt-2">
+                                  <span className="block rounded-xl bg-[#fbe7e5] px-2.5 py-1.5 text-center text-[11px] font-bold text-[#ec1c24]">{t("본품 추천", lang)} · {p.fullMl}ml</span>
                                 </div>
                               ) : (
                                 <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
