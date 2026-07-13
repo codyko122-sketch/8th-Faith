@@ -6,6 +6,7 @@ import productsRaw from "@/data/products.json";
 import { checkCosmeticCompliance } from "@/lib/compliance/check";
 import type { ComplianceProduct } from "@/lib/compliance/types";
 import { COUNTRIES, type Country, type City } from "@/lib/places";
+import { COSMETICS } from "@/lib/products";
 
 const COMPLIANCE_PRODUCTS = productsRaw as ComplianceProduct[];
 
@@ -147,21 +148,39 @@ export function DestinationCareTab({
   const [storeId, setStoreId] = useState<string | null>(null);
   const [fineOpen, setFineOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [packedIds, setPackedIds] = useState<Set<string>>(new Set());
+  // 목록에서 ✕로 지운 제품 id (주문 목록은 그대로 두고, 이 화면에서만 숨김)
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
   const [needConcerns, setNeedConcerns] = useState<string[]>([]);
+  // 주문 내역과 무관하게 직접 입력으로 추가한 "챙긴 제품"(자동완성으로 카탈로그에서 선택)
+  const [extraPacked, setExtraPacked] = useState<{ id: string; brand: string; name: string }[]>([]);
+  const [packInput, setPackInput] = useState("");
 
-  function togglePacked(id: string) {
-    setPackedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  function removePacked(id: string) {
+    setRemovedIds((prev) => new Set(prev).add(id));
+    setExtraPacked((prev) => prev.filter((e) => e.id !== id));
   }
   function toggleNeed(c: string) {
     setNeedConcerns((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
   }
-  const notPacked = orderedItems.filter((o) => !packedIds.has(o.id));
+  const displayItems = [...orderedItems, ...extraPacked.filter((e) => !orderedItems.some((o) => o.id === e.id))].filter(
+    (o) => !removedIds.has(o.id)
+  );
+  const packQuery = packInput.trim();
+  const packSuggestions =
+    packQuery.length > 0
+      ? COSMETICS.filter(
+          (c) => !displayItems.some((o) => o.id === c.id) && (c.name.includes(packQuery) || c.brand.includes(packQuery))
+        ).slice(0, 6)
+      : [];
+  function addPacked(id: string, brand: string, name: string) {
+    setExtraPacked((prev) => (prev.some((x) => x.id === id) ? prev : [...prev, { id, brand, name }]));
+    setRemovedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    setPackInput("");
+  }
   // 챙기지 않은 제품이 있거나 직접 고른 고민이 있으면 그 기준으로, 아니면 원래 데모 설문 기준으로 매칭.
   const effectiveConcerns = needConcerns.length > 0 ? needConcerns : SURVEY.concerns;
 
@@ -311,30 +330,49 @@ export function DestinationCareTab({
       </div>
 
       <div className={styles.packSec}>
-        <div className={styles.recTitle}>내가 챙긴 제품 확인</div>
-        {orderedItems.length > 0 ? (
+        <div className={styles.recTitle}>내가 챙긴 제품</div>
+        {displayItems.length > 0 ? (
           <>
-            <div className={styles.recSub}>여행 전 주문한 제품 중 실제로 챙겨온 걸 체크해주세요.</div>
+            <div className={styles.recSub}>구매하신 제품 목록이에요. 빠진 제품은 아래에서 검색해 추가하고, 안 챙기신 건 ✕로 지워주세요.</div>
             <div className={styles.packList}>
-              {orderedItems.map((o) => {
-                const packed = packedIds.has(o.id);
-                return (
-                  <label key={o.id} className={`${styles.packItem} ${packed ? "" : styles.off}`}>
-                    <input type="checkbox" checked={packed} onChange={() => togglePacked(o.id)} />
-                    <span>{o.brand} {o.name}</span>
-                  </label>
-                );
-              })}
+              {displayItems.map((o) => (
+                <div key={o.id} className={styles.packItem}>
+                  <span>{o.brand} {o.name}</span>
+                  <button type="button" aria-label="삭제" className={styles.packRemoveBtn} onClick={() => removePacked(o.id)}>
+                    ✕
+                  </button>
+                </div>
+              ))}
             </div>
-            {notPacked.length > 0 && (
-              <div className={styles.emptyNote}>
-                {notPacked.map((o) => o.name).join(", ")}은(는) 안 챙겨오셨네요 — 아래에서 지금 필요한 걸 골라보세요.
-              </div>
-            )}
           </>
         ) : (
-          <div className={styles.emptyNote}>주문한 제품이 없어요. 아래에서 지금 필요한 걸 골라보시면 근처에서 채울 수 있는 곳을 찾아드려요.</div>
+          <div className={styles.emptyNote}>주문한 제품이 없어요. 아래에서 직접 챙긴 제품을 검색해 추가해 보세요.</div>
         )}
+
+        <div className={styles.packAdd}>
+          <label className={styles.packAddLabel}>더 챙긴 제품이 있나요?</label>
+          <input
+            value={packInput}
+            onChange={(e) => setPackInput(e.target.value)}
+            placeholder="화장품 이름을 입력해 보세요"
+            className={styles.packAddInput}
+          />
+          {packSuggestions.length > 0 && (
+            <div className={styles.packSuggest}>
+              {packSuggestions.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={styles.packSuggestItem}
+                  onClick={() => addPacked(p.id, p.brand, p.name)}
+                >
+                  <span className={styles.packSuggestName}>{p.name}</span>
+                  <span className={styles.packSuggestBrand}>{p.brand}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className={styles.recTitle} style={{ marginTop: 18, fontSize: 15 }}>지금 필요한 게 있나요?</div>
         <div className={styles.recSub}>선택하면 아래 추천이 그 고민에 맞춰 바뀌어요. (다중 선택 가능)</div>
