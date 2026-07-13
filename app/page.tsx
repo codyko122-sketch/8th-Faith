@@ -14,6 +14,7 @@ import {
   normType,
   COSMETICS,
   type Cosmetic,
+  type Recommendation,
 } from "@/lib/products";
 import { StyleNoteModal } from "@/components/style-note";
 import { DestinationPicker } from "@/components/destination-picker";
@@ -1394,6 +1395,8 @@ const UI_TR: Record<string, { jp: string; en: string }> = {
   "화장품 성분 스캔": { jp: "化粧品成分スキャン", en: "Scan cosmetic ingredients" },
   "성분 가이드": { jp: "成分ガイド", en: "Ingredient guide" },
   "체크리스트": { jp: "チェックリスト", en: "Checklist" },
+  "스캔한 제품": { jp: "スキャンした製品", en: "Scanned product" },
+  "다시 스캔하기": { jp: "もう一度スキャン", en: "Scan again" },
   "여행 피부 진단": { jp: "旅行肌診断", en: "Travel skin diagnosis" },
   "다른 계정으로 로그인": { jp: "別のアカウントでログイン", en: "Log in with another account" },
 };
@@ -1747,8 +1750,10 @@ export default function BeautyPassportExperience() {
   // ── AI 성분 스캔 ──
   const [scanFromResult, setScanFromResult] = useState(false);
   // 결과지에서 스캔한 제품이 카탈로그에 있고, 지금 기후·피부타입에 이미 적합하면
-  // 그 카테고리는 추천 세트에서 빼준다("이미 잘 맞는 걸 갖고 있으니 새로 추천 안 함").
+  // 그 카테고리는 "내 제품과 비교" 탭의 추천 세트에서 빼준다("이미 잘 맞는 걸 갖고 있으니 새로 추천 안 함").
   const [scanExcludedCategory, setScanExcludedCategory] = useState<string | null>(null);
+  // "내 제품과 비교" 탭에 보여줄, 스캔+돌아가기로 저장된 결과 — 스캔 전엔 null(안내 문구 표시).
+  const [scanCompareResult, setScanCompareResult] = useState<{ brand: string; name: string; category: string; matched: Cosmetic | null } | null>(null);
   const [scanStep, setScanStep] = useState<"camera" | "loading" | "result" | "error">("camera");
   const [scanImage, setScanImage] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
@@ -1801,11 +1806,13 @@ export default function BeautyPassportExperience() {
     return true;
   }
   // 결과지에서 스캔했을 때: 인식된 제품이 카탈로그에 있고 지금 기후에 이미 적합하면
-  // 그 카테고리는 추천 세트에서 빼고, 아니면(또는 카탈로그에 없으면) 원래 추천 그대로 둔다.
+  // 그 카테고리는 "내 제품과 비교" 탭의 추천 세트에서 빼고, 아니면(또는 카탈로그에 없으면) 그대로 둔다.
+  // 이 저장은 스캔 후 돌아가기를 눌렀을 때만 이뤄지고, 이후 그 탭에 계속 남아있는다.
   function backFromScanResult() {
     if (scanFromResult && scanResult?.identified) {
-      const matched = findScannedCosmetic(scanResult.brand, scanResult.name);
+      const matched = findScannedCosmetic(scanResult.brand, scanResult.name) ?? null;
       setScanExcludedCategory(matched && isClimateSuitableProduct(matched) ? matched.category : null);
+      setScanCompareResult({ brand: scanResult.brand, name: scanResult.name, category: scanResult.category, matched });
     }
     exitScan();
   }
@@ -2054,17 +2061,61 @@ export default function BeautyPassportExperience() {
       return next;
     });
   }
-  function addAllRec() {
+  function addAllRec(items: Recommendation[]) {
     if (!result) return;
     const dryHigh = result.profile.humidity <= 45;
     const uvHigh = result.profile.uv >= 8;
-    result.recItems
-      .filter(({ p }) => p.category !== scanExcludedCategory)
-      .forEach(({ p }) => {
-        const rec = recommendVolume(p.category, result.days, dryHigh, uvHigh, p.fullMl);
-        // 본품 추천 항목은 배송 정보가 필요한 별도 본품 구매 흐름이라 일괄 담기에서 제외
-        if (!rec.full && cartQty(p.id, rec.ml) === 0) addSample(p.id, rec.ml);
-      });
+    items.forEach(({ p }) => {
+      const rec = recommendVolume(p.category, result.days, dryHigh, uvHigh, p.fullMl);
+      // 본품 추천 항목은 배송 정보가 필요한 별도 본품 구매 흐름이라 일괄 담기에서 제외
+      if (!rec.full && cartQty(p.id, rec.ml) === 0) addSample(p.id, rec.ml);
+    });
+  }
+  // "추천 세트"·"내 제품과 비교" 탭이 공유하는 카테고리별 대표 제품 카드 + 전체 담기/직접 고르기 블록.
+  function renderRecSet(items: Recommendation[], summaryText: string, onAddAll: () => void) {
+    return (
+      <div className="mt-4">
+        <div className="rounded-xl bg-[#f4f4f5] px-4 py-3 text-center text-[13px] font-semibold text-[#3f3f46]">{summaryText}</div>
+        <p className="mt-3 text-xs text-[#71717a]">{t("카테고리별 대표", lang)} {countLabel(items.length, lang)} · {t("좌우로 넘겨보세요", lang)}</p>
+        <div className="scroll-x mt-2 flex gap-2.5 overflow-x-auto pb-1">
+          {items.map(({ p, reason, reasonJp, reasonEn }) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setDetailId(p.id)}
+              className="flex w-[132px] flex-none flex-col overflow-hidden rounded-xl border border-[#e7e7ea] bg-white text-left"
+            >
+              <div className="flex h-[52px] items-center justify-center bg-[#f4f4f5]">
+                <ProductImage product={p} />
+              </div>
+              <div className="p-2">
+                <div className="line-clamp-2 text-[11.5px] font-extrabold leading-tight text-[#0a0a0a]">{productName(p, lang)}</div>
+                <span className="mt-1.5 inline-block rounded-full bg-[#f4f4f5] px-1.5 py-0.5 text-[9px] font-semibold text-[#71717a]">{t(p.category, lang)}</span>
+                <div className="mt-1 line-clamp-2 text-[9.5px] leading-snug text-[#9ca3af]">
+                  {lang === "jp" ? reasonJp : lang === "en" ? reasonEn : reason}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+        <div className="mt-3 flex gap-2">
+          <button
+            type="button"
+            onClick={onAddAll}
+            className="flex-1 rounded-[12px] bg-[#0a0a0a] px-3 py-3 text-[13.5px] font-extrabold text-white transition active:scale-[0.985]"
+          >
+            {t("전체 담기 →", lang)}
+          </button>
+          <button
+            type="button"
+            onClick={() => setResultView("pick")}
+            className="flex-1 rounded-[12px] border-[1.5px] border-[#e7e7ea] bg-white px-3 py-3 text-[13.5px] font-extrabold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
+          >
+            {t("직접 고르기 →", lang)}
+          </button>
+        </div>
+      </div>
+    );
   }
   function goCheckout() {
     const timing = stage === "acResult" ? "after" : "before";
@@ -2354,7 +2405,7 @@ export default function BeautyPassportExperience() {
     setPendingReceive(null); setPaymentMethod("card"); setCardNumber(""); setCardExpiry(""); setCardCvc(""); setPaying(false);
     setOrderNo(null); setLockerNo(null); setOrderSnapshot(null);
     setResultView("main"); setShowAiDetail(false); setCarePhase(0); setPickCat(PICK_CATEGORIES[0]); setDeliveryStatusOpen(false);
-    setScanExcludedCategory(null);
+    setScanExcludedCategory(null); setScanCompareResult(null);
   }
   // 다시하기 — 로그인은 유지한 채 진단·여행 계획만 새로 시작
   function restartTrip() {
@@ -4556,70 +4607,61 @@ export default function BeautyPassportExperience() {
                           </button>
                         </div>
 
-                        {recTab === "set" && (() => {
-                          const displayedRecItems = result.recItems.filter(({ p }) => p.category !== scanExcludedCategory);
-                          return (
-                          <div className="mt-4">
-                            <div className="rounded-xl bg-[#f4f4f5] px-4 py-3 text-center text-[13px] font-semibold text-[#3f3f46]">
-                              {lang === "jp" ? result.recSummaryJp : lang === "en" ? result.recSummaryEn : result.recSummary}
-                            </div>
-                            <p className="mt-3 text-xs text-[#71717a]">{t("카테고리별 대표", lang)} {countLabel(displayedRecItems.length, lang)} · {t("좌우로 넘겨보세요", lang)}</p>
-                            <div className="scroll-x mt-2 flex gap-2.5 overflow-x-auto pb-1">
-                              {displayedRecItems.map(({ p, reason, reasonJp, reasonEn }) => (
-                                <button
-                                  key={p.id}
-                                  type="button"
-                                  onClick={() => setDetailId(p.id)}
-                                  className="flex w-[132px] flex-none flex-col overflow-hidden rounded-xl border border-[#e7e7ea] bg-white text-left"
-                                >
-                                  <div className="flex h-[52px] items-center justify-center bg-[#f4f4f5]">
-                                    <ProductImage product={p} />
-                                  </div>
-                                  <div className="p-2">
-                                    <div className="line-clamp-2 text-[11.5px] font-extrabold leading-tight text-[#0a0a0a]">{productName(p, lang)}</div>
-                                    <span className="mt-1.5 inline-block rounded-full bg-[#f4f4f5] px-1.5 py-0.5 text-[9px] font-semibold text-[#71717a]">{t(p.category, lang)}</span>
-                                    <div className="mt-1 line-clamp-2 text-[9.5px] leading-snug text-[#9ca3af]">
-                                      {lang === "jp" ? reasonJp : lang === "en" ? reasonEn : reason}
-                                    </div>
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-                            <div className="mt-3 flex gap-2">
-                              <button
-                                type="button"
-                                onClick={addAllRec}
-                                className="flex-1 rounded-[12px] bg-[#0a0a0a] px-3 py-3 text-[13.5px] font-extrabold text-white transition active:scale-[0.985]"
-                              >
-                                {t("전체 담기 →", lang)}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setResultView("pick")}
-                                className="flex-1 rounded-[12px] border-[1.5px] border-[#e7e7ea] bg-white px-3 py-3 text-[13.5px] font-extrabold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
-                              >
-                                {t("직접 고르기 →", lang)}
-                              </button>
-                            </div>
-                          </div>
-                          );
-                        })()}
+                        {recTab === "set" && renderRecSet(
+                          result.recItems,
+                          lang === "jp" ? result.recSummaryJp : lang === "en" ? result.recSummaryEn : result.recSummary,
+                          () => addAllRec(result.recItems)
+                        )}
 
                         {recTab === "compare" && (
-                          <div className="mt-4 rounded-2xl border-[1.5px] border-dashed border-[#d7dbe0] bg-[#fafbfc] p-6 text-center">
-                            <div className="text-3xl">📷</div>
-                            <p className="mt-2.5 text-[13.5px] text-[#0a0a0a]">
-                              {t("내가 쓰는 화장품을 촬영하면", lang)} <b className="text-[#ec1c24]">{t("AI가 성분을 분석", lang)}</b>{t("해줘요.", lang)}
-                            </p>
-                            <p className="mt-1 text-xs text-[#71717a]">{t("이 여행지 기준 주의 성분·안전 여부까지 함께 확인할 수 있어요.", lang)}</p>
-                            <button
-                              type="button"
-                              onClick={openScanFromResult}
-                              className="mt-4 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.985]"
-                            >
-                              {t("촬영해서 내 제품 분석하기 →", lang)}
-                            </button>
-                          </div>
+                          scanCompareResult ? (
+                            <div className="mt-4">
+                              <div className="flex items-center gap-3 rounded-2xl border-[1.5px] border-[#0a0a0a] bg-white p-3">
+                                {scanCompareResult.matched ? (
+                                  <ProductImage product={scanCompareResult.matched} />
+                                ) : (
+                                  <div className="flex h-16 w-16 flex-none items-center justify-center rounded-2xl bg-[#f4f4f5] text-2xl">📷</div>
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9ca3af]">{t("스캔한 제품", lang)}</div>
+                                  <div className="truncate text-[13.5px] font-extrabold text-[#0a0a0a]">{scanCompareResult.brand} {scanCompareResult.name}</div>
+                                  <span className="mt-1 inline-block rounded-full bg-[#f4f4f5] px-2 py-0.5 text-[10px] font-semibold text-[#71717a]">{t(scanCompareResult.category, lang)}</span>
+                                </div>
+                              </div>
+
+                              {(() => {
+                                const compareItems = result.recItems.filter(({ p }) => p.category !== scanExcludedCategory);
+                                return renderRecSet(
+                                  compareItems,
+                                  lang === "jp" ? result.recSummaryJp : lang === "en" ? result.recSummaryEn : result.recSummary,
+                                  () => addAllRec(compareItems)
+                                );
+                              })()}
+
+                              <button
+                                type="button"
+                                onClick={openScanFromResult}
+                                className="mt-3 w-full text-center text-xs font-semibold text-[#9ca3af]"
+                              >
+                                {t("다시 스캔하기", lang)}
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="mt-4 rounded-2xl border-[1.5px] border-dashed border-[#d7dbe0] bg-[#fafbfc] p-6 text-center">
+                              <div className="text-3xl">📷</div>
+                              <p className="mt-2.5 text-[13.5px] text-[#0a0a0a]">
+                                {t("내가 쓰는 화장품을 촬영하면", lang)} <b className="text-[#ec1c24]">{t("AI가 성분을 분석", lang)}</b>{t("해줘요.", lang)}
+                              </p>
+                              <p className="mt-1 text-xs text-[#71717a]">{t("이 여행지 기준 주의 성분·안전 여부까지 함께 확인할 수 있어요.", lang)}</p>
+                              <button
+                                type="button"
+                                onClick={openScanFromResult}
+                                className="mt-4 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.985]"
+                              >
+                                {t("촬영해서 내 제품 분석하기 →", lang)}
+                              </button>
+                            </div>
+                          )
                         )}
                       </Card>
 
