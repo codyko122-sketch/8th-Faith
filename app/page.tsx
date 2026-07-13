@@ -5201,10 +5201,10 @@ export default function BeautyPassportExperience() {
 
                   <div className="mt-8 flex w-full gap-3">
                     <button
-                      onClick={goHome}
+                      onClick={() => setStage(checkoutTiming === "after" ? "acResult" : "result")}
                       className="flex-1 rounded-[14px] border-[1.5px] border-[#e7e7ea] bg-white px-6 py-4 text-[15px] font-extrabold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
                     >
-                      처음으로 ↺
+                      ← 이전으로
                     </button>
                     <div className="flex-1">
                       <PrimaryButton
