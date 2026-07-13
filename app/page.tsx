@@ -10,7 +10,7 @@ import {
   recommendCosmetics,
   recommendVolume,
   samplePrice,
-  SAMPLE_TIERS,
+  validSampleTiers,
   COSMETICS,
   type Cosmetic,
 } from "@/lib/products";
@@ -105,11 +105,32 @@ const COSMAX_GUEST = {
 const ANALYZE_BARS = [40, 70, 30, 90, 52, 62, 34, 80, 46, 66, 54, 76, 40, 86, 30, 60, 50, 70, 36, 90, 44, 56, 64, 40, 80, 30, 74, 50, 60, 36, 86, 46, 70, 54, 40, 66, 30, 80, 50, 62, 36, 76, 46, 90, 40, 56];
 
 /* ════════════════════════ [6-1] 여정 타임라인 ════════════════════════ */
-const CHECKLIST_ITEMS = [
-  "여권/신분증 확인",
-  "소용량 스킨케어 키트 도착 확인",
-  "기내 반입 규정(100ml 이하) 확인",
-  "충전기·여행자보험 등 준비물 점검",
+// 여행 준비 체크리스트 — [여행 전(출발 당일 포함), 여행 중, 귀국 후] 3단계.
+// index[0][1]("소용량 스킨케어 키트 도착 확인")은 결제 완료 화면에서 자동 체크되므로 위치를 바꾸지 말 것.
+const CHECKLIST_GROUPS: string[][] = [
+  [
+    "여권/신분증 확인 (유효기간 6개월 이상 권장)",
+    "소용량 스킨케어 키트 도착 확인",
+    "기내 반입 규정(액체류 100ml 이하) 확인",
+    "충전기·보조배터리·여행용 어댑터 준비",
+    "여행자보험 가입 및 증명서 출력",
+    "해외 결제 카드 준비 및 환전",
+    "상비약 준비 (진통제·소화제 등)",
+    "집 정리(전기·가스·쓰레기) 및 최종 소지품 확인",
+  ],
+  [
+    "숙소 체크인 및 확인사항 점검",
+    "현지 긴급연락처(대사관·병원) 저장",
+    "현지 SIM·데이터 로밍 설정",
+    "여권·지갑 등 귀중품 항상 소지",
+    "사진·영상 클라우드 백업",
+  ],
+  [
+    "여행 경비 정산 및 카드 내역 확인",
+    "해외 구매 화장품 성분 통관 규정 확인",
+    "여행 전·후 피부 상태 비교",
+    "여행 뷰티 후기 SNS 공유",
+  ],
 ];
 // 귀국 후 진정·장벽 회복 루틴 추천 (판테놀 진정 세럼 + 세라마이드 배리어 크림)
 const RECOVERY_IDS = ["layerlab-panthenol", "estra-atobarrier"];
@@ -650,15 +671,15 @@ function analyzeBaumann(code: string): SkinResult {
 }
 
 // 축(letter)별 특성 설명 + 추천/주의 성분 (Baumann 관리법 기반). 코드 4글자를 조합해 맞춤 솔루션 생성.
-const AXIS_INFO: Record<string, { para: string; good: string[]; avoid: string[] }> = {
-  D: { para: "유·수분이 쉽게 빠져나가는 건성 경향이에요. 여행 중 기내·냉방에 장벽이 더 마르기 쉬우니 '수분→유분' 순서로 잠가주세요.", good: ["히알루론산", "세라마이드", "스쿠알란"], avoid: ["고농도 알코올", "강한 각질제거"] },
-  O: { para: "피지 분비가 많은 지성 경향이에요. 덥고 습한 여행지에서 번들거림·모공이 늘기 쉬우니 가벼운 수분과 피지 관리로 밸런스를 잡으세요.", good: ["나이아신아마이드", "살리실산(BHA)", "아연"], avoid: ["무거운 오일", "코코넛 오일"] },
-  S: { para: "외부 자극에 붉어지거나 따가움이 잘 나타나는 민감 경향이에요. 성분 수를 줄인 저자극 진정 케어가 안전합니다.", good: ["센텔라(시카)", "마데카소사이드", "판테놀"], avoid: ["인공향료", "에센셜오일", "고농도 산"] },
-  R: { para: "장벽이 튼튼한 저항성 피부예요. 레티놀·비타민C·AHA 같은 활성 성분도 비교적 잘 견디니 목표에 맞춰 적극 활용할 수 있어요.", good: ["비타민C", "레티놀", "AHA"], avoid: [] },
-  P: { para: "자외선·자극 뒤 색소 침착이 잘 남는 타입이에요. 미백·톤 케어와 함께 '자외선 차단'이 가장 중요합니다.", good: ["비타민C", "나이아신아마이드", "알부틴", "트라넥삼산"], avoid: ["무방비 햇볕 노출"] },
-  N: { para: "색소 침착이 적어 톤이 비교적 균일한 타입이에요. 지금의 맑은 톤은 꾸준한 자외선 차단만으로 충분히 지킬 수 있어요.", good: ["나이아신아마이드", "자외선차단"], avoid: [] },
-  W: { para: "잔주름·탄력 저하가 나타나기 쉬운 타입이에요. 항산화·재생 성분과 자외선 차단으로 광노화를 늦춰주세요.", good: ["레티놀", "펩타이드", "항산화제"], avoid: ["자외선 방치"] },
-  T: { para: "아직 탄력이 좋은 타입이에요. 항산화 성분과 자외선 차단으로 지금 상태를 오래 지키는 '예방 케어'가 핵심이에요.", good: ["항산화제", "자외선차단"], avoid: [] },
+const AXIS_INFO: Record<string, { para: string; paraJp: string; paraEn: string; good: string[]; avoid: string[] }> = {
+  D: { para: "유·수분이 쉽게 빠져나가는 건성 경향이에요. 여행 중 기내·냉방에 장벽이 더 마르기 쉬우니 '수분→유분' 순서로 잠가주세요.", paraJp: "水分・油分が逃げやすい乾燥タイプです。旅行中は機内や冷房でバリアがより乾きやすいので、「水分→油分」の順で閉じ込めてください。", paraEn: "A dry type that easily loses moisture and oil. Cabin air and A/C during travel dry out the barrier faster, so lock in care in the order \"hydration → oil.\"", good: ["히알루론산", "세라마이드", "스쿠알란"], avoid: ["고농도 알코올", "강한 각질제거"] },
+  O: { para: "피지 분비가 많은 지성 경향이에요. 덥고 습한 여행지에서 번들거림·모공이 늘기 쉬우니 가벼운 수분과 피지 관리로 밸런스를 잡으세요.", paraJp: "皮脂分泌が多いオイリータイプです。暑くて湿度の高い旅行先ではテカリ・毛穴が目立ちやすいので、軽い保湿と皮脂ケアでバランスを整えましょう。", paraEn: "An oily type with high sebum production. In hot, humid destinations, shine and pores tend to increase, so balance things out with light hydration and sebum care.", good: ["나이아신아마이드", "살리실산(BHA)", "아연"], avoid: ["무거운 오일", "코코넛 오일"] },
+  S: { para: "외부 자극에 붉어지거나 따가움이 잘 나타나는 민감 경향이에요. 성분 수를 줄인 저자극 진정 케어가 안전합니다.", paraJp: "外部刺激で赤みやヒリつきが出やすい敏感タイプです。成分数を減らした低刺激の鎮静ケアが安全です。", paraEn: "A sensitive type prone to redness or stinging from outside irritants. Low-irritation, soothing care with fewer ingredients is the safest choice.", good: ["센텔라(시카)", "마데카소사이드", "판테놀"], avoid: ["인공향료", "에센셜오일", "고농도 산"] },
+  R: { para: "장벽이 튼튼한 저항성 피부예요. 레티놀·비타민C·AHA 같은 활성 성분도 비교적 잘 견디니 목표에 맞춰 적극 활용할 수 있어요.", paraJp: "バリアが丈夫な抵抗性肌です。レチノール・ビタミンC・AHAのような活性成分も比較的よく耐えられるので、目的に合わせて積極的に取り入れられます。", paraEn: "A resistant skin type with a sturdy barrier. It tolerates active ingredients like retinol, vitamin C, and AHA fairly well, so you can use them actively based on your goals.", good: ["비타민C", "레티놀", "AHA"], avoid: [] },
+  P: { para: "자외선·자극 뒤 색소 침착이 잘 남는 타입이에요. 미백·톤 케어와 함께 '자외선 차단'이 가장 중요합니다.", paraJp: "紫外線や刺激の後にシミが残りやすいタイプです。美白・トーンケアとともに「紫外線対策」が最も重要です。", paraEn: "A type prone to pigmentation after UV exposure or irritation. Along with brightening and tone care, \"sun protection\" matters most.", good: ["비타민C", "나이아신아마이드", "알부틴", "트라넥삼산"], avoid: ["무방비 햇볕 노출"] },
+  N: { para: "색소 침착이 적어 톤이 비교적 균일한 타입이에요. 지금의 맑은 톤은 꾸준한 자외선 차단만으로 충분히 지킬 수 있어요.", paraJp: "色素沈着が少なく、トーンが比較的均一なタイプです。今の澄んだトーンは継続的な紫外線対策だけで十分に守れます。", paraEn: "A type with little pigmentation and a fairly even tone. You can keep this clear tone simply with consistent sun protection.", good: ["나이아신아마이드", "자외선차단"], avoid: [] },
+  W: { para: "잔주름·탄력 저하가 나타나기 쉬운 타입이에요. 항산화·재생 성분과 자외선 차단으로 광노화를 늦춰주세요.", paraJp: "小ジワ・弾力低下が出やすいタイプです。抗酸化・再生成分と紫外線対策で光老化を遅らせましょう。", paraEn: "A type prone to fine lines and reduced firmness. Slow photoaging with antioxidant, renewing ingredients and sun protection.", good: ["레티놀", "펩타이드", "항산화제"], avoid: ["자외선 방치"] },
+  T: { para: "아직 탄력이 좋은 타입이에요. 항산화 성분과 자외선 차단으로 지금 상태를 오래 지키는 '예방 케어'가 핵심이에요.", paraJp: "まだ弾力が良いタイプです。抗酸化成分と紫外線対策で今の状態を長く保つ「予防ケア」が鍵です。", paraEn: "A type that still has good firmness. The key is \"preventive care\" — using antioxidants and sun protection to maintain your current condition for longer.", good: ["항산화제", "자외선차단"], avoid: [] },
 };
 
 // 16타입 닉네임 + 한 줄 설명 + 대표 컬러 (매트릭스 이미지 기준)
@@ -685,10 +706,57 @@ const BAUMANN_TYPES: Record<string, { nick: string; tagline: string; color: stri
 function baumannCare(code: string) {
   const letters = code.split("");
   const paras = letters.map((l) => AXIS_INFO[l]?.para).filter(Boolean) as string[];
+  const parasJp = letters.map((l) => AXIS_INFO[l]?.paraJp).filter(Boolean) as string[];
+  const parasEn = letters.map((l) => AXIS_INFO[l]?.paraEn).filter(Boolean) as string[];
   const good = Array.from(new Set(letters.flatMap((l) => AXIS_INFO[l]?.good ?? [])));
   const avoid = Array.from(new Set(letters.flatMap((l) => AXIS_INFO[l]?.avoid ?? [])));
-  return { paras, good, avoid };
+  return { paras, parasJp, parasEn, good, avoid };
 }
+
+// 언어 전환(KO/JP/EN) — 성분·주의 문구 등 짧은 고정 어휘 번역 사전(추천 루틴에서 재사용되는 유한 집합)
+const INGREDIENT_TR: Record<string, { jp: string; en: string }> = {
+  "히알루론산": { jp: "ヒアルロン酸", en: "Hyaluronic Acid" },
+  "세라마이드": { jp: "セラミド", en: "Ceramide" },
+  "스쿠알란": { jp: "スクワラン", en: "Squalane" },
+  "고농도 알코올": { jp: "高濃度アルコール", en: "High-concentration alcohol" },
+  "강한 각질제거": { jp: "強い角質ケア", en: "Harsh exfoliation" },
+  "나이아신아마이드": { jp: "ナイアシンアミド", en: "Niacinamide" },
+  "살리실산(BHA)": { jp: "サリチル酸（BHA）", en: "Salicylic acid (BHA)" },
+  "아연": { jp: "亜鉛", en: "Zinc" },
+  "무거운 오일": { jp: "重いオイル", en: "Heavy oils" },
+  "코코넛 오일": { jp: "ココナッツオイル", en: "Coconut oil" },
+  "센텔라(시카)": { jp: "ツボクサ（シカ）", en: "Centella (Cica)" },
+  "마데카소사이드": { jp: "マデカソサイド", en: "Madecassoside" },
+  "판테놀": { jp: "パンテノール", en: "Panthenol" },
+  "인공향료": { jp: "合成香料", en: "Synthetic fragrance" },
+  "에센셜오일": { jp: "エッセンシャルオイル", en: "Essential oils" },
+  "고농도 산": { jp: "高濃度酸", en: "High-concentration acids" },
+  "비타민C": { jp: "ビタミンC", en: "Vitamin C" },
+  "레티놀": { jp: "レチノール", en: "Retinol" },
+  "AHA": { jp: "AHA", en: "AHA" },
+  "알부틴": { jp: "アルブチン", en: "Arbutin" },
+  "트라넥삼산": { jp: "トラネキサム酸", en: "Tranexamic acid" },
+  "무방비 햇볕 노출": { jp: "無防備な日光浴", en: "Unprotected sun exposure" },
+  "자외선차단": { jp: "紫外線対策", en: "Sun protection" },
+  "펩타이드": { jp: "ペプチド", en: "Peptides" },
+  "항산화제": { jp: "抗酸化成分", en: "Antioxidants" },
+  "자외선 방치": { jp: "紫外線対策の放置", en: "Neglecting sun protection" },
+};
+function trIngredient(name: string, lang: "ko" | "jp" | "en") {
+  if (lang === "ko") return name;
+  return INGREDIENT_TR[name]?.[lang] ?? name;
+}
+function productDesc(p: Cosmetic, lang: "ko" | "jp" | "en") {
+  if (lang === "jp") return p.descJp ?? p.desc;
+  if (lang === "en") return p.descEn ?? p.desc;
+  return p.desc;
+}
+// 데일리 루틴(아침/저녁) 문구 — 세 언어 버전
+const ROUTINE_TR = {
+  ko: { doubleCleanse: "이중 세정", gentleCleanse: "저자극 클렌징", moistureSerum: "수분 세럼", soothingToner: "진정 토너", moistureCream: "수분크림", ceramideCream: "세라마이드 크림", spfReapply: "SPF50+ 재도포" },
+  jp: { doubleCleanse: "ダブル洗顔", gentleCleanse: "低刺激クレンジング", moistureSerum: "保湿セラム", soothingToner: "鎮静トナー", moistureCream: "保湿クリーム", ceramideCream: "セラミドクリーム", spfReapply: "SPF50+ 塗り直し" },
+  en: { doubleCleanse: "Double cleanse", gentleCleanse: "Gentle cleansing", moistureSerum: "Hydrating serum", soothingToner: "Soothing toner", moistureCream: "Moisture cream", ceramideCream: "Ceramide cream", spfReapply: "Reapply SPF50+" },
+} as const;
 
 function comboComment(p: { temp: number; humidity: number; uv: number; dust: number }, type: string) {
   const bits: string[] = [];
@@ -891,7 +959,7 @@ export default function BeautyPassportExperience() {
   const [cart, setCart] = useState<{ id: string; ml: number; qty: number }[]>([]);
   const [volumeSel, setVolumeSel] = useState<Record<string, number>>({});
   // 여정 타임라인
-  const [checklist, setChecklist] = useState<boolean[]>(Array(CHECKLIST_ITEMS.length).fill(false));
+  const [checklist, setChecklist] = useState<boolean[][]>(CHECKLIST_GROUPS.map((g) => Array(g.length).fill(false)));
   // [6-2] 장바구니 시트
   const [cartOpen, setCartOpen] = useState(false);
   // 여행지 대표 메이크업 스타일노트
@@ -903,6 +971,15 @@ export default function BeautyPassportExperience() {
   const [deliveryStatusOpen, setDeliveryStatusOpen] = useState(false);
   const [pickCat, setPickCat] = useState(PICK_CATEGORIES[0]);
   const [recTab, setRecTab] = useState<"set" | "compare">("set");
+  // 결과 화면 언어 전환(KO/JP/EN) — 추천 루틴·제품 설명에 반영, localStorage로 페이지 이동/새로고침에도 유지
+  const [lang, setLang] = useState<"ko" | "jp" | "en">("ko");
+  useEffect(() => {
+    const saved = window.localStorage.getItem("bp_lang");
+    if (saved === "ko" || saved === "jp" || saved === "en") setLang(saved);
+  }, []);
+  useEffect(() => {
+    window.localStorage.setItem("bp_lang", lang);
+  }, [lang]);
   // [6-3] 수령 방식
   const [receiveMethod, setReceiveMethod] = useState<"delivery" | "pickup" | null>(null);
   // [6-3A] 배송 신청
@@ -1171,16 +1248,17 @@ export default function BeautyPassportExperience() {
   const cartAllUnder100 = cart.every((it) => it.ml <= 100);
   // 여행 중 탭 "내가 챙긴 제품 확인"에 쓰는, 주문한 제품 목록(용량별 중복 제거)
   const orderedProducts = Array.from(new Map(cartLines.map((l) => [l.p.id, l.p])).values());
-  function toggleChecklist(i: number) {
-    setChecklist((c) => c.map((v, idx) => (idx === i ? !v : v)));
+  function toggleChecklist(group: number, i: number) {
+    setChecklist((c) => c.map((g, gi) => (gi === group ? g.map((v, idx) => (idx === i ? !v : v)) : g)));
   }
   function addAllRec() {
     if (!result) return;
     const dryHigh = result.profile.humidity <= 45;
     const uvHigh = result.profile.uv >= 8;
     result.recItems.forEach(({ p }) => {
-      const rec = recommendVolume(p.category, result.days, dryHigh, uvHigh);
-      if (cartQty(p.id, rec.ml) === 0) addSample(p.id, rec.ml);
+      const rec = recommendVolume(p.category, result.days, dryHigh, uvHigh, p.fullMl);
+      // 본품 추천 항목은 배송 정보가 필요한 별도 본품 구매 흐름이라 일괄 담기에서 제외
+      if (!rec.full && cartQty(p.id, rec.ml) === 0) addSample(p.id, rec.ml);
     });
   }
   function goCheckout() {
@@ -1396,7 +1474,7 @@ export default function BeautyPassportExperience() {
     setQIndex(0); setAxes(Array(BAUMANN_AXES.length).fill(null));
     setAnalyzing(false); setSkin(null);
     setWeather(null); setDetailId(null); setCart([]); setVolumeSel({});
-    setChecklist(Array(CHECKLIST_ITEMS.length).fill(false));
+    setChecklist(CHECKLIST_GROUPS.map((g) => Array(g.length).fill(false)));
     setCartOpen(false); setReceiveMethod(null);
     setDeliveryBefore(true); setDeliveryAfter(false);
     setDeliveryName(""); setDeliveryPhone(""); setDeliveryAddress(""); setDeliveryNote("");
@@ -2533,9 +2611,12 @@ export default function BeautyPassportExperience() {
                             <p className={acStyles.leadSub}>선택한 고민에 맞는 제품을 준비 중이에요.</p>
                           )}
                           {concernMatches.map(({ p, concernLabels }) => {
-                            const ml = volumeSel[p.id] ?? 20;
-                            const price = samplePrice(p.price, p.fullMl, ml);
-                            const qty = cartQty(p.id, ml);
+                            const tiers = validSampleTiers(p.fullMl);
+                            const full = tiers.length === 0;
+                            const defaultMl = full ? 0 : tiers.includes(20) ? 20 : tiers[tiers.length - 1];
+                            const ml = volumeSel[p.id] ?? defaultMl;
+                            const price = full ? 0 : samplePrice(p.price, p.fullMl, ml);
+                            const qty = full ? 0 : cartQty(p.id, ml);
                             return (
                               <div key={p.id} className="rounded-2xl border border-[#e7e7ea] bg-white p-3.5 shadow-[0_8px_24px_rgba(20,30,50,0.05)]">
                                 <button type="button" onClick={() => setDetailId(p.id)} className="flex w-full gap-3 text-left">
@@ -2550,35 +2631,47 @@ export default function BeautyPassportExperience() {
                                   </div>
                                 </button>
                                 <ComplianceBadge cosmeticId={p.id} destinationCountry={countryCode} compact />
-                                <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
-                                  <select
-                                    value={ml}
-                                    onChange={(e) => setVolumeSel((v) => ({ ...v, [p.id]: Number(e.target.value) }))}
-                                    className="flex-1 rounded-xl border border-[#e7e7ea] bg-white px-2 py-1.5 text-[12px] text-[#0a0a0a] outline-none focus:border-[#0a0a0a]"
-                                  >
-                                    {SAMPLE_TIERS.map((t) => (
-                                      <option key={t} value={t}>
-                                        {t}ml{t === 20 ? " · 추천" : ""}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <span className="rounded-full bg-[#f4f4f5] px-2 py-1 text-[10px] font-semibold text-[#3f3f46]">회복 기간용</span>
-                                  <span className="text-sm font-extrabold text-[#0a0a0a]">{price.toLocaleString()}원</span>
-                                  {qty === 0 ? (
+                                {full ? (
+                                  <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
+                                    <span className="flex-1 rounded-xl bg-[#fbe7e5] px-2.5 py-1.5 text-[11px] font-bold text-[#ec1c24]">본품 추천 · {p.fullMl}ml</span>
                                     <button
-                                      onClick={() => addSample(p.id, ml)}
+                                      onClick={() => setFullBuyProduct(p)}
                                       className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
                                     >
-                                      담기
+                                      본품 구매하기
                                     </button>
-                                  ) : (
-                                    <div className="flex items-center gap-2 rounded-full bg-[#f4f4f5] px-2 py-1">
-                                      <button onClick={() => decSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">−</button>
-                                      <span className="w-4 text-center text-xs font-bold text-[#0a0a0a]">{qty}</span>
-                                      <button onClick={() => addSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">＋</button>
-                                    </div>
-                                  )}
-                                </div>
+                                  </div>
+                                ) : (
+                                  <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
+                                    <select
+                                      value={ml}
+                                      onChange={(e) => setVolumeSel((v) => ({ ...v, [p.id]: Number(e.target.value) }))}
+                                      className="flex-1 rounded-xl border border-[#e7e7ea] bg-white px-2 py-1.5 text-[12px] text-[#0a0a0a] outline-none focus:border-[#0a0a0a]"
+                                    >
+                                      {tiers.map((t) => (
+                                        <option key={t} value={t}>
+                                          {t}ml{t === defaultMl ? " · 추천" : ""}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <span className="rounded-full bg-[#f4f4f5] px-2 py-1 text-[10px] font-semibold text-[#3f3f46]">회복 기간용</span>
+                                    <span className="text-sm font-extrabold text-[#0a0a0a]">{price.toLocaleString()}원</span>
+                                    {qty === 0 ? (
+                                      <button
+                                        onClick={() => addSample(p.id, ml)}
+                                        className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
+                                      >
+                                        담기
+                                      </button>
+                                    ) : (
+                                      <div className="flex items-center gap-2 rounded-full bg-[#f4f4f5] px-2 py-1">
+                                        <button onClick={() => decSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">−</button>
+                                        <span className="w-4 text-center text-xs font-bold text-[#0a0a0a]">{qty}</span>
+                                        <button onClick={() => addSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">＋</button>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
@@ -2591,9 +2684,12 @@ export default function BeautyPassportExperience() {
                             <p className={acStyles.leadSub}>추천 제품을 준비하고 있어요.</p>
                           )}
                           {(preTripSnapshot?.recItems ?? []).map(({ p, reason }) => {
-                            const ml = volumeSel[p.id] ?? 20;
-                            const price = samplePrice(p.price, p.fullMl, ml);
-                            const qty = cartQty(p.id, ml);
+                            const tiers = validSampleTiers(p.fullMl);
+                            const full = tiers.length === 0;
+                            const defaultMl = full ? 0 : tiers.includes(20) ? 20 : tiers[tiers.length - 1];
+                            const ml = volumeSel[p.id] ?? defaultMl;
+                            const price = full ? 0 : samplePrice(p.price, p.fullMl, ml);
+                            const qty = full ? 0 : cartQty(p.id, ml);
                             return (
                               <div key={p.id} className="rounded-2xl border border-[#e7e7ea] bg-white p-3.5 shadow-[0_8px_24px_rgba(20,30,50,0.05)]">
                                 <button type="button" onClick={() => setDetailId(p.id)} className="flex w-full gap-3 text-left">
@@ -2608,34 +2704,46 @@ export default function BeautyPassportExperience() {
                                   </div>
                                 </button>
                                 <ComplianceBadge cosmeticId={p.id} destinationCountry={countryCode} compact />
-                                <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
-                                  <select
-                                    value={ml}
-                                    onChange={(e) => setVolumeSel((v) => ({ ...v, [p.id]: Number(e.target.value) }))}
-                                    className="flex-1 rounded-xl border border-[#e7e7ea] bg-white px-2 py-1.5 text-[12px] text-[#0a0a0a] outline-none focus:border-[#0a0a0a]"
-                                  >
-                                    {SAMPLE_TIERS.map((t) => (
-                                      <option key={t} value={t}>
-                                        {t}ml{t === 20 ? " · 추천" : ""}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <span className="text-sm font-extrabold text-[#0a0a0a]">{price.toLocaleString()}원</span>
-                                  {qty === 0 ? (
+                                {full ? (
+                                  <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
+                                    <span className="flex-1 rounded-xl bg-[#fbe7e5] px-2.5 py-1.5 text-[11px] font-bold text-[#ec1c24]">본품 추천 · {p.fullMl}ml</span>
                                     <button
-                                      onClick={() => addSample(p.id, ml)}
+                                      onClick={() => setFullBuyProduct(p)}
                                       className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
                                     >
-                                      담기
+                                      본품 구매하기
                                     </button>
-                                  ) : (
-                                    <div className="flex items-center gap-2 rounded-full bg-[#f4f4f5] px-2 py-1">
-                                      <button onClick={() => decSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">−</button>
-                                      <span className="w-4 text-center text-xs font-bold text-[#0a0a0a]">{qty}</span>
-                                      <button onClick={() => addSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">＋</button>
-                                    </div>
-                                  )}
-                                </div>
+                                  </div>
+                                ) : (
+                                  <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
+                                    <select
+                                      value={ml}
+                                      onChange={(e) => setVolumeSel((v) => ({ ...v, [p.id]: Number(e.target.value) }))}
+                                      className="flex-1 rounded-xl border border-[#e7e7ea] bg-white px-2 py-1.5 text-[12px] text-[#0a0a0a] outline-none focus:border-[#0a0a0a]"
+                                    >
+                                      {tiers.map((t) => (
+                                        <option key={t} value={t}>
+                                          {t}ml{t === defaultMl ? " · 추천" : ""}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <span className="text-sm font-extrabold text-[#0a0a0a]">{price.toLocaleString()}원</span>
+                                    {qty === 0 ? (
+                                      <button
+                                        onClick={() => addSample(p.id, ml)}
+                                        className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
+                                      >
+                                        담기
+                                      </button>
+                                    ) : (
+                                      <div className="flex items-center gap-2 rounded-full bg-[#f4f4f5] px-2 py-1">
+                                        <button onClick={() => decSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">−</button>
+                                        <span className="w-4 text-center text-xs font-bold text-[#0a0a0a]">{qty}</span>
+                                        <button onClick={() => addSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">＋</button>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
@@ -3211,9 +3319,25 @@ export default function BeautyPassportExperience() {
             {stage === "result" && result && (
               <motion.section key="result" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto bg-white px-7 pb-8 pt-5">
                 <div className="min-h-full">
-                  <button type="button" onClick={goHome} className="font-sans text-[11px] font-semibold text-[#9ca3af]">
-                    ‹ 처음으로
-                  </button>
+                  <div className="flex items-center justify-between">
+                    <button type="button" onClick={goHome} className="font-sans text-[11px] font-semibold text-[#9ca3af]">
+                      ‹ 처음으로
+                    </button>
+                    <div className="flex gap-0.5 rounded-full bg-[#f4f4f5] p-0.5">
+                      {(["ko", "jp", "en"] as const).map((l) => (
+                        <button
+                          key={l}
+                          type="button"
+                          onClick={() => setLang(l)}
+                          className={`rounded-full px-2.5 py-1 font-sans text-[10px] font-extrabold uppercase tracking-wide transition ${
+                            lang === l ? "bg-[#0a0a0a] text-white" : "text-[#71717a]"
+                          }`}
+                        >
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <div className="mb-3 mt-1 text-center font-sans text-[10px] font-bold uppercase tracking-[0.28em] text-[#71717a]">{name || "여행자"}님의 뷰티 여권</div>
 
                   {resultView === "main" && (
@@ -3522,10 +3646,10 @@ export default function BeautyPassportExperience() {
                         {COSMETICS.filter((p) => p.category === pickCat).map((p) => {
                           const dryHigh = result.profile.humidity <= 45;
                           const uvHigh = result.profile.uv >= 8;
-                          const rec = recommendVolume(p.category, result.days, dryHigh, uvHigh);
+                          const rec = recommendVolume(p.category, result.days, dryHigh, uvHigh, p.fullMl);
                           const ml = volumeSel[p.id] ?? rec.ml;
-                          const price = samplePrice(p.price, p.fullMl, ml);
-                          const qty = cartQty(p.id, ml);
+                          const price = rec.full ? 0 : samplePrice(p.price, p.fullMl, ml);
+                          const qty = rec.full ? 0 : cartQty(p.id, ml);
                           return (
                             <div key={p.id} className="rounded-2xl border border-[#e7e7ea] bg-white p-3.5 shadow-[0_8px_24px_rgba(20,30,50,0.05)]">
                               <button type="button" onClick={() => setDetailId(p.id)} className="flex w-full gap-3 text-left">
@@ -3547,35 +3671,47 @@ export default function BeautyPassportExperience() {
 
                               <ComplianceBadge cosmeticId={p.id} destinationCountry={countryCode} compact />
 
-                              <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
-                                <select
-                                  value={ml}
-                                  onChange={(e) => setVolumeSel((v) => ({ ...v, [p.id]: Number(e.target.value) }))}
-                                  className="flex-1 rounded-xl border border-[#e7e7ea] bg-white px-2 py-1.5 text-[12px] text-[#0a0a0a] outline-none focus:border-[#0a0a0a]"
-                                >
-                                  {SAMPLE_TIERS.map((t) => (
-                                    <option key={t} value={t}>
-                                      {t}ml{t === rec.ml ? " · 추천" : ""}
-                                    </option>
-                                  ))}
-                                </select>
-                                <span className="rounded-full bg-[#f4f4f5] px-2 py-1 text-[10px] font-semibold text-[#3f3f46]">기내 반입 가능 ✈️</span>
-                                <span className="text-sm font-extrabold text-[#0a0a0a]">{price.toLocaleString()}원</span>
-                                {qty === 0 ? (
+                              {rec.full ? (
+                                <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
+                                  <span className="flex-1 rounded-xl bg-[#fbe7e5] px-2.5 py-1.5 text-[11px] font-bold text-[#ec1c24]">본품 추천 · {p.fullMl}ml</span>
                                   <button
-                                    onClick={() => addSample(p.id, ml)}
+                                    onClick={() => setFullBuyProduct(p)}
                                     className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
                                   >
-                                    담기
+                                    본품 구매하기
                                   </button>
-                                ) : (
-                                  <div className="flex items-center gap-2 rounded-full bg-[#f4f4f5] px-2 py-1">
-                                    <button onClick={() => decSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">−</button>
-                                    <span className="w-4 text-center text-xs font-bold text-[#0a0a0a]">{qty}</span>
-                                    <button onClick={() => addSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">＋</button>
-                                  </div>
-                                )}
-                              </div>
+                                </div>
+                              ) : (
+                                <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
+                                  <select
+                                    value={ml}
+                                    onChange={(e) => setVolumeSel((v) => ({ ...v, [p.id]: Number(e.target.value) }))}
+                                    className="flex-1 rounded-xl border border-[#e7e7ea] bg-white px-2 py-1.5 text-[12px] text-[#0a0a0a] outline-none focus:border-[#0a0a0a]"
+                                  >
+                                    {validSampleTiers(p.fullMl).map((t) => (
+                                      <option key={t} value={t}>
+                                        {t}ml{t === rec.ml ? " · 추천" : ""}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <span className="rounded-full bg-[#f4f4f5] px-2 py-1 text-[10px] font-semibold text-[#3f3f46]">기내 반입 가능 ✈️</span>
+                                  <span className="text-sm font-extrabold text-[#0a0a0a]">{price.toLocaleString()}원</span>
+                                  {qty === 0 ? (
+                                    <button
+                                      onClick={() => addSample(p.id, ml)}
+                                      className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
+                                    >
+                                      담기
+                                    </button>
+                                  ) : (
+                                    <div className="flex items-center gap-2 rounded-full bg-[#f4f4f5] px-2 py-1">
+                                      <button onClick={() => decSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">−</button>
+                                      <span className="w-4 text-center text-xs font-bold text-[#0a0a0a]">{qty}</span>
+                                      <button onClick={() => addSample(p.id, ml)} className="text-sm font-bold text-[#0a0a0a]">＋</button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           );
                         })}
@@ -3647,15 +3783,15 @@ export default function BeautyPassportExperience() {
                             </button>
                           )}
                           <div className="mt-3 space-y-2">
-                            {CHECKLIST_ITEMS.map((item, i) => (
+                            {CHECKLIST_GROUPS[0].map((item, i) => (
                               <label key={i} className="flex items-center gap-2 text-sm">
                                 <input
                                   type="checkbox"
-                                  checked={checklist[i]}
-                                  onChange={() => toggleChecklist(i)}
+                                  checked={checklist[0][i]}
+                                  onChange={() => toggleChecklist(0, i)}
                                   className="h-4 w-4 rounded accent-[#0a0a0a]"
                                 />
-                                <span className={checklist[i] ? "text-[#9ca3af] line-through" : "text-[#3f3f46]"}>{item}</span>
+                                <span className={checklist[0][i] ? "text-[#9ca3af] line-through" : "text-[#3f3f46]"}>{item}</span>
                               </label>
                             ))}
                           </div>
@@ -3690,6 +3826,25 @@ export default function BeautyPassportExperience() {
                         </Card>
                       )}
 
+                      {carePhase === 1 && (
+                        <Card>
+                          <CardTitle>✅ 여행 중 체크리스트</CardTitle>
+                          <div className="mt-3 space-y-2">
+                            {CHECKLIST_GROUPS[1].map((item, i) => (
+                              <label key={i} className="flex items-center gap-2 text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={checklist[1][i]}
+                                  onChange={() => toggleChecklist(1, i)}
+                                  className="h-4 w-4 rounded accent-[#0a0a0a]"
+                                />
+                                <span className={checklist[1][i] ? "text-[#9ca3af] line-through" : "text-[#3f3f46]"}>{item}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </Card>
+                      )}
+
                       {carePhase === 2 && (
                         <Card>
                           <CardTitle>🏠 귀국 후 · 리커버리</CardTitle>
@@ -3716,6 +3871,19 @@ export default function BeautyPassportExperience() {
                             <span className="text-lg font-black text-[#0a0a0a]">
                               {result.index.score} · {result.index.level}
                             </span>
+                          </div>
+                          <div className="mt-3 space-y-2">
+                            {CHECKLIST_GROUPS[2].map((item, i) => (
+                              <label key={i} className="flex items-center gap-2 text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={checklist[2][i]}
+                                  onChange={() => toggleChecklist(2, i)}
+                                  className="h-4 w-4 rounded accent-[#0a0a0a]"
+                                />
+                                <span className={checklist[2][i] ? "text-[#9ca3af] line-through" : "text-[#3f3f46]"}>{item}</span>
+                              </label>
+                            ))}
                           </div>
                         </Card>
                       )}
@@ -4156,7 +4324,7 @@ export default function BeautyPassportExperience() {
                     <div className="flex-1">
                       <PrimaryButton
                         onClick={() => {
-                          setChecklist((c) => c.map((v, i) => (i === 1 ? true : v)));
+                          setChecklist((c) => c.map((g, gi) => (gi === 0 ? g.map((v, i) => (i === 1 ? true : v)) : g)));
                           setCarePhase(0);
                           setResultView("plan");
                           setStage("result");
@@ -4240,7 +4408,9 @@ export default function BeautyPassportExperience() {
                 cartQty={cartQty}
                 onAdd={addSample}
                 onDec={decSample}
+                onBuyFull={setFullBuyProduct}
                 onClose={() => setDetailId(null)}
+                lang={lang}
               />
             )}
           </AnimatePresence>
@@ -4248,7 +4418,7 @@ export default function BeautyPassportExperience() {
           {/* AI 판단 상세 모달 */}
           <AnimatePresence>
             {showAiDetail && skin && result && (
-              <AiDetailModal key="ai-detail" skin={skin} result={result} aiSummary={aiSummary} onClose={() => setShowAiDetail(false)} />
+              <AiDetailModal key="ai-detail" skin={skin} result={result} aiSummary={aiSummary} onClose={() => setShowAiDetail(false)} lang={lang} />
             )}
           </AnimatePresence>
         </div>
@@ -4394,6 +4564,7 @@ function AiDetailModal({
   result,
   aiSummary,
   onClose,
+  lang,
 }: {
   skin: SkinResult;
   result: {
@@ -4403,9 +4574,12 @@ function AiDetailModal({
   };
   aiSummary: AiSummaryResult | null;
   onClose: () => void;
+  lang: "ko" | "jp" | "en";
 }) {
   const bt = BAUMANN_TYPES[skin.code];
   const care = baumannCare(skin.code);
+  const carePar = lang === "jp" ? care.parasJp : lang === "en" ? care.parasEn : care.paras;
+  const rt = ROUTINE_TR[lang];
   return (
     <>
       <motion.div className="absolute inset-0 z-[70] bg-black/35" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
@@ -4427,7 +4601,7 @@ function AiDetailModal({
         <div className="px-5 pb-8 pt-4">
           {/* AI 판단 상세 */}
           <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">AI Reasoning · AI 판단 상세</div>
-          {care.paras.map((para, i) => (
+          {carePar.map((para, i) => (
             <p key={i} className="mt-2.5 text-[13px] leading-relaxed text-[#444]">{para}</p>
           ))}
 
@@ -4496,7 +4670,7 @@ function AiDetailModal({
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {care.good.length ? (
                   care.good.map((g) => (
-                    <span key={g} className="rounded-full border border-[#0a0a0a] bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#0a0a0a]">{g}</span>
+                    <span key={g} className="rounded-full border border-[#0a0a0a] bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#0a0a0a]">{trIngredient(g, lang)}</span>
                   ))
                 ) : (
                   <span className="text-[11px] text-[#9ca3af]">추천 성분 정보가 없어요</span>
@@ -4508,7 +4682,7 @@ function AiDetailModal({
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {care.avoid.length ? (
                   care.avoid.map((g) => (
-                    <span key={g} className="rounded-full border border-[#ec1c24] bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#ec1c24]">{g}</span>
+                    <span key={g} className="rounded-full border border-[#ec1c24] bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#ec1c24]">{trIngredient(g, lang)}</span>
                   ))
                 ) : (
                   <span className="text-[11px] text-[#9ca3af]">특별히 피할 성분은 없어요</span>
@@ -4525,7 +4699,7 @@ function AiDetailModal({
                 <span className="h-2 w-2 rounded-full bg-[#0a0a0a]" /> 아침 (AM)
               </div>
               <p className="text-[12px] leading-relaxed text-[#3f3f46]">
-                저자극 클렌징 → <b className="text-[#ec1c24]">{care.good[0] ?? "수분 세럼"}</b> → 수분크림 → SPF50+ 재도포
+                {rt.gentleCleanse} → <b className="text-[#ec1c24]">{care.good[0] ? trIngredient(care.good[0], lang) : rt.moistureSerum}</b> → {rt.moistureCream} → {rt.spfReapply}
               </p>
             </div>
             <div className="rounded-xl border border-[#e7e7ea] p-3.5">
@@ -4533,7 +4707,7 @@ function AiDetailModal({
                 <span className="h-2 w-2 rounded-full bg-[#0a0a0a]" /> 저녁 (PM)
               </div>
               <p className="text-[12px] leading-relaxed text-[#3f3f46]">
-                이중 세정 → <b className="text-[#ec1c24]">{care.good[1] ?? care.good[0] ?? "진정 토너"}</b> → {care.good[2] ?? "수분 세럼"} → 세라마이드 크림
+                {rt.doubleCleanse} → <b className="text-[#ec1c24]">{care.good[1] ? trIngredient(care.good[1], lang) : care.good[0] ? trIngredient(care.good[0], lang) : rt.soothingToner}</b> → {care.good[2] ? trIngredient(care.good[2], lang) : rt.moistureSerum} → {rt.ceramideCream}
               </p>
             </div>
           </div>
@@ -4724,7 +4898,9 @@ function ProductDetail({
   cartQty,
   onAdd,
   onDec,
+  onBuyFull,
   onClose,
+  lang,
 }: {
   product: Cosmetic;
   days: number;
@@ -4735,12 +4911,14 @@ function ProductDetail({
   cartQty: (id: string, ml: number) => number;
   onAdd: (id: string, ml: number) => void;
   onDec: (id: string, ml: number) => void;
+  onBuyFull: (product: Cosmetic) => void;
   onClose: () => void;
+  lang: "ko" | "jp" | "en";
 }) {
-  const rec = recommendVolume(product.category, days, dryHigh, uvHigh);
+  const rec = recommendVolume(product.category, days, dryHigh, uvHigh, product.fullMl);
   const [ml, setMl] = useState(rec.ml);
-  const price = samplePrice(product.price, product.fullMl, ml);
-  const qty = cartQty(product.id, ml);
+  const price = rec.full ? 0 : samplePrice(product.price, product.fullMl, ml);
+  const qty = rec.full ? 0 : cartQty(product.id, ml);
   const nights = Math.max(0, days - 1);
 
   return (
@@ -4801,7 +4979,7 @@ function ProductDetail({
             ))}
           </div>
 
-          <p className="mt-3 text-sm leading-relaxed text-[#52525b]">{product.desc}</p>
+          <p className="mt-3 text-sm leading-relaxed text-[#52525b]">{productDesc(product, lang)}</p>
 
           {/* 이 여행에 왜 맞는지 */}
           {reason && (
@@ -4810,28 +4988,37 @@ function ProductDetail({
             </div>
           )}
 
-          {/* 소용량 선택 */}
-          <div className="mt-5 rounded-2xl border border-[#e7e7ea] bg-[#fafafa] p-4">
-            <div className="text-sm font-extrabold text-[#0a0a0a]">소용량 선택 (기내 반입 가능 ✈️)</div>
-            <select
-              value={ml}
-              onChange={(e) => setMl(Number(e.target.value))}
-              className="mt-2 w-full appearance-none rounded-xl border border-[#e7e7ea] bg-white px-4 py-3 text-[15px] text-[#0a0a0a] outline-none focus:border-[#0a0a0a]"
-            >
-              {SAMPLE_TIERS.map((t) => (
-                <option key={t} value={t}>
-                  {t}ml · 기내 반입 가능 ✈️{t === rec.ml ? " (추천)" : ""}
-                </option>
-              ))}
-            </select>
-            <div className="mt-2 flex items-center justify-between">
-              <span className="text-xs text-[#71717a]">
-                {nights}박 {days}일에 딱 맞는 <b className="text-[#0a0a0a]">{rec.ml}ml</b>
-                {rec.qty > 1 && <> (×{rec.qty})</>}
-              </span>
-              <span className="text-xl font-black text-[#0a0a0a]">{price.toLocaleString()}원</span>
+          {/* 소용량 선택 (본품 용량 이상 필요하면 샘플 대신 본품 추천) */}
+          {rec.full ? (
+            <div className="mt-5 rounded-2xl border border-[#f6d0d0] bg-[#fbe7e5] p-4">
+              <div className="text-sm font-extrabold text-[#ec1c24]">이번 여행엔 본품을 추천해요</div>
+              <p className="mt-1 text-xs leading-relaxed text-[#71717a]">
+                {nights}박 {days}일이면 필요한 양이 정품({product.fullMl}ml)에 가깝거나 넘어서, 소용량 샘플보다 본품 구매가 더 알맞아요.
+              </p>
             </div>
-          </div>
+          ) : (
+            <div className="mt-5 rounded-2xl border border-[#e7e7ea] bg-[#fafafa] p-4">
+              <div className="text-sm font-extrabold text-[#0a0a0a]">소용량 선택 (기내 반입 가능 ✈️)</div>
+              <select
+                value={ml}
+                onChange={(e) => setMl(Number(e.target.value))}
+                className="mt-2 w-full appearance-none rounded-xl border border-[#e7e7ea] bg-white px-4 py-3 text-[15px] text-[#0a0a0a] outline-none focus:border-[#0a0a0a]"
+              >
+                {validSampleTiers(product.fullMl).map((t) => (
+                  <option key={t} value={t}>
+                    {t}ml · 기내 반입 가능 ✈️{t === rec.ml ? " (추천)" : ""}
+                  </option>
+                ))}
+              </select>
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-xs text-[#71717a]">
+                  {nights}박 {days}일에 딱 맞는 <b className="text-[#0a0a0a]">{rec.ml}ml</b>
+                  {rec.qty > 1 && <> (×{rec.qty})</>}
+                </span>
+                <span className="text-xl font-black text-[#0a0a0a]">{price.toLocaleString()}원</span>
+              </div>
+            </div>
+          )}
 
           {/* 버튼 */}
           <div className="mt-4 space-y-2">
@@ -4841,7 +5028,15 @@ function ProductDetail({
             >
               본품 구매하기 (올리브영){product.linkType === "search" && <span className="ml-1 text-xs font-normal text-[#9ca3af]">· 검색</span>}
             </button>
-            {qty === 0 ? (
+            {rec.full ? (
+              <motion.button
+                whileTap={{ scale: 0.985 }}
+                onClick={() => onBuyFull(product)}
+                className="w-full rounded-[14px] bg-[#0a0a0a] py-3.5 text-base font-extrabold text-white transition"
+              >
+                본품 구매하기 · 10% 할인
+              </motion.button>
+            ) : qty === 0 ? (
               <motion.button
                 whileTap={{ scale: 0.985 }}
                 onClick={() => onAdd(product.id, ml)}
