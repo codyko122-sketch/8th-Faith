@@ -2118,13 +2118,17 @@ export default function BeautyPassportExperience() {
     );
   }
   function goCheckout() {
-    const timing = stage === "acResult" ? "after" : "before";
+    // "장바구니" 페이지(cartPage)는 여행 전/후 어디서든 상단바 아이콘으로 들어올 수 있는 공용 화면이라,
+    // 그 경우엔 원래 있던 화면(preMenuStage)을 기준으로 여행 전/후를 판단해야 한다.
+    const originStage = stage === "cartPage" ? preMenuStage ?? stage : stage;
+    const timing = originStage === "acResult" ? "after" : "before";
     setCheckoutTiming(timing);
     setDeliveryBefore(timing === "before");
     setDeliveryAfter(timing === "after");
     if (timing === "after" && arriveDate) setPickupDate(arriveDate);
     setCartOpen(false);
     setReceiveMethod(null);
+    setPreMenuStage(null); // cartPage로 들어올 때 기억해둔 원래 화면 — 체크아웃 시점 판단에 다 썼으니 정리
     setStage("receive");
   }
   // 홈 상단바 메뉴/장바구니 버튼에서 "내 여권"·"장바구니" 페이지로 이동 — 원래 있던 stage를 기억해뒀다가 뒤로가기 시 복귀
