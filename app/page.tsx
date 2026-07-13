@@ -1719,9 +1719,10 @@ export default function BeautyPassportExperience() {
   const [pickupDate, setPickupDate] = useState<string | null>(null);
   const [pickupTime, setPickupTime] = useState<string | null>(null);
   const [pickupPhone, setPickupPhone] = useState("");
-  // COSMAX 게스트 계정은 매번 같은 테스트 연락처·배송지를 입력하지 않도록 고정값을 자동으로 채운다.
+  // COSMAX 게스트 계정은 매번 같은 테스트 수령인·연락처·배송지를 입력하지 않도록 고정값을 자동으로 채운다.
   useEffect(() => {
     if (loggedInId === COSMAX_GUEST.id) {
+      setDeliveryName("COSMAX");
       setDeliveryPhone(COSMAX_GUEST.phone);
       setDeliveryAddress(COSMAX_GUEST.address);
       setPickupPhone(COSMAX_GUEST.phone);
@@ -2319,7 +2320,7 @@ export default function BeautyPassportExperience() {
     setCartOpen(false); setReceiveMethod(null);
     setDeliveryBefore(true); setDeliveryAfter(false);
     const isGuest = loggedInId === COSMAX_GUEST.id;
-    setDeliveryName(isGuest ? COSMAX_GUEST.name : "");
+    setDeliveryName(isGuest ? "COSMAX" : "");
     setDeliveryPhone(isGuest ? COSMAX_GUEST.phone : "");
     setDeliveryAddress(isGuest ? COSMAX_GUEST.address : "");
     setDeliveryNote("");
