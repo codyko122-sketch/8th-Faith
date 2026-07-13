@@ -4132,7 +4132,7 @@ export default function BeautyPassportExperience() {
                         <div className="mt-2 font-sans text-[26px] font-black tracking-[-0.02em] text-[#0a0a0a]">스캔 완료</div>
 
                         <div className="mt-3 flex items-center gap-3.5 rounded-2xl border-[1.5px] border-[#e7e7ea] p-3.5">
-                          <div className="flex h-[70px] w-[70px] flex-none items-center justify-center rounded-2xl bg-[#f4f4f5] text-3xl">🧴</div>
+                          <ScanResultImage brand={scanResult.brand} name={scanResult.name} />
                           <div className="min-w-0 flex-1">
                             <div className="font-sans text-[11px] font-extrabold uppercase tracking-[0.1em] text-[#9ca3af]">{scanResult.brand}</div>
                             <div className="mt-0.5 font-sans text-[15px] font-black leading-tight text-[#0a0a0a]">{scanResult.name}</div>
@@ -5972,6 +5972,36 @@ function ProductImage({ product }: { product: Cosmetic }) {
       onError={() => setErr(true)}
       className="h-16 w-16 flex-none rounded-2xl object-cover"
     />
+  );
+}
+
+// AI 스캔 결과(브랜드·제품명 텍스트)를 카탈로그(COSMETICS)와 매칭해, 갖고 있는 실제 제품 사진을 찾는다.
+function findScannedCosmetic(brand: string, name: string): Cosmetic | undefined {
+  if (!brand || !name) return undefined;
+  return COSMETICS.find(
+    (c) =>
+      (c.brand.includes(brand) || brand.includes(c.brand)) &&
+      (c.name.includes(name) || name.includes(c.name))
+  );
+}
+
+// 스캔 결과 카드 썸네일 — 카탈로그에 있는 제품이면 실제 사진, 없으면 아이콘 플레이스홀더.
+function ScanResultImage({ brand, name }: { brand: string; name: string }) {
+  const [err, setErr] = useState(false);
+  const match = findScannedCosmetic(brand, name);
+  if (match?.image && !err) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={match.image}
+        alt={match.name}
+        onError={() => setErr(true)}
+        className="h-[70px] w-[70px] flex-none rounded-2xl object-cover"
+      />
+    );
+  }
+  return (
+    <div className="flex h-[70px] w-[70px] flex-none items-center justify-center rounded-2xl bg-[#f4f4f5] text-3xl">🧴</div>
   );
 }
 
