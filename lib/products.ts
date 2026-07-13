@@ -127,7 +127,7 @@ const CONCERN_TR: Record<string, { jp: string; en: string }> = {
   "주름": { jp: "シワ", en: "Wrinkles" },
 };
 
-function normType(t: string) {
+export function normType(t: string) {
   return t.replace("복합성", "복합").replace("민감성", "민감");
 }
 

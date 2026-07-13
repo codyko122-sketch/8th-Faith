@@ -11,6 +11,7 @@ import {
   recommendVolume,
   samplePrice,
   validSampleTiers,
+  normType,
   COSMETICS,
   type Cosmetic,
 } from "@/lib/products";
@@ -1745,6 +1746,9 @@ export default function BeautyPassportExperience() {
 
   // ── AI 성분 스캔 ──
   const [scanFromResult, setScanFromResult] = useState(false);
+  // 결과지에서 스캔한 제품이 카탈로그에 있고, 지금 기후·피부타입에 이미 적합하면
+  // 그 카테고리는 추천 세트에서 빼준다("이미 잘 맞는 걸 갖고 있으니 새로 추천 안 함").
+  const [scanExcludedCategory, setScanExcludedCategory] = useState<string | null>(null);
   const [scanStep, setScanStep] = useState<"camera" | "loading" | "result" | "error">("camera");
   const [scanImage, setScanImage] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
@@ -1785,6 +1789,25 @@ export default function BeautyPassportExperience() {
     stopScanCamera();
     setStage(scanFromResult ? "result" : loggedInId ? "member" : "journey");
     setScanFromResult(false);
+  }
+  // 스캔한 제품이 지금 피부타입·기후에 이미 적합한지 — 피부타입 적합 + 기후별 고민(건조하면 수분,
+  // 미세먼지 많으면 트러블 등)에 문제 없으면 "적합"으로 본다.
+  function isClimateSuitableProduct(p: Cosmetic): boolean {
+    if (!skin || !result) return false;
+    if (!p.forTypes.includes(normType(skin.skinTypeForRec))) return false;
+    const wx = result.profile;
+    if (wx.humidity <= 45 && !p.concerns.includes("수분")) return false;
+    if (wx.dust >= 80 && p.category === "클렌징" && !p.concerns.includes("트러블")) return false;
+    return true;
+  }
+  // 결과지에서 스캔했을 때: 인식된 제품이 카탈로그에 있고 지금 기후에 이미 적합하면
+  // 그 카테고리는 추천 세트에서 빼고, 아니면(또는 카탈로그에 없으면) 원래 추천 그대로 둔다.
+  function backFromScanResult() {
+    if (scanFromResult && scanResult?.identified) {
+      const matched = findScannedCosmetic(scanResult.brand, scanResult.name);
+      setScanExcludedCategory(matched && isClimateSuitableProduct(matched) ? matched.category : null);
+    }
+    exitScan();
   }
   async function analyzeScan(dataUrl: string) {
     stopScanCamera();
@@ -2035,11 +2058,13 @@ export default function BeautyPassportExperience() {
     if (!result) return;
     const dryHigh = result.profile.humidity <= 45;
     const uvHigh = result.profile.uv >= 8;
-    result.recItems.forEach(({ p }) => {
-      const rec = recommendVolume(p.category, result.days, dryHigh, uvHigh, p.fullMl);
-      // 본품 추천 항목은 배송 정보가 필요한 별도 본품 구매 흐름이라 일괄 담기에서 제외
-      if (!rec.full && cartQty(p.id, rec.ml) === 0) addSample(p.id, rec.ml);
-    });
+    result.recItems
+      .filter(({ p }) => p.category !== scanExcludedCategory)
+      .forEach(({ p }) => {
+        const rec = recommendVolume(p.category, result.days, dryHigh, uvHigh, p.fullMl);
+        // 본품 추천 항목은 배송 정보가 필요한 별도 본품 구매 흐름이라 일괄 담기에서 제외
+        if (!rec.full && cartQty(p.id, rec.ml) === 0) addSample(p.id, rec.ml);
+      });
   }
   function goCheckout() {
     const timing = stage === "acResult" ? "after" : "before";
@@ -2329,6 +2354,7 @@ export default function BeautyPassportExperience() {
     setPendingReceive(null); setPaymentMethod("card"); setCardNumber(""); setCardExpiry(""); setCardCvc(""); setPaying(false);
     setOrderNo(null); setLockerNo(null); setOrderSnapshot(null);
     setResultView("main"); setShowAiDetail(false); setCarePhase(0); setPickCat(PICK_CATEGORIES[0]); setDeliveryStatusOpen(false);
+    setScanExcludedCategory(null);
   }
   // 다시하기 — 로그인은 유지한 채 진단·여행 계획만 새로 시작
   function restartTrip() {
@@ -4203,12 +4229,16 @@ export default function BeautyPassportExperience() {
                         )}
 
                         <div className="mt-5 flex gap-3">
-                          <PassportButton onClick={saveScanProduct} disabled={!loggedInId || scanSaved}>
-                            {scanSaved ? "✓ 여권에 저장됨" : loggedInId ? "＋ 내 여권에 저장" : "로그인 후 저장 가능"}
-                          </PassportButton>
-                          <PassportButton variant="muted" fullWidth={false} onClick={() => setScanStep("camera")}>
-                            다시 스캔
-                          </PassportButton>
+                          <div className="flex-1">
+                            <PassportButton variant="muted" onClick={backFromScanResult}>
+                              ← 돌아가기
+                            </PassportButton>
+                          </div>
+                          <div className="flex-1">
+                            <PassportButton onClick={saveScanProduct} disabled={!loggedInId || scanSaved}>
+                              {scanSaved ? "✓ 저장됨" : loggedInId ? "＋ 내 여권에 저장" : "로그인 필요"}
+                            </PassportButton>
+                          </div>
                         </div>
                       </>
                     ) : (
@@ -4526,14 +4556,16 @@ export default function BeautyPassportExperience() {
                           </button>
                         </div>
 
-                        {recTab === "set" && (
+                        {recTab === "set" && (() => {
+                          const displayedRecItems = result.recItems.filter(({ p }) => p.category !== scanExcludedCategory);
+                          return (
                           <div className="mt-4">
                             <div className="rounded-xl bg-[#f4f4f5] px-4 py-3 text-center text-[13px] font-semibold text-[#3f3f46]">
                               {lang === "jp" ? result.recSummaryJp : lang === "en" ? result.recSummaryEn : result.recSummary}
                             </div>
-                            <p className="mt-3 text-xs text-[#71717a]">{t("카테고리별 대표", lang)} {countLabel(result.recItems.length, lang)} · {t("좌우로 넘겨보세요", lang)}</p>
+                            <p className="mt-3 text-xs text-[#71717a]">{t("카테고리별 대표", lang)} {countLabel(displayedRecItems.length, lang)} · {t("좌우로 넘겨보세요", lang)}</p>
                             <div className="scroll-x mt-2 flex gap-2.5 overflow-x-auto pb-1">
-                              {result.recItems.map(({ p, reason, reasonJp, reasonEn }) => (
+                              {displayedRecItems.map(({ p, reason, reasonJp, reasonEn }) => (
                                 <button
                                   key={p.id}
                                   type="button"
@@ -4570,7 +4602,8 @@ export default function BeautyPassportExperience() {
                               </button>
                             </div>
                           </div>
-                        )}
+                          );
+                        })()}
 
                         {recTab === "compare" && (
                           <div className="mt-4 rounded-2xl border-[1.5px] border-dashed border-[#d7dbe0] bg-[#fafbfc] p-6 text-center">
