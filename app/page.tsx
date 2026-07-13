@@ -4043,7 +4043,7 @@ export default function BeautyPassportExperience() {
                                     <ProductImage product={p} />
                                   </div>
                                   <div className="p-2">
-                                    <div className="line-clamp-2 text-[11.5px] font-extrabold leading-tight text-[#0a0a0a]">{p.name}</div>
+                                    <div className="line-clamp-2 text-[11.5px] font-extrabold leading-tight text-[#0a0a0a]">{productName(p, lang)}</div>
                                     <span className="mt-1.5 inline-block rounded-full bg-[#f4f4f5] px-1.5 py-0.5 text-[9px] font-semibold text-[#71717a]">{t(p.category, lang)}</span>
                                     <div className="mt-1 line-clamp-2 text-[9.5px] leading-snug text-[#9ca3af]">
                                       {lang === "jp" ? reasonJp : lang === "en" ? reasonEn : reason}
@@ -4157,10 +4157,10 @@ export default function BeautyPassportExperience() {
                                 <ProductImage product={p} />
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-1.5">
-                                    <span className="text-[10.5px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{p.brand}</span>
+                                    <span className="text-[10.5px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{productBrand(p, lang)}</span>
                                     <span className="ml-auto flex items-center gap-0.5 text-[12px] font-bold text-[#ec1c24]">★ {p.rating.toFixed(2)}</span>
                                   </div>
-                                  <div className="mt-0.5 truncate text-sm font-extrabold text-[#0a0a0a]">{p.name}</div>
+                                  <div className="mt-0.5 truncate text-sm font-extrabold text-[#0a0a0a]">{productName(p, lang)}</div>
                                   <div className="mt-1.5 flex flex-wrap items-center gap-1">
                                     {p.ingredients.map((ing) => (
                                       <span key={ing} className="rounded-full bg-[#f4f4f5] px-2 py-0.5 text-[10px] text-[#3f3f46]">#{ing}</span>
@@ -4360,8 +4360,8 @@ export default function BeautyPassportExperience() {
                                 <div key={id} className="flex items-center gap-3 rounded-xl bg-[#f4f4f5] p-2.5">
                                   <ProductImage product={p} />
                                   <div className="min-w-0 flex-1">
-                                    <div className="text-[11px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{p.brand}</div>
-                                    <div className="truncate text-sm font-extrabold text-[#0a0a0a]">{p.name}</div>
+                                    <div className="text-[11px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{productBrand(p, lang)}</div>
+                                    <div className="truncate text-sm font-extrabold text-[#0a0a0a]">{productName(p, lang)}</div>
                                   </div>
                                 </div>
                               );
@@ -4506,7 +4506,7 @@ export default function BeautyPassportExperience() {
                     <div className="mt-2 space-y-1.5">
                       {cartLines.map(({ item, p, lineTotal }) => (
                         <div key={`${item.id}-${item.ml}`} className="flex justify-between text-sm text-[#3f3f46]">
-                          <span className="truncate">{p.brand} {p.name} · {item.ml}ml ×{item.qty}</span>
+                          <span className="truncate">{productBrand(p, lang)} {productName(p, lang)} · {item.ml}ml ×{item.qty}</span>
                           <span className="font-semibold text-[#0a0a0a]">{lineTotal.toLocaleString()}원</span>
                         </div>
                       ))}
@@ -4603,7 +4603,7 @@ export default function BeautyPassportExperience() {
                     <div className="mt-2 space-y-1.5">
                       {cartLines.map(({ item, p, lineTotal }) => (
                         <div key={`${item.id}-${item.ml}`} className="flex justify-between text-sm text-[#3f3f46]">
-                          <span className="truncate">{p.brand} {p.name} · {item.ml}ml ×{item.qty}</span>
+                          <span className="truncate">{productBrand(p, lang)} {productName(p, lang)} · {item.ml}ml ×{item.qty}</span>
                           <span className="font-semibold text-[#0a0a0a]">{lineTotal.toLocaleString()}원</span>
                         </div>
                       ))}
@@ -4659,7 +4659,7 @@ export default function BeautyPassportExperience() {
                     <div className="mt-2 space-y-1.5">
                       {cartLines.map(({ item, p, lineTotal }) => (
                         <div key={`${item.id}-${item.ml}`} className="flex justify-between text-sm text-[#3f3f46]">
-                          <span className="truncate">{p.brand} {p.name} · {item.ml}ml ×{item.qty}</span>
+                          <span className="truncate">{productBrand(p, lang)} {productName(p, lang)} · {item.ml}ml ×{item.qty}</span>
                           <span className="font-semibold text-[#0a0a0a]">{lineTotal.toLocaleString()}원</span>
                         </div>
                       ))}
@@ -4774,7 +4774,7 @@ export default function BeautyPassportExperience() {
                       <div className="mt-2 space-y-1.5">
                         {cartLines.map(({ item, p, lineTotal }) => (
                           <div key={`${item.id}-${item.ml}`} className="flex justify-between text-sm text-[#3f3f46]">
-                            <span className="truncate">{p.brand} {p.name} · {item.ml}ml ×{item.qty}</span>
+                            <span className="truncate">{productBrand(p, lang)} {productName(p, lang)} · {item.ml}ml ×{item.qty}</span>
                             <span className="font-semibold text-[#0a0a0a]">{lineTotal.toLocaleString()}원</span>
                           </div>
                         ))}
@@ -5369,8 +5369,8 @@ function FullSizeBuyModal({ product, onClose, lang }: { product: Cosmetic; onClo
               <div className="flex gap-3 rounded-2xl border border-[#e7e7ea] p-3.5">
                 <ProductImage product={product} />
                 <div className="min-w-0 flex-1">
-                  <div className="text-[10.5px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{product.brand}</div>
-                  <div className="mt-0.5 truncate text-sm font-extrabold text-[#0a0a0a]">{product.name}</div>
+                  <div className="text-[10.5px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{productBrand(product, lang)}</div>
+                  <div className="mt-0.5 truncate text-sm font-extrabold text-[#0a0a0a]">{productName(product, lang)}</div>
                   <div className="mt-1 text-[11px] text-[#9ca3af]">{product.fullMl}ml · {t("본품", lang)}</div>
                   <div className="mt-1.5 flex items-center gap-1.5">
                     <span className="text-[12px] text-[#9ca3af] line-through">{product.price.toLocaleString()}원</span>
@@ -5463,10 +5463,10 @@ function ProductDetail({
           </div>
 
           <div className="mt-4 flex items-center gap-2">
-            <span className="text-sm font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{product.brand}</span>
+            <span className="text-sm font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{productBrand(product, lang)}</span>
             <span className="ml-auto text-sm font-bold text-[#ec1c24]">★ {product.rating.toFixed(2)}</span>
           </div>
-          <h2 className="mt-0.5 text-xl font-black tracking-[-0.01em] text-[#0a0a0a]">{product.name}</h2>
+          <h2 className="mt-0.5 text-xl font-black tracking-[-0.01em] text-[#0a0a0a]">{productName(product, lang)}</h2>
           <div className="mt-1 text-sm text-[#71717a]">
             {t("정품", lang)} {product.fullMl}ml · {t("정가", lang)} {product.price.toLocaleString()}원
           </div>
@@ -5635,8 +5635,8 @@ function CartSheet({
                 <div key={`${item.id}-${item.ml}`} className="flex items-center gap-3 rounded-2xl border border-[#e7e7ea] p-3">
                   <ProductImage product={p} />
                   <div className="min-w-0 flex-1">
-                    <div className="text-[11px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{p.brand}</div>
-                    <div className="truncate text-sm font-extrabold text-[#0a0a0a]">{p.name}</div>
+                    <div className="text-[11px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{productBrand(p, lang)}</div>
+                    <div className="truncate text-sm font-extrabold text-[#0a0a0a]">{productName(p, lang)}</div>
                     <div className="mt-1 flex items-center gap-1.5">
                       {item.ml >= p.fullMl ? (
                         <span className="rounded-full bg-[#fbe7e5] px-2 py-0.5 text-[10px] font-semibold text-[#ec1c24]">{t("본품 · 10%↓", lang)}</span>
