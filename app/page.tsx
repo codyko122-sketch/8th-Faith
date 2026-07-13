@@ -1618,6 +1618,7 @@ export default function BeautyPassportExperience() {
   const [acChange, setAcChange] = useState<"better" | "same" | "worse" | null>(null);
   const [acUsedProducts, setAcUsedProducts] = useState<"yes" | "no" | null>(null);
   const [acUsedProductIds, setAcUsedProductIds] = useState<string[]>([]);
+  const [acPackedInput, setAcPackedInput] = useState(""); // "더 챙긴 제품" 직접 입력용 자동완성 검색어
   const [acConcerns, setAcConcerns] = useState<string[]>([]);
   const [acMode, setAcMode] = useState<"concern" | "destination" | "better" | null>(null);
   const [acSaved, setAcSaved] = useState(false);
@@ -2217,6 +2218,7 @@ export default function BeautyPassportExperience() {
     setAcChange(null);
     setAcUsedProducts(null);
     setAcUsedProductIds([]);
+    setAcPackedInput("");
     setAcConcerns([]);
     setAcMode(null);
     setFullBuyProduct(null);
@@ -2231,7 +2233,7 @@ export default function BeautyPassportExperience() {
   function resetTripState() {
     setJourneyPhase(null);
     setAcEntry("journey");
-    setAcChange(null); setAcUsedProducts(null); setAcUsedProductIds([]); setAcConcerns([]); setAcMode(null); setAcSaved(false); setFullBuyProduct(null);
+    setAcChange(null); setAcUsedProducts(null); setAcUsedProductIds([]); setAcPackedInput(""); setAcConcerns([]); setAcMode(null); setAcSaved(false); setFullBuyProduct(null);
     setCountryCode(null); setCityName(null);
     setUseCustom(false); setCustomCountry(""); setCustomCity("");
     setDepartDate(null); setArriveDate(null);
@@ -3261,19 +3263,67 @@ export default function BeautyPassportExperience() {
                 <AcScreenChrome step={3} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode} topBar={zigZagTopBarProps}>
                   <AcLabel en="Which One" ko="사용 제품" />
                   <p className={acStyles.lead}>어떤 제품을 사용하셨나요?</p>
-                  <p className={acStyles.leadSub}>해당하는 제품을 모두 선택해 주세요. (중복 선택 가능)</p>
-                  <div className={acStyles.chips}>
-                    {(preTripSnapshot?.recItems ?? []).map(({ p }) => (
-                      <AcChip
-                        key={p.id}
-                        selected={acUsedProductIds.includes(p.id)}
-                        onClick={() => acToggleUsed(p.id)}
-                        icon="🧴"
-                        label={p.name}
-                        en={p.brand}
-                      />
-                    ))}
-                  </div>
+                  <p className={acStyles.leadSub}>해당하는 제품을 모두 선택해 주세요. (중복 선택 가능) · 🛍️ 표시는 이번 여행에 실제로 구매하신 제품이에요.</p>
+                  {(() => {
+                    const recIds = new Set((preTripSnapshot?.recItems ?? []).map(({ p }) => p.id));
+                    const extraProducts = acUsedProductIds.filter((id) => !recIds.has(id)).map((id) => COSMETICS.find((c) => c.id === id)).filter((p): p is Cosmetic => !!p);
+                    const suggestions =
+                      acPackedInput.trim().length > 0
+                        ? COSMETICS.filter(
+                            (c) => !acUsedProductIds.includes(c.id) && (c.name.includes(acPackedInput.trim()) || c.brand.includes(acPackedInput.trim()))
+                          ).slice(0, 6)
+                        : [];
+                    return (
+                      <>
+                        <div className={acStyles.chips}>
+                          {(preTripSnapshot?.recItems ?? []).map(({ p }) => (
+                            <AcChip
+                              key={p.id}
+                              selected={acUsedProductIds.includes(p.id)}
+                              onClick={() => acToggleUsed(p.id)}
+                              icon="🧴"
+                              label={p.name}
+                              en={orderedProducts.some((op) => op.id === p.id) ? `${p.brand} · 🛍️ 구매완료` : p.brand}
+                            />
+                          ))}
+                          {extraProducts.map((p) => (
+                            <AcChip key={p.id} selected onClick={() => acToggleUsed(p.id)} icon="🧴" label={p.name} en={p.brand} />
+                          ))}
+                        </div>
+
+                        <div className="mt-4">
+                          <label className="mb-1.5 block text-[13px] font-extrabold text-[#0a0a0a]">더 챙긴 제품이 있나요?</label>
+                          <input
+                            value={acPackedInput}
+                            onChange={(e) => setAcPackedInput(e.target.value)}
+                            placeholder="화장품 이름을 입력해 보세요"
+                            className="w-full rounded-[13px] border border-transparent bg-[#f4f4f5] px-4 py-3 text-sm text-[#0a0a0a] outline-none transition placeholder:text-[#9ca3af] focus:border-[#0a0a0a] focus:bg-white"
+                          />
+                          {suggestions.length > 0 && (
+                            <div className="mt-1.5 overflow-hidden rounded-[13px] border border-[#e7e7ea] bg-white shadow-[0_8px_20px_rgba(20,30,50,0.08)]">
+                              {suggestions.map((p) => (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  onClick={() => {
+                                    acToggleUsed(p.id);
+                                    setAcPackedInput("");
+                                  }}
+                                  className="flex w-full items-center gap-2.5 border-b border-[#f0f0f2] px-3.5 py-2.5 text-left last:border-b-0 transition active:bg-[#f4f4f5]"
+                                >
+                                  <span className="text-[13px]">🧴</span>
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block truncate text-[13px] font-bold text-[#0a0a0a]">{p.name}</span>
+                                    <span className="block text-[11px] text-[#9ca3af]">{p.brand}</span>
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    );
+                  })()}
                   <AcBtnBar>
                     <AcBtn variant="ghost" onClick={() => setStage("acUsed")}>
                       ← 이전
@@ -3394,7 +3444,7 @@ export default function BeautyPassportExperience() {
                             const defaultMl = full ? 0 : tiers.includes(20) ? 20 : tiers[tiers.length - 1];
                             const ml = volumeSel[p.id] ?? defaultMl;
                             const price = full ? 0 : samplePrice(p.price, p.fullMl, ml);
-                            const qty = full ? 0 : cartQty(p.id, ml);
+                            const qty = cartQty(p.id, full ? p.fullMl : ml);
                             return (
                               <div key={p.id} className="rounded-2xl border border-[#e7e7ea] bg-white p-3.5 shadow-[0_8px_24px_rgba(20,30,50,0.05)]">
                                 <button type="button" onClick={() => setDetailId(p.id)} className="flex w-full gap-3 text-left">
@@ -3412,12 +3462,20 @@ export default function BeautyPassportExperience() {
                                 {full ? (
                                   <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
                                     <span className="flex-1 rounded-xl bg-[#fbe7e5] px-2.5 py-1.5 text-[11px] font-bold text-[#ec1c24]">본품 추천 · {p.fullMl}ml</span>
-                                    <button
-                                      onClick={() => addSample(p.id, p.fullMl)}
-                                      className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
-                                    >
-                                      본품 구매하기
-                                    </button>
+                                    {qty === 0 ? (
+                                      <button
+                                        onClick={() => addSample(p.id, p.fullMl)}
+                                        className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
+                                      >
+                                        담기
+                                      </button>
+                                    ) : (
+                                      <div className="flex items-center gap-2 rounded-full bg-[#f4f4f5] px-2 py-1">
+                                        <button onClick={() => decSample(p.id, p.fullMl)} className="text-sm font-bold text-[#0a0a0a]">−</button>
+                                        <span className="w-4 text-center text-xs font-bold text-[#0a0a0a]">{qty}</span>
+                                        <button onClick={() => addSample(p.id, p.fullMl)} className="text-sm font-bold text-[#0a0a0a]">＋</button>
+                                      </div>
+                                    )}
                                   </div>
                                 ) : (
                                   <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
@@ -3467,7 +3525,7 @@ export default function BeautyPassportExperience() {
                             const defaultMl = full ? 0 : tiers.includes(20) ? 20 : tiers[tiers.length - 1];
                             const ml = volumeSel[p.id] ?? defaultMl;
                             const price = full ? 0 : samplePrice(p.price, p.fullMl, ml);
-                            const qty = full ? 0 : cartQty(p.id, ml);
+                            const qty = cartQty(p.id, full ? p.fullMl : ml);
                             return (
                               <div key={p.id} className="rounded-2xl border border-[#e7e7ea] bg-white p-3.5 shadow-[0_8px_24px_rgba(20,30,50,0.05)]">
                                 <button type="button" onClick={() => setDetailId(p.id)} className="flex w-full gap-3 text-left">
@@ -3485,12 +3543,20 @@ export default function BeautyPassportExperience() {
                                 {full ? (
                                   <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
                                     <span className="flex-1 rounded-xl bg-[#fbe7e5] px-2.5 py-1.5 text-[11px] font-bold text-[#ec1c24]">본품 추천 · {p.fullMl}ml</span>
-                                    <button
-                                      onClick={() => addSample(p.id, p.fullMl)}
-                                      className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
-                                    >
-                                      본품 구매하기
-                                    </button>
+                                    {qty === 0 ? (
+                                      <button
+                                        onClick={() => addSample(p.id, p.fullMl)}
+                                        className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
+                                      >
+                                        담기
+                                      </button>
+                                    ) : (
+                                      <div className="flex items-center gap-2 rounded-full bg-[#f4f4f5] px-2 py-1">
+                                        <button onClick={() => decSample(p.id, p.fullMl)} className="text-sm font-bold text-[#0a0a0a]">−</button>
+                                        <span className="w-4 text-center text-xs font-bold text-[#0a0a0a]">{qty}</span>
+                                        <button onClick={() => addSample(p.id, p.fullMl)} className="text-sm font-bold text-[#0a0a0a]">＋</button>
+                                      </div>
+                                    )}
                                   </div>
                                 ) : (
                                   <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
@@ -3564,7 +3630,7 @@ export default function BeautyPassportExperience() {
                                         onClick={() => addSample(p.id, p.fullMl)}
                                         className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
                                       >
-                                        본품 구매하기
+                                        담기
                                       </button>
                                     ) : (
                                       <div className="flex items-center gap-2 rounded-full bg-[#f4f4f5] px-2 py-1">
@@ -3578,6 +3644,22 @@ export default function BeautyPassportExperience() {
                               );
                             })
                           )}
+                        </div>
+                      )}
+
+                      {cartCount > 0 && (
+                        <div className="mt-1 rounded-2xl border border-[#e7e7ea] bg-[#f9fafb] p-3.5">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-bold text-[#0a0a0a]">🧳 담은 샘플 {cartCount}개</span>
+                            <span className="font-extrabold text-[#0a0a0a]">{cartTotalPrice.toLocaleString()}원</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={goCheckout}
+                            className="mt-2.5 w-full rounded-xl bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.985]"
+                          >
+                            결제하기 →
+                          </button>
                         </div>
                       )}
 
@@ -3629,22 +3711,6 @@ export default function BeautyPassportExperience() {
                             </div>
                           );
                         })()}
-
-                      {cartCount > 0 && (
-                        <div className="mt-1 rounded-2xl border border-[#e7e7ea] bg-[#f9fafb] p-3.5">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="font-bold text-[#0a0a0a]">🧳 담은 샘플 {cartCount}개</span>
-                            <span className="font-extrabold text-[#0a0a0a]">{cartTotalPrice.toLocaleString()}원</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={goCheckout}
-                            className="mt-2.5 w-full rounded-xl bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.985]"
-                          >
-                            결제하기 →
-                          </button>
-                        </div>
-                      )}
 
                       <AcBtnBar>
                         <AcBtn variant="ghost" onClick={acRestart}>
@@ -5128,10 +5194,10 @@ export default function BeautyPassportExperience() {
                           setChecklist((c) => c.map((g, gi) => (gi === 0 ? g.map((v, i) => (i === 1 ? true : v)) : g)));
                           setCarePhase(0);
                           setResultView("plan");
-                          setStage("result");
+                          openMyPassport();
                         }}
                       >
-                        여행 케어플랜 보기 →
+                        내 여권보기 →
                       </PrimaryButton>
                     </div>
                   </div>
