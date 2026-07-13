@@ -1716,6 +1716,8 @@ export default function BeautyPassportExperience() {
   // [6-4] 완료
   const [orderNo, setOrderNo] = useState<string | null>(null);
   const [lockerNo, setLockerNo] = useState<string | null>(null);
+  // 주문 완료 시점의 장바구니 내역 스냅샷 — 완료 화면에 보여준 뒤 장바구니 자체는 비운다.
+  const [orderSnapshot, setOrderSnapshot] = useState<{ lines: CartLine[]; totalPrice: number } | null>(null);
 
   const timer = useRef<number | null>(null);
 
@@ -2049,11 +2051,15 @@ export default function BeautyPassportExperience() {
   }
   function submitDelivery() {
     setOrderNo(genOrderNo());
+    setOrderSnapshot({ lines: cartLines, totalPrice: cartTotalPrice });
+    setCart([]);
     setStage("done");
   }
   function submitPickup() {
     setOrderNo(genOrderNo());
     setLockerNo(genLockerNo());
+    setOrderSnapshot({ lines: cartLines, totalPrice: cartTotalPrice });
+    setCart([]);
     setStage("done");
   }
   const deliveryFormValid =
@@ -2262,7 +2268,7 @@ export default function BeautyPassportExperience() {
     setDeliveryName(""); setDeliveryPhone(""); setDeliveryAddress(""); setDeliveryNote("");
     setPickupAirport(null); setPickupDate(null); setPickupTime(null); setPickupPhone("");
     setPendingReceive(null); setPaymentMethod("card"); setCardNumber(""); setCardExpiry(""); setCardCvc(""); setPaying(false);
-    setOrderNo(null); setLockerNo(null);
+    setOrderNo(null); setLockerNo(null); setOrderSnapshot(null);
     setResultView("main"); setShowAiDetail(false); setCarePhase(0); setPickCat(PICK_CATEGORIES[0]); setDeliveryStatusOpen(false);
   }
   // 다시하기 — 로그인은 유지한 채 진단·여행 계획만 새로 시작
@@ -5161,7 +5167,7 @@ export default function BeautyPassportExperience() {
                     <Card>
                       <CardTitle>주문 요약</CardTitle>
                       <div className="mt-2 space-y-1.5">
-                        {cartLines.map(({ item, p, lineTotal }) => (
+                        {(orderSnapshot?.lines ?? []).map(({ item, p, lineTotal }) => (
                           <div key={`${item.id}-${item.ml}`} className="flex justify-between text-sm text-[#3f3f46]">
                             <span className="truncate">{productBrand(p, lang)} {productName(p, lang)} · {item.ml}ml ×{item.qty}</span>
                             <span className="font-semibold text-[#0a0a0a]">{lineTotal.toLocaleString()}원</span>
@@ -5170,7 +5176,7 @@ export default function BeautyPassportExperience() {
                       </div>
                       <div className="mt-3 flex justify-between border-t border-dashed border-[#e7e7ea] pt-2 text-sm font-extrabold text-[#0a0a0a]">
                         <span>합계</span>
-                        <span>{cartTotalPrice.toLocaleString()}원</span>
+                        <span>{(orderSnapshot?.totalPrice ?? 0).toLocaleString()}원</span>
                       </div>
                       <div className="mt-2 text-xs text-[#71717a]">✈️ 전 제품 100ml 이하 · 기내 반입 가능</div>
                     </Card>
