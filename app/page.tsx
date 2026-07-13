@@ -4317,7 +4317,7 @@ export default function BeautyPassportExperience() {
                 <div className="min-h-full">
                   <ZigZagTopBar {...zigZagTopBarProps} />
                   <div className="flex items-center justify-between">
-                    <button type="button" onClick={goHome} className="font-sans text-[11px] font-semibold text-[#9ca3af]">
+                    <button type="button" onClick={() => setStage("journey")} className="font-sans text-[11px] font-semibold text-[#9ca3af]">
                       ‹ 처음으로
                     </button>
                     <div className="flex gap-0.5 rounded-full bg-[#f4f4f5] p-0.5">
