@@ -751,6 +751,436 @@ function productDesc(p: Cosmetic, lang: "ko" | "jp" | "en") {
   if (lang === "en") return p.descEn ?? p.desc;
   return p.desc;
 }
+function productName(p: Cosmetic, lang: "ko" | "jp" | "en") {
+  if (lang === "jp") return p.nameJp ?? p.name;
+  if (lang === "en") return p.nameEn ?? p.name;
+  return p.name;
+}
+function productBrand(p: Cosmetic, lang: "ko" | "jp" | "en") {
+  if (lang === "jp") return p.brandJp ?? p.brand;
+  if (lang === "en") return p.brandEn ?? p.brand;
+  return p.brand;
+}
+// 결과 화면(및 하위 모달) 고정 UI 문구 번역 사전 — 사용자 본인 이름만 제외하고 나머지는 전부 포함.
+// 키는 한국어 원문 그대로 사용해 어디서든 t("원문", lang)로 바로 조회할 수 있게 한다.
+const UI_TR: Record<string, { jp: string; en: string }> = {
+  "여행자": { jp: "旅行者", en: "Traveler" },
+  "일상": { jp: "日常", en: "Home" },
+  "일정 미정": { jp: "日程未定", en: "Dates TBD" },
+  "📊 피부 자극 지수": { jp: "📊 肌刺激指数", en: "📊 Skin Irritation Index" },
+  "자외선 노출": { jp: "紫外線暴露", en: "UV Exposure" },
+  "색소 침착": { jp: "色素沈着", en: "Pigmentation" },
+  "수분 손실": { jp: "水分損失", en: "Moisture Loss" },
+  "트러블·유수분": { jp: "トラブル・皮脂バランス", en: "Blemish & Oil-Water" },
+  "📅 여행 날씨 캘린더": { jp: "📅 旅行お天気カレンダー", en: "📅 Trip Weather Calendar" },
+  "좌우로 넘겨보세요": { jp: "左右にスワイプしてください", en: "Swipe left or right" },
+  "습도": { jp: "湿度", en: "Humidity" },
+  "미세먼지": { jp: "微細粉塵", en: "Fine dust" },
+  "자외선 강함": { jp: "紫外線強い", en: "Strong UV" },
+  "보통": { jp: "普通", en: "Moderate" },
+  "🤖 AI가 이렇게 판단했어요": { jp: "🤖 AIはこう判断しました", en: "🤖 Here's what the AI found" },
+  "수질": { jp: "水質", en: "Water quality" },
+  "📋 상세보기 — AI 판단 · 날씨 · 수질 · 성분 · 루틴": { jp: "📋 詳細を見る — AI判断・天気・水質・成分・ルーティン", en: "📋 View details — AI reasoning, weather, water, ingredients, routine" },
+  "🧴 AI가 고른 여행 스킨케어": { jp: "🧴 AIが選んだ旅行スキンケア", en: "🧴 AI-picked travel skincare" },
+  "추천 세트": { jp: "おすすめセット", en: "Recommended Set" },
+  "내 제품과 비교": { jp: "自分の製品と比較", en: "Compare My Products" },
+  "카테고리별 대표": { jp: "カテゴリー別代表", en: "Top pick per category" },
+  "전체 담기 →": { jp: "全部カートに入れる →", en: "Add All →" },
+  "직접 고르기 →": { jp: "自分で選ぶ →", en: "Browse & Pick →" },
+  "내가 쓰는 화장품을 촬영하면": { jp: "使っている化粧品を撮影すると", en: "Snap a photo of what you use, and" },
+  "AI가 성분을 분석": { jp: "AIが成分を分析", en: "the AI will analyze the ingredients" },
+  "해줘요.": { jp: "してくれます。", en: "for you." },
+  "이 여행지 기준 주의 성분·안전 여부까지 함께 확인할 수 있어요.": { jp: "この旅行先基準で注意成分・安全性まで一緒に確認できます。", en: "You can also check caution ingredients and safety for this destination." },
+  "촬영해서 내 제품 분석하기 →": { jp: "撮影して自分の製品を分析する →", en: "Snap & Analyze My Product →" },
+  "🧳 담긴 샘플": { jp: "🧳 カート内のサンプル", en: "🧳 Samples in cart" },
+  "장바구니 보기 →": { jp: "カートを見る →", en: "View Cart →" },
+  "여행 케어 플랜 보기 →": { jp: "旅行ケアプランを見る →", en: "View Travel Care Plan →" },
+
+  "← 추천으로": { jp: "← おすすめへ", en: "← Back to recommendations" },
+  "전체 제품에서 고르기": { jp: "全製品から選ぶ", en: "Browse All Products" },
+  "카테고리별로 모든 제품을 둘러보고 담을 수 있어요.": { jp: "カテゴリー別にすべての製品を見てカートに入れられます。", en: "Browse every product by category and add what you like." },
+  "자세히 보기 →": { jp: "詳しく見る →", en: "View Details →" },
+  "본품 추천": { jp: "本品推奨", en: "Full-size recommended" },
+  "본품 구매하기": { jp: "本品を購入する", en: "Buy Full Size" },
+  "· 추천": { jp: "・おすすめ", en: " · Recommended" },
+  "기내 반입 가능": { jp: "機内持ち込み可能", en: "Carry-on OK" },
+  "담기": { jp: "カートに入れる", en: "Add" },
+
+  "여행 전 · 중 · 후": { jp: "旅行前・中・後", en: "Before · During · After" },
+  "여행 전": { jp: "旅行前", en: "Before Trip" },
+  "여행 중": { jp: "旅行中", en: "During Trip" },
+  "여행 후": { jp: "旅行後", en: "After Trip" },
+  "시점을 고르면 체크리스트와 타임라인 케어가 나와요.": { jp: "時点を選ぶとチェックリストとタイムラインケアが表示されます。", en: "Pick a stage to see the checklist and timeline care." },
+  "🛫 출국 전": { jp: "🛫 出発前", en: "🛫 Before Departure" },
+  "출발까지": { jp: "出発まで", en: "Until departure" },
+  "출발일을 선택하면 D-day가 표시돼요.": { jp: "出発日を選択するとD-dayが表示されます。", en: "Pick a departure date to see the D-day countdown." },
+  "📦 소용량 키트 도착 예정일": { jp: "📦 少量キットお届け予定日", en: "📦 Mini kit expected arrival" },
+  "출발 2일 전": { jp: "出発2日前", en: "2 days before departure" },
+  "📦 배송 현황 확인하기": { jp: "📦 配送状況を確認する", en: "📦 Check Delivery Status" },
+  "출국하기 →": { jp: "出発する →", en: "Depart →" },
+  "✅ 여행 중 체크리스트": { jp: "✅ 旅行中チェックリスト", en: "✅ During-Trip Checklist" },
+  "🏠 귀국 후 · 리커버리": { jp: "🏠 帰国後・リカバリー", en: "🏠 After Return · Recovery" },
+  "여행 중 자극받은 피부 장벽을 되돌리는 진정 회복 루틴을 추천해요.": { jp: "旅行中に刺激を受けた肌バリアを整える鎮静回復ルーティンをおすすめします。", en: "We recommend a soothing recovery routine to restore your skin barrier after travel." },
+  "이번 여행 피부 자극 지수": { jp: "今回の旅行の肌刺激指数", en: "This trip's Skin Irritation Index" },
+  "다시하기 ↺": { jp: "もう一度 ↺", en: "Start Over ↺" },
+  "공유하기 🔗": { jp: "共有する 🔗", en: "Share 🔗" },
+  "링크가 복사되었어요!": { jp: "リンクがコピーされました！", en: "Link copied!" },
+
+  "Detail · 상세 리포트": { jp: "Detail · 詳細レポート", en: "Detail · Full Report" },
+  "AI Reasoning · AI 판단 상세": { jp: "AI Reasoning · AI判断詳細", en: "AI Reasoning · AI Analysis Detail" },
+  "Weather Detail · 날짜별 날씨": { jp: "Weather Detail · 日別の天気", en: "Weather Detail · Day-by-Day Weather" },
+  "날짜": { jp: "日付", en: "Date" },
+  "날씨": { jp: "天気", en: "Weather" },
+  "기온": { jp: "気温", en: "Temp" },
+  "Water Quality · 여행지 수돗물": { jp: "Water Quality · 旅行先の水道水", en: "Water Quality · Local Tap Water" },
+  "Baumann Axis · 피부 타입 4축": { jp: "Baumann Axis · 肌タイプ4軸", en: "Baumann Axis · 4 Skin-Type Axes" },
+  "Ingredients · 성분 가이드": { jp: "Ingredients · 成分ガイド", en: "Ingredients · Ingredient Guide" },
+  "👍 추천 성분": { jp: "👍 おすすめ成分", en: "👍 Recommended Ingredients" },
+  "⚠️ 주의 성분": { jp: "⚠️ 注意成分", en: "⚠️ Ingredients to Avoid" },
+  "추천 성분 정보가 없어요": { jp: "おすすめ成分情報がありません", en: "No recommended ingredients to show" },
+  "특별히 피할 성분은 없어요": { jp: "特に避けるべき成分はありません", en: "No ingredients to specifically avoid" },
+  "Daily Routine · 데일리 루틴": { jp: "Daily Routine · デイリールーティン", en: "Daily Routine" },
+  "닫기": { jp: "閉じる", en: "Close" },
+
+  "Status · 배송 현황": { jp: "Status · 配送状況", en: "Status · Delivery Status" },
+  "주문번호": { jp: "注文番号", en: "Order No." },
+  "보관함": { jp: "保管ロッカー", en: "Locker" },
+  "이후 수령 가능": { jp: "以降受け取り可能", en: "available for pickup after" },
+  "배송이 완료됐어요. 여행 가방에 잘 챙겨주세요!": { jp: "配送が完了しました。旅行かばんにしっかり入れてくださいね！", en: "Delivery complete. Pack it in your travel bag!" },
+  "지금 배송 중이에요. 출발 전에 도착 예정이에요.": { jp: "只今配送中です。出発前にお届け予定です。", en: "It's on its way and should arrive before you leave." },
+  "상품을 준비하고 있어요. 출발일에 맞춰 배송될 예정이에요.": { jp: "商品を準備中です。出発日に合わせてお届け予定です。", en: "We're preparing your order to arrive by your departure date." },
+  "결제 완료": { jp: "決済完了", en: "Payment complete" },
+  "상품 준비 중": { jp: "商品準備中", en: "Preparing order" },
+  "배송 중": { jp: "配送中", en: "Shipping" },
+  "배송 완료": { jp: "配送完了", en: "Delivered" },
+  "공항 보관함 입고 준비": { jp: "空港ロッカー搬入準備", en: "Preparing airport locker drop-off" },
+  "보관함 입고 완료": { jp: "ロッカー搬入完了", en: "In airport locker" },
+  "수령 대기": { jp: "受け取り待ち", en: "Awaiting pickup" },
+
+  "Full Size · 본품 구매": { jp: "Full Size · 本品購入", en: "Full Size · Purchase" },
+  "주문 완료": { jp: "注文完了", en: "Order Complete" },
+  "10% 할인가로 본품 주문이 접수됐어요.": { jp: "10%割引価格で本品のご注文を受け付けました。", en: "Your full-size order at 10% off has been placed." },
+  "본품": { jp: "本品", en: "full size" },
+  "10% 할인": { jp: "10%割引", en: "10% off" },
+  "Order · 배송 정보": { jp: "Order · 配送情報", en: "Order · Shipping Info" },
+  "받는 사람": { jp: "受取人", en: "Recipient" },
+  "연락처": { jp: "連絡先", en: "Phone" },
+  "배송지": { jp: "配送先", en: "Address" },
+  "이름": { jp: "お名前", en: "Name" },
+  "주소를 입력하세요": { jp: "住所を入力してください", en: "Enter your address" },
+  "10% 할인가로 주문하기": { jp: "10%割引価格で注文する", en: "Order at 10% off" },
+
+  "← 목록으로": { jp: "← 一覧へ", en: "← Back to list" },
+  "정품": { jp: "正規品", en: "Full size" },
+  "정가": { jp: "定価", en: "List price" },
+  "💡 이 여행에 딱 맞아요 —": { jp: "💡 この旅行にぴったりです —", en: "💡 A great fit for this trip —" },
+  "이번 여행엔 본품을 추천해요": { jp: "今回の旅行には本品をおすすめします", en: "We recommend the full size for this trip" },
+  "소용량 선택 (기내 반입 가능 ✈️)": { jp: "少量サイズを選択（機内持ち込み可能 ✈️）", en: "Choose a sample size (carry-on OK ✈️)" },
+  "(추천)": { jp: "（おすすめ）", en: " (recommended)" },
+  "딱 맞는": { jp: "にぴったりの", en: "just right for" },
+  "본품 구매하기 (올리브영)": { jp: "本品を購入する（Olive Young）", en: "Buy Full Size (Olive Young)" },
+  "· 검색": { jp: "・検索", en: " · search" },
+  "본품 구매하기 · 10% 할인": { jp: "本品を購入する · 10%割引", en: "Buy Full Size · 10% off" },
+  "샘플 담기 ·": { jp: "サンプルを入れる ·", en: "Add Sample ·" },
+  "샘플": { jp: "サンプル", en: "Sample" },
+  "담김": { jp: "追加済み", en: "added" },
+
+  "🧳 여행 샘플 장바구니": { jp: "🧳 旅行サンプルカート", en: "🧳 Travel Sample Cart" },
+  "장바구니가 비어있어요.": { jp: "カートは空です。", en: "Your cart is empty." },
+  "기내 반입 ✈️": { jp: "機内持ち込み ✈️", en: "Carry-on ✈️" },
+  "삭제": { jp: "削除", en: "Remove" },
+  "총 제품 수": { jp: "総製品数", en: "Total items" },
+  "총 용량": { jp: "総容量", en: "Total volume" },
+  "총 금액": { jp: "合計金額", en: "Total price" },
+  "전 제품 개별 100ml 이하 — 기내 반입 가능해요.": { jp: "全製品が個別100ml以下 — 機内持ち込み可能です。", en: "Every item is 100ml or under — all carry-on friendly." },
+  "일부 제품이 100ml를 초과해요 — 위탁수하물로 부쳐야 해요.": { jp: "一部の製品が100mlを超えています — 預け荷物に入れる必要があります。", en: "Some items are over 100ml — those need to go in checked luggage." },
+  "기내 액체 규정: 개별 100ml 이하 · 총합 1L 이하 · 투명 지퍼백 권장": { jp: "機内液体規定：個別100ml以下・合計1L以下・透明ジップ袋推奨", en: "Carry-on liquid rule: 100ml max per item · 1L total · clear zip bag recommended" },
+  "신청하기 →": { jp: "申し込む →", en: "Submit →" },
+
+  // 제품 카테고리
+  "토너": { jp: "化粧水", en: "Toner" },
+  "세럼": { jp: "美容液", en: "Serum" },
+  "앰플": { jp: "アンプル", en: "Ampoule" },
+  "크림": { jp: "クリーム", en: "Cream" },
+  "클렌징": { jp: "クレンジング", en: "Cleanser" },
+  "선크림": { jp: "日焼け止め", en: "Sunscreen" },
+  "마스크팩": { jp: "シートマスク", en: "Sheet Mask" },
+  "로션": { jp: "ローション", en: "Lotion" },
+
+  // 피부 타입(forTypes)
+  "건성": { jp: "乾燥肌", en: "Dry" },
+  "지성": { jp: "脂性肌", en: "Oily" },
+  "복합": { jp: "混合肌", en: "Combination" },
+  "중성": { jp: "普通肌", en: "Normal" },
+  "민감": { jp: "敏感肌", en: "Sensitive" },
+
+  // 여행 준비 체크리스트
+  "여권/신분증 확인 (유효기간 6개월 이상 권장)": { jp: "パスポート・身分証確認（有効期限6ヶ月以上推奨）", en: "Check passport/ID (6+ months validity recommended)" },
+  "소용량 스킨케어 키트 도착 확인": { jp: "少量スキンケアキットの到着確認", en: "Confirm arrival of mini skincare kit" },
+  "기내 반입 규정(액체류 100ml 이하) 확인": { jp: "機内持ち込み規定（液体100ml以下）確認", en: "Check carry-on liquid rules (100ml max)" },
+  "충전기·보조배터리·여행용 어댑터 준비": { jp: "充電器・モバイルバッテリー・変換プラグの準備", en: "Pack charger, power bank, and travel adapter" },
+  "여행자보험 가입 및 증명서 출력": { jp: "旅行保険加入と証明書の印刷", en: "Get travel insurance and print the certificate" },
+  "해외 결제 카드 준비 및 환전": { jp: "海外決済カードの準備と両替", en: "Prepare an overseas payment card and exchange currency" },
+  "상비약 준비 (진통제·소화제 등)": { jp: "常備薬の準備（鎮痛剤・胃腸薬など）", en: "Pack basic medicine (painkillers, digestive aids, etc.)" },
+  "집 정리(전기·가스·쓰레기) 및 최종 소지품 확인": { jp: "家の片付け（電気・ガス・ゴミ）と最終持ち物確認", en: "Tidy up home (power/gas/trash) and do a final packing check" },
+  "숙소 체크인 및 확인사항 점검": { jp: "宿泊先チェックインと確認事項の確認", en: "Check in at accommodation and review details" },
+  "현지 긴급연락처(대사관·병원) 저장": { jp: "現地緊急連絡先（大使館・病院）を保存", en: "Save local emergency contacts (embassy, hospital)" },
+  "현지 SIM·데이터 로밍 설정": { jp: "現地SIM・データローミング設定", en: "Set up local SIM or data roaming" },
+  "여권·지갑 등 귀중품 항상 소지": { jp: "パスポート・財布など貴重品を常に携帯", en: "Always keep valuables like passport and wallet on hand" },
+  "사진·영상 클라우드 백업": { jp: "写真・動画をクラウドにバックアップ", en: "Back up photos and videos to the cloud" },
+  "여행 경비 정산 및 카드 내역 확인": { jp: "旅行費用の精算とカード明細確認", en: "Settle trip expenses and check card statements" },
+  "해외 구매 화장품 성분 통관 규정 확인": { jp: "海外購入化粧品の成分通関規定確認", en: "Check customs rules for cosmetics ingredients bought abroad" },
+  "여행 전·후 피부 상태 비교": { jp: "旅行前後の肌状態を比較", en: "Compare your skin condition before and after the trip" },
+  "여행 뷰티 후기 SNS 공유": { jp: "旅行ビューティー後記をSNSでシェア", en: "Share your travel beauty review on social media" },
+
+  // Baumann 4축 옵션(닉네임 + 설명)
+  "건조": { jp: "乾燥", en: "Dry" },
+  "저항": { jp: "抵抗性", en: "Resistant" },
+  "색소": { jp: "色素", en: "Pigmented" },
+  "무색소": { jp: "非色素", en: "Non-pigmented" },
+  "주름": { jp: "シワ", en: "Wrinkle-prone" },
+  "탱탱": { jp: "ハリ", en: "Tight" },
+  "당기고 각질·가려움이 잘 생겨요": { jp: "つっぱって角質・かゆみが出やすいです", en: "Feels tight, with flaking and itchiness" },
+  "번들거리고 피지·모공이 신경 쓰여요": { jp: "テカリやすく皮脂・毛穴が気になります", en: "Gets shiny, with visible pores and oil" },
+  "붉어짐·따가움·트러블이 쉽게 올라와요": { jp: "赤み・ヒリつき・トラブルが出やすいです", en: "Prone to redness, stinging, and breakouts" },
+  "웬만해선 자극 없이 튼튼한 편이에요": { jp: "多少のことでは刺激を受けにくい丈夫なタイプです", en: "Rarely irritated — pretty resilient" },
+  "기미·잡티·자국이 잘 생기고 오래가요": { jp: "シミ・くすみ・跡ができやすく長引きます", en: "Spots and marks form easily and linger" },
+  "색소 침착이 적고 톤이 균일해요": { jp: "色素沈着が少なくトーンが均一です", en: "Little pigmentation, with an even tone" },
+  "잔주름·탄력 저하가 보이거나 걱정돼요": { jp: "小ジワ・弾力低下が見られる、または気になります", en: "Showing (or worried about) fine lines and lost firmness" },
+  "아직 주름 걱정은 적고 탄탄해요": { jp: "まだシワの心配は少なく、ハリがあります", en: "Still firm, with little wrinkle concern yet" },
+  "아침": { jp: "朝", en: "Morning" },
+  "저녁": { jp: "夜", en: "Evening" },
+
+  // 제품 고민 태그(concerns)
+  "수분": { jp: "水分", en: "Hydration" },
+  "트러블": { jp: "トラブル", en: "Blemish" },
+  "기미": { jp: "シミ", en: "Spots" },
+  "본품 · 10%↓": { jp: "本品・10%↓", en: "Full size · 10%↓" },
+
+  // 나라 이름
+  "대한민국": { jp: "韓国", en: "South Korea" },
+  "일본": { jp: "日本", en: "Japan" },
+  "태국": { jp: "タイ", en: "Thailand" },
+  "베트남": { jp: "ベトナム", en: "Vietnam" },
+  "인도네시아": { jp: "インドネシア", en: "Indonesia" },
+  "프랑스": { jp: "フランス", en: "France" },
+  "이탈리아": { jp: "イタリア", en: "Italy" },
+  "미국": { jp: "アメリカ", en: "United States" },
+  "스페인": { jp: "スペイン", en: "Spain" },
+  "몰디브": { jp: "モルディブ", en: "Maldives" },
+  "대만": { jp: "台湾", en: "Taiwan" },
+  "싱가포르": { jp: "シンガポール", en: "Singapore" },
+  "필리핀": { jp: "フィリピン", en: "Philippines" },
+  "말레이시아": { jp: "マレーシア", en: "Malaysia" },
+  "홍콩": { jp: "香港", en: "Hong Kong" },
+  "마카오": { jp: "マカオ", en: "Macau" },
+  "중국": { jp: "中国", en: "China" },
+  "캄보디아": { jp: "カンボジア", en: "Cambodia" },
+  "라오스": { jp: "ラオス", en: "Laos" },
+  "인도": { jp: "インド", en: "India" },
+  "네팔": { jp: "ネパール", en: "Nepal" },
+  "스리랑카": { jp: "スリランカ", en: "Sri Lanka" },
+  "몽골": { jp: "モンゴル", en: "Mongolia" },
+  "우즈베키스탄": { jp: "ウズベキスタン", en: "Uzbekistan" },
+  "영국": { jp: "イギリス", en: "United Kingdom" },
+  "독일": { jp: "ドイツ", en: "Germany" },
+  "스위스": { jp: "スイス", en: "Switzerland" },
+  "오스트리아": { jp: "オーストリア", en: "Austria" },
+  "체코": { jp: "チェコ", en: "Czechia" },
+  "네덜란드": { jp: "オランダ", en: "Netherlands" },
+  "벨기에": { jp: "ベルギー", en: "Belgium" },
+  "포르투갈": { jp: "ポルトガル", en: "Portugal" },
+  "그리스": { jp: "ギリシャ", en: "Greece" },
+  "헝가리": { jp: "ハンガリー", en: "Hungary" },
+  "폴란드": { jp: "ポーランド", en: "Poland" },
+  "크로아티아": { jp: "クロアチア", en: "Croatia" },
+  "아일랜드": { jp: "アイルランド", en: "Ireland" },
+  "덴마크": { jp: "デンマーク", en: "Denmark" },
+  "스웨덴": { jp: "スウェーデン", en: "Sweden" },
+  "노르웨이": { jp: "ノルウェー", en: "Norway" },
+  "핀란드": { jp: "フィンランド", en: "Finland" },
+  "아이슬란드": { jp: "アイスランド", en: "Iceland" },
+  "튀르키예": { jp: "トルコ", en: "Türkiye" },
+  "러시아": { jp: "ロシア", en: "Russia" },
+  "캐나다": { jp: "カナダ", en: "Canada" },
+  "멕시코": { jp: "メキシコ", en: "Mexico" },
+  "브라질": { jp: "ブラジル", en: "Brazil" },
+  "아르헨티나": { jp: "アルゼンチン", en: "Argentina" },
+  "페루": { jp: "ペルー", en: "Peru" },
+  "칠레": { jp: "チリ", en: "Chile" },
+  "쿠바": { jp: "キューバ", en: "Cuba" },
+  "호주": { jp: "オーストラリア", en: "Australia" },
+  "뉴질랜드": { jp: "ニュージーランド", en: "New Zealand" },
+  "괌": { jp: "グアム", en: "Guam" },
+  "피지": { jp: "フィジー", en: "Fiji" },
+  "아랍에미리트": { jp: "アラブ首長国連邦", en: "United Arab Emirates" },
+  "카타르": { jp: "カタール", en: "Qatar" },
+  "이스라엘": { jp: "イスラエル", en: "Israel" },
+  "요르단": { jp: "ヨルダン", en: "Jordan" },
+  "오만": { jp: "オマーン", en: "Oman" },
+  "이집트": { jp: "エジプト", en: "Egypt" },
+  "모로코": { jp: "モロッコ", en: "Morocco" },
+  "남아프리카공화국": { jp: "南アフリカ", en: "South Africa" },
+  "케냐": { jp: "ケニア", en: "Kenya" },
+  "탄자니아": { jp: "タンザニア", en: "Tanzania" },
+  "모리셔스": { jp: "モーリシャス", en: "Mauritius" },
+  "세이셸": { jp: "セーシェル", en: "Seychelles" },
+
+  // 도시 이름
+  "서울": { jp: "ソウル", en: "Seoul" },
+  "부산": { jp: "釜山", en: "Busan" },
+  "제주": { jp: "済州", en: "Jeju" },
+  "강릉": { jp: "江陵", en: "Gangneung" },
+  "경주": { jp: "慶州", en: "Gyeongju" },
+  "여수": { jp: "麗水", en: "Yeosu" },
+  "도쿄": { jp: "東京", en: "Tokyo" },
+  "오사카": { jp: "大阪", en: "Osaka" },
+  "후쿠오카": { jp: "福岡", en: "Fukuoka" },
+  "삿포로": { jp: "札幌", en: "Sapporo" },
+  "오키나와": { jp: "沖縄", en: "Okinawa" },
+  "교토": { jp: "京都", en: "Kyoto" },
+  "방콕": { jp: "バンコク", en: "Bangkok" },
+  "푸껫": { jp: "プーケット", en: "Phuket" },
+  "치앙마이": { jp: "チェンマイ", en: "Chiang Mai" },
+  "다낭": { jp: "ダナン", en: "Da Nang" },
+  "하노이": { jp: "ハノイ", en: "Hanoi" },
+  "호치민": { jp: "ホーチミン", en: "Ho Chi Minh City" },
+  "나트랑": { jp: "ニャチャン", en: "Nha Trang" },
+  "발리": { jp: "バリ", en: "Bali" },
+  "자카르타": { jp: "ジャカルタ", en: "Jakarta" },
+  "파리": { jp: "パリ", en: "Paris" },
+  "니스": { jp: "ニース", en: "Nice" },
+  "리옹": { jp: "リヨン", en: "Lyon" },
+  "로마": { jp: "ローマ", en: "Rome" },
+  "밀라노": { jp: "ミラノ", en: "Milan" },
+  "베네치아": { jp: "ベネチア", en: "Venice" },
+  "피렌체": { jp: "フィレンツェ", en: "Florence" },
+  "하와이": { jp: "ハワイ", en: "Hawaii" },
+  "뉴욕": { jp: "ニューヨーク", en: "New York" },
+  "라스베이거스": { jp: "ラスベガス", en: "Las Vegas" },
+  "샌프란시스코": { jp: "サンフランシスコ", en: "San Francisco" },
+  "바르셀로나": { jp: "バルセロナ", en: "Barcelona" },
+  "마드리드": { jp: "マドリード", en: "Madrid" },
+  "세비야": { jp: "セビリア", en: "Seville" },
+  "말레": { jp: "マーレ", en: "Malé" },
+  "타이베이": { jp: "台北", en: "Taipei" },
+  "가오슝": { jp: "高雄", en: "Kaohsiung" },
+  "타이중": { jp: "台中", en: "Taichung" },
+  "세부": { jp: "セブ", en: "Cebu" },
+  "마닐라": { jp: "マニラ", en: "Manila" },
+  "보라카이": { jp: "ボラカイ", en: "Boracay" },
+  "쿠알라룸푸르": { jp: "クアラルンプール", en: "Kuala Lumpur" },
+  "코타키나발루": { jp: "コタキナバル", en: "Kota Kinabalu" },
+  "상하이": { jp: "上海", en: "Shanghai" },
+  "베이징": { jp: "北京", en: "Beijing" },
+  "시안": { jp: "西安", en: "Xi'an" },
+  "칭다오": { jp: "青島", en: "Qingdao" },
+  "씨엠립": { jp: "シェムリアップ", en: "Siem Reap" },
+  "프놈펜": { jp: "プノンペン", en: "Phnom Penh" },
+  "비엔티안": { jp: "ビエンチャン", en: "Vientiane" },
+  "루앙프라방": { jp: "ルアンパバーン", en: "Luang Prabang" },
+  "델리": { jp: "デリー", en: "Delhi" },
+  "뭄바이": { jp: "ムンバイ", en: "Mumbai" },
+  "바라나시": { jp: "バラナシ", en: "Varanasi" },
+  "카트만두": { jp: "カトマンズ", en: "Kathmandu" },
+  "콜롬보": { jp: "コロンボ", en: "Colombo" },
+  "울란바토르": { jp: "ウランバートル", en: "Ulaanbaatar" },
+  "타슈켄트": { jp: "タシケント", en: "Tashkent" },
+  "사마르칸트": { jp: "サマルカンド", en: "Samarkand" },
+  "런던": { jp: "ロンドン", en: "London" },
+  "에든버러": { jp: "エディンバラ", en: "Edinburgh" },
+  "맨체스터": { jp: "マンチェスター", en: "Manchester" },
+  "베를린": { jp: "ベルリン", en: "Berlin" },
+  "뮌헨": { jp: "ミュンヘン", en: "Munich" },
+  "프랑크푸르트": { jp: "フランクフルト", en: "Frankfurt" },
+  "취리히": { jp: "チューリッヒ", en: "Zurich" },
+  "인터라켄": { jp: "インターラーケン", en: "Interlaken" },
+  "루체른": { jp: "ルツェルン", en: "Lucerne" },
+  "제네바": { jp: "ジュネーブ", en: "Geneva" },
+  "빈": { jp: "ウィーン", en: "Vienna" },
+  "잘츠부르크": { jp: "ザルツブルク", en: "Salzburg" },
+  "프라하": { jp: "プラハ", en: "Prague" },
+  "암스테르담": { jp: "アムステルダム", en: "Amsterdam" },
+  "브뤼셀": { jp: "ブリュッセル", en: "Brussels" },
+  "리스본": { jp: "リスボン", en: "Lisbon" },
+  "포르투": { jp: "ポルト", en: "Porto" },
+  "아테네": { jp: "アテネ", en: "Athens" },
+  "산토리니": { jp: "サントリーニ", en: "Santorini" },
+  "부다페스트": { jp: "ブダペスト", en: "Budapest" },
+  "바르샤바": { jp: "ワルシャワ", en: "Warsaw" },
+  "크라쿠프": { jp: "クラクフ", en: "Krakow" },
+  "자그레브": { jp: "ザグレブ", en: "Zagreb" },
+  "두브로브니크": { jp: "ドゥブロブニク", en: "Dubrovnik" },
+  "더블린": { jp: "ダブリン", en: "Dublin" },
+  "코펜하겐": { jp: "コペンハーゲン", en: "Copenhagen" },
+  "스톡홀름": { jp: "ストックホルム", en: "Stockholm" },
+  "오슬로": { jp: "オスロ", en: "Oslo" },
+  "베르겐": { jp: "ベルゲン", en: "Bergen" },
+  "헬싱키": { jp: "ヘルシンキ", en: "Helsinki" },
+  "레이캬비크": { jp: "レイキャビク", en: "Reykjavik" },
+  "이스탄불": { jp: "イスタンブール", en: "Istanbul" },
+  "카파도키아": { jp: "カッパドキア", en: "Cappadocia" },
+  "안탈리아": { jp: "アンタルヤ", en: "Antalya" },
+  "모스크바": { jp: "モスクワ", en: "Moscow" },
+  "블라디보스토크": { jp: "ウラジオストク", en: "Vladivostok" },
+  "밴쿠버": { jp: "バンクーバー", en: "Vancouver" },
+  "토론토": { jp: "トロント", en: "Toronto" },
+  "칸쿤": { jp: "カンクン", en: "Cancun" },
+  "멕시코시티": { jp: "メキシコシティ", en: "Mexico City" },
+  "리우데자네이루": { jp: "リオデジャネイロ", en: "Rio de Janeiro" },
+  "상파울루": { jp: "サンパウロ", en: "São Paulo" },
+  "부에노스아이레스": { jp: "ブエノスアイレス", en: "Buenos Aires" },
+  "리마": { jp: "リマ", en: "Lima" },
+  "쿠스코": { jp: "クスコ", en: "Cusco" },
+  "산티아고": { jp: "サンティアゴ", en: "Santiago" },
+  "아바나": { jp: "ハバナ", en: "Havana" },
+  "시드니": { jp: "シドニー", en: "Sydney" },
+  "멜버른": { jp: "メルボルン", en: "Melbourne" },
+  "브리즈번": { jp: "ブリスベン", en: "Brisbane" },
+  "케언스": { jp: "ケアンズ", en: "Cairns" },
+  "오클랜드": { jp: "オークランド", en: "Auckland" },
+  "퀸스타운": { jp: "クイーンズタウン", en: "Queenstown" },
+  "난디": { jp: "ナンディ", en: "Nadi" },
+  "두바이": { jp: "ドバイ", en: "Dubai" },
+  "아부다비": { jp: "アブダビ", en: "Abu Dhabi" },
+  "도하": { jp: "ドーハ", en: "Doha" },
+  "텔아비브": { jp: "テルアビブ", en: "Tel Aviv" },
+  "예루살렘": { jp: "エルサレム", en: "Jerusalem" },
+  "암만": { jp: "アンマン", en: "Amman" },
+  "무스카트": { jp: "マスカット", en: "Muscat" },
+  "카이로": { jp: "カイロ", en: "Cairo" },
+  "룩소르": { jp: "ルクソール", en: "Luxor" },
+  "마라케시": { jp: "マラケシュ", en: "Marrakesh" },
+  "카사블랑카": { jp: "カサブランカ", en: "Casablanca" },
+  "케이프타운": { jp: "ケープタウン", en: "Cape Town" },
+  "요하네스버그": { jp: "ヨハネスブルグ", en: "Johannesburg" },
+  "나이로비": { jp: "ナイロビ", en: "Nairobi" },
+  "잔지바르": { jp: "ザンジバル", en: "Zanzibar" },
+  "포트루이스": { jp: "ポートルイス", en: "Port Louis" },
+  "마헤": { jp: "マヘ", en: "Mahé" },
+};
+function t(ko: string, lang: "ko" | "jp" | "en") {
+  if (lang === "ko") return ko;
+  return UI_TR[ko]?.[lang] ?? ko;
+}
+// 박/일(여행 일수) 표기 — 언어별 어순이 달라 별도 조립
+function tripLenLabel(nights: number, days: number, lang: "ko" | "jp" | "en") {
+  if (lang === "jp") return `${nights}泊${days}日`;
+  if (lang === "en") return `${nights}N/${days}D`;
+  return `${nights}박 ${days}일`;
+}
+// 나이(세/歳/y.o.) 표기
+function ageLabel(age: string, lang: "ko" | "jp" | "en") {
+  if (lang === "jp") return `${age}歳`;
+  if (lang === "en") return `${age} y.o.`;
+  return `${age}세`;
+}
+// "N개" 개수 표기
+function countLabel(n: number, lang: "ko" | "jp" | "en") {
+  if (lang === "jp") return `${n}個`;
+  if (lang === "en") return `${n}`;
+  return `${n}개`;
+}
 // 데일리 루틴(아침/저녁) 문구 — 세 언어 버전
 const ROUTINE_TR = {
   ko: { doubleCleanse: "이중 세정", gentleCleanse: "저자극 클렌징", moistureSerum: "수분 세럼", soothingToner: "진정 토너", moistureCream: "수분크림", ceramideCream: "세라마이드 크림", spfReapply: "SPF50+ 재도포" },
@@ -1275,7 +1705,8 @@ export default function BeautyPassportExperience() {
     .map((item) => {
       const p = COSMETICS.find((c) => c.id === item.id);
       if (!p) return null;
-      const unit = samplePrice(p.price, p.fullMl, item.ml);
+      // 본품(정품 용량 그대로 담긴) 라인은 샘플 단가가 아니라 본품 10% 할인가로 계산
+      const unit = item.ml >= p.fullMl ? Math.round((p.price * 0.9) / 100) * 100 : samplePrice(p.price, p.fullMl, item.ml);
       return { item, p, unit, lineTotal: unit * item.qty };
     })
     .filter((x): x is CartLine => x !== null);
@@ -1577,6 +2008,8 @@ export default function BeautyPassportExperience() {
       : cityProfile;
     const wxSource = weather ? "실시간 예보" : "계절 기본값";
     const placeLabel = useCustom ? `${customCountry} · ${customCity}` : `${country?.name ?? ""} · ${city?.name ?? ""}`;
+    const placeLabelJp = useCustom ? `${customCountry} · ${customCity}` : `${country ? t(country.name, "jp") : ""} · ${city ? t(city.name, "jp") : ""}`;
+    const placeLabelEn = useCustom ? `${customCountry} · ${customCity}` : `${country ? t(country.name, "en") : ""} · ${city ? t(city.name, "en") : ""}`;
     const waterQuality = getWaterQuality(useCustom ? customCountry : country?.name);
     const seedStr = useCustom ? customCity : city?.name ?? "";
     let seed = 0;
@@ -1591,6 +2024,8 @@ export default function BeautyPassportExperience() {
       profile,
       wxSource,
       placeLabel,
+      placeLabelJp,
+      placeLabelEn,
       waterQuality,
       days,
       index: skinIssueIndexP(profile, skin.skinTypeForRec, skin.recConcerns),
@@ -2674,7 +3109,7 @@ export default function BeautyPassportExperience() {
                                   <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
                                     <span className="flex-1 rounded-xl bg-[#fbe7e5] px-2.5 py-1.5 text-[11px] font-bold text-[#ec1c24]">본품 추천 · {p.fullMl}ml</span>
                                     <button
-                                      onClick={() => setFullBuyProduct(p)}
+                                      onClick={() => addSample(p.id, p.fullMl)}
                                       className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
                                     >
                                       본품 구매하기
@@ -2747,7 +3182,7 @@ export default function BeautyPassportExperience() {
                                   <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
                                     <span className="flex-1 rounded-xl bg-[#fbe7e5] px-2.5 py-1.5 text-[11px] font-bold text-[#ec1c24]">본품 추천 · {p.fullMl}ml</span>
                                     <button
-                                      onClick={() => setFullBuyProduct(p)}
+                                      onClick={() => addSample(p.id, p.fullMl)}
                                       className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
                                     >
                                       본품 구매하기
@@ -2794,39 +3229,50 @@ export default function BeautyPassportExperience() {
                           {usedItems.length === 0 ? (
                             <p className={acStyles.leadSub}>여행 전 준비했던 케어가 전반적으로 잘 맞았어요. 다음 여행에도 같은 루틴을 이어가 보세요!</p>
                           ) : (
-                            usedItems.map(({ p, reason }) => (
-                              <div key={p.id} className="rounded-2xl border border-[#e7e7ea] bg-white p-3.5 shadow-[0_8px_24px_rgba(20,30,50,0.05)]">
-                                <div className="flex gap-3">
-                                  <ProductImage product={p} />
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-[10.5px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{p.brand}</span>
-                                      <span className="ml-auto flex items-center gap-0.5 text-[12px] font-bold text-[#ec1c24]">★ {p.rating.toFixed(2)}</span>
+                            usedItems.map(({ p, reason }) => {
+                              const qty = cartQty(p.id, p.fullMl);
+                              return (
+                                <div key={p.id} className="rounded-2xl border border-[#e7e7ea] bg-white p-3.5 shadow-[0_8px_24px_rgba(20,30,50,0.05)]">
+                                  <div className="flex gap-3">
+                                    <ProductImage product={p} />
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-[10.5px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{p.brand}</span>
+                                        <span className="ml-auto flex items-center gap-0.5 text-[12px] font-bold text-[#ec1c24]">★ {p.rating.toFixed(2)}</span>
+                                      </div>
+                                      <div className="mt-0.5 truncate text-sm font-extrabold text-[#0a0a0a]">{p.name}</div>
                                     </div>
-                                    <div className="mt-0.5 truncate text-sm font-extrabold text-[#0a0a0a]">{p.name}</div>
+                                  </div>
+                                  <p className="mt-2 rounded-xl bg-[#f4f4f5] px-3 py-2 text-[12px] leading-snug text-[#3f3f46]">
+                                    💡 이래서 잘 맞았어요 — {reason}
+                                  </p>
+                                  <div className="mt-2 flex items-center justify-between border-t border-dashed border-[#e7e7ea] pt-2">
+                                    <div>
+                                      <span className="text-[11px] text-[#9ca3af] line-through">{p.price.toLocaleString()}원</span>
+                                      <span className="ml-1.5 text-sm font-extrabold text-[#ec1c24]">
+                                        {(Math.round((p.price * 0.9) / 100) * 100).toLocaleString()}원
+                                      </span>
+                                      <span className="ml-1 text-[10px] font-bold text-[#ec1c24]">10%↓</span>
+                                    </div>
+                                    {qty === 0 ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => addSample(p.id, p.fullMl)}
+                                        className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
+                                      >
+                                        본품 구매하기
+                                      </button>
+                                    ) : (
+                                      <div className="flex items-center gap-2 rounded-full bg-[#f4f4f5] px-2 py-1">
+                                        <button onClick={() => decSample(p.id, p.fullMl)} className="text-sm font-bold text-[#0a0a0a]">−</button>
+                                        <span className="w-4 text-center text-xs font-bold text-[#0a0a0a]">{qty}</span>
+                                        <button onClick={() => addSample(p.id, p.fullMl)} className="text-sm font-bold text-[#0a0a0a]">＋</button>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
-                                <p className="mt-2 rounded-xl bg-[#f4f4f5] px-3 py-2 text-[12px] leading-snug text-[#3f3f46]">
-                                  💡 이래서 잘 맞았어요 — {reason}
-                                </p>
-                                <div className="mt-2 flex items-center justify-between border-t border-dashed border-[#e7e7ea] pt-2">
-                                  <div>
-                                    <span className="text-[11px] text-[#9ca3af] line-through">{p.price.toLocaleString()}원</span>
-                                    <span className="ml-1.5 text-sm font-extrabold text-[#ec1c24]">
-                                      {(Math.round((p.price * 0.9) / 100) * 100).toLocaleString()}원
-                                    </span>
-                                    <span className="ml-1 text-[10px] font-bold text-[#ec1c24]">10%↓</span>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => setFullBuyProduct(p)}
-                                    className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
-                                  >
-                                    본품 구매하기
-                                  </button>
-                                </div>
-                              </div>
-                            ))
+                              );
+                            })
                           )}
                         </div>
                       )}
@@ -2900,7 +3346,21 @@ export default function BeautyPassportExperience() {
                         <AcBtn variant="ghost" onClick={acRestart}>
                           다시하기
                         </AcBtn>
-                        <AcBtn onClick={acSave}>맞춤 제품 담기 →</AcBtn>
+                        <AcBtn
+                          onClick={() => {
+                            const addWithDefault = (p: Cosmetic) => {
+                              const acTiers = validSampleTiers(p.fullMl);
+                              const acDefaultMl = acTiers.length === 0 ? p.fullMl : acTiers.includes(20) ? 20 : acTiers[acTiers.length - 1];
+                              addSample(p.id, volumeSel[p.id] ?? acDefaultMl);
+                            };
+                            if (isConcern) concernMatches.forEach(({ p }) => addWithDefault(p));
+                            else if (isBetter) usedItems.forEach(({ p }) => addSample(p.id, p.fullMl));
+                            else (preTripSnapshot?.recItems ?? []).forEach(({ p }) => addWithDefault(p));
+                            acSave();
+                          }}
+                        >
+                          맞춤 제품 담기 →
+                        </AcBtn>
                       </AcBtnBar>
                       <PassportBackLink onClick={goHome}>
                         <b className="font-extrabold text-[#0a0a0a]">처음으로</b> 돌아가기
@@ -2911,7 +3371,6 @@ export default function BeautyPassportExperience() {
                         여권에 저장되었어요
                       </div>
                     )}
-                    {fullBuyProduct && <FullSizeBuyModal product={fullBuyProduct} onClose={() => setFullBuyProduct(null)} />}
                   </motion.section>
                 );
               })()}
@@ -3399,31 +3858,31 @@ export default function BeautyPassportExperience() {
                                 <div className="flex items-end justify-between">
                                   <div>
                                     <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Passenger</div>
-                                    <div className="mt-0.5 text-[22px] font-black tracking-[-0.02em] text-[#0a0a0a]">{name || "여행자"}</div>
+                                    <div className="mt-0.5 text-[22px] font-black tracking-[-0.02em] text-[#0a0a0a]">{name || t("여행자", lang)}</div>
                                   </div>
                                   <div className="text-right text-xs text-[#71717a]">
-                                    {age && <>만 {age}세 · </>}{gender}
+                                    {age && <>{lang === "ko" ? `만 ${ageLabel(age, lang)}` : ageLabel(age, lang)} · </>}{gender}
                                   </div>
                                 </div>
 
                                 <div className="mt-4 flex items-center justify-between border-y border-dashed border-[#e7e7ea] py-3">
                                   <div>
                                     <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">From</div>
-                                    <div className="mt-0.5 text-base font-extrabold text-[#0a0a0a]">일상</div>
+                                    <div className="mt-0.5 text-base font-extrabold text-[#0a0a0a]">{t("일상", lang)}</div>
                                   </div>
                                   <div className="text-[15px] text-[#ec1c24]">✈</div>
                                   <div className="text-right">
                                     <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">To</div>
-                                    <div className="mt-0.5 text-base font-extrabold text-[#0a0a0a]">{result.placeLabel}</div>
+                                    <div className="mt-0.5 text-base font-extrabold text-[#0a0a0a]">{lang === "jp" ? result.placeLabelJp : lang === "en" ? result.placeLabelEn : result.placeLabel}</div>
                                   </div>
                                 </div>
 
                                 <div className="mt-3 flex items-center justify-between text-sm">
                                   <div className="text-[#3f3f46]">
-                                    {departDate && arriveDate ? `${fmtISO(departDate)} ~ ${fmtISO(arriveDate)}` : "일정 미정"}
+                                    {departDate && arriveDate ? `${fmtISO(departDate)} ~ ${fmtISO(arriveDate)}` : t("일정 미정", lang)}
                                   </div>
                                   <div className="rounded-full border border-[#ec1c24] px-2.5 py-0.5 text-[11px] font-extrabold text-[#ec1c24]">
-                                    {result.days - 1}박 {result.days}일
+                                    {tripLenLabel(result.days - 1, result.days, lang)}
                                   </div>
                                 </div>
 
@@ -3443,7 +3902,7 @@ export default function BeautyPassportExperience() {
                                 {/* 피부 자극 지수 */}
                                 <div className="mt-[17px] border-t border-dashed border-[#e7e7ea] pt-[17px]">
                                   <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Skin Irritation Index</div>
-                                  <h3 className="mt-0.5 text-[15px] font-extrabold text-[#0a0a0a]">📊 피부 자극 지수</h3>
+                                  <h3 className="mt-0.5 text-[15px] font-extrabold text-[#0a0a0a]">{t("📊 피부 자극 지수", lang)}</h3>
                                   <div className="mt-3 flex items-center gap-4">
                                     <div
                                       className="relative grid h-[88px] w-[88px] flex-none place-items-center rounded-full"
@@ -3457,10 +3916,10 @@ export default function BeautyPassportExperience() {
                                       </div>
                                     </div>
                                     <div className="grid flex-1 grid-cols-2 gap-x-3.5 gap-y-2.5">
-                                      <SubindexBar label="자외선 노출" value={sub.uvExposure} />
-                                      <SubindexBar label="색소 침착" value={sub.pigment} />
-                                      <SubindexBar label="수분 손실" value={sub.hydrationLoss} />
-                                      <SubindexBar label="트러블·유수분" value={sub.troubleSebum} />
+                                      <SubindexBar label={t("자외선 노출", lang)} value={sub.uvExposure} />
+                                      <SubindexBar label={t("색소 침착", lang)} value={sub.pigment} />
+                                      <SubindexBar label={t("수분 손실", lang)} value={sub.hydrationLoss} />
+                                      <SubindexBar label={t("트러블·유수분", lang)} value={sub.troubleSebum} />
                                     </div>
                                   </div>
                                 </div>
@@ -3468,8 +3927,8 @@ export default function BeautyPassportExperience() {
                                 {/* 여행 날씨 캘린더 */}
                                 <div className="mt-[17px] border-t border-dashed border-[#e7e7ea] pt-[17px]">
                                   <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Weather Calendar</div>
-                                  <h3 className="mt-0.5 text-[15px] font-extrabold text-[#0a0a0a]">📅 여행 날씨 캘린더</h3>
-                                  <p className="mt-1 text-xs text-[#71717a]">{result.placeLabel} · 좌우로 넘겨보세요</p>
+                                  <h3 className="mt-0.5 text-[15px] font-extrabold text-[#0a0a0a]">{t("📅 여행 날씨 캘린더", lang)}</h3>
+                                  <p className="mt-1 text-xs text-[#71717a]">{lang === "jp" ? result.placeLabelJp : lang === "en" ? result.placeLabelEn : result.placeLabel} · {t("좌우로 넘겨보세요", lang)}</p>
                                   <div className="scroll-x mt-3 flex gap-1.5 overflow-x-auto pb-1">
                                     {result.calendar.map((c, k) => {
                                       const hot = c.uv >= 8;
@@ -3486,17 +3945,17 @@ export default function BeautyPassportExperience() {
                                           </div>
                                           <div className="my-1 text-lg leading-none">{c.emojis.map((e) => e.icon).join("")}</div>
                                           <div className="text-[11px] font-bold text-[#0a0a0a]">{c.temp}℃</div>
-                                          <div className={`mt-0.5 text-[9px] leading-tight ${hot ? "text-[#ec1c24]" : "text-[#9ca3af]"}`}>습도 {c.humidity}% · UV {c.uv} · 미세먼지 {c.dust}</div>
+                                          <div className={`mt-0.5 text-[9px] leading-tight ${hot ? "text-[#ec1c24]" : "text-[#9ca3af]"}`}>{t("습도", lang)} {c.humidity}% · UV {c.uv} · {t("미세먼지", lang)} {c.dust}</div>
                                         </div>
                                       );
                                     })}
                                   </div>
                                   <div className="mt-2 flex gap-3 text-[10.5px] text-[#71717a]">
                                     <span className="inline-flex items-center gap-1">
-                                      <i className="inline-block h-[3px] w-3.5 rounded bg-[#ec1c24]" />자외선 강함
+                                      <i className="inline-block h-[3px] w-3.5 rounded bg-[#ec1c24]" />{t("자외선 강함", lang)}
                                     </span>
                                     <span className="inline-flex items-center gap-1">
-                                      <i className="inline-block h-[3px] w-3.5 rounded bg-[#9ca3af]" />보통
+                                      <i className="inline-block h-[3px] w-3.5 rounded bg-[#9ca3af]" />{t("보통", lang)}
                                     </span>
                                   </div>
                                 </div>
@@ -3504,18 +3963,18 @@ export default function BeautyPassportExperience() {
                                 {/* AI 써머리 */}
                                 <div className="mt-[17px] border-t border-dashed border-[#e7e7ea] pt-[17px]">
                                   <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">AI Summary</div>
-                                  <h3 className="mt-0.5 text-[15px] font-extrabold text-[#0a0a0a]">🤖 AI가 이렇게 판단했어요</h3>
+                                  <h3 className="mt-0.5 text-[15px] font-extrabold text-[#0a0a0a]">{t("🤖 AI가 이렇게 판단했어요", lang)}</h3>
                                   <div className="mt-2 flex flex-wrap gap-1.5">
-                                    {age && <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">{age}세</span>}
+                                    {age && <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">{ageLabel(age, lang)}</span>}
                                     <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">{skin.code}</span>
                                     {result.profile.tag && (
                                       <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">{result.profile.tag}</span>
                                     )}
                                     <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">UV {result.profile.uv}</span>
-                                    <span className="rounded-full bg-[#eef6fb] px-2.5 py-1 text-[10.5px] font-bold text-[#2b6b86]">💧 수질 {result.waterQuality.level}</span>
+                                    <span className="rounded-full bg-[#eef6fb] px-2.5 py-1 text-[10.5px] font-bold text-[#2b6b86]">💧 {t("수질", lang)} {result.waterQuality.level}</span>
                                   </div>
                                   {aiSummaryLoading && !aiSummary ? (
-                                    <p className="mt-2.5 animate-pulse text-[13.5px] leading-relaxed text-[#9ca3af]">💬 AI가 여행지 날씨·미세먼지·수질을 분석하고 있어요…</p>
+                                    <p className="mt-2.5 animate-pulse text-[13.5px] leading-relaxed text-[#9ca3af]">💬 {lang === "jp" ? "AIが旅行先の天気・微細粉塵・水質を分析しています…" : lang === "en" ? "The AI is analyzing the weather, dust, and water quality for your destination…" : "AI가 여행지 날씨·미세먼지·수질을 분석하고 있어요…"}</p>
                                   ) : (
                                     <p className="mt-2.5 text-[13.5px] leading-relaxed text-[#444]">
                                       💬 {lang === "ko" ? (aiSummary?.summary ?? comboComment(result.profile, skin.skinTypeForRec, lang)) : comboComment(result.profile, skin.skinTypeForRec, lang)}
@@ -3533,7 +3992,7 @@ export default function BeautyPassportExperience() {
                                     onClick={() => setShowAiDetail(true)}
                                     className="mt-3.5 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.985]"
                                   >
-                                    📋 상세보기 — AI 판단 · 날씨 · 수질 · 성분 · 루틴
+                                    {t("📋 상세보기 — AI 판단 · 날씨 · 수질 · 성분 · 루틴", lang)}
                                   </button>
                                 </div>
                               </div>
@@ -3543,7 +4002,7 @@ export default function BeautyPassportExperience() {
 
                       {/* 추천 제품 (추천 세트 · 내 제품과 비교) */}
                       <Card>
-                        <CardTitle>🧴 AI가 고른 여행 스킨케어</CardTitle>
+                        <CardTitle>{t("🧴 AI가 고른 여행 스킨케어", lang)}</CardTitle>
 
                         <div className="mt-3 flex gap-1.5 rounded-[14px] bg-[#f4f4f5] p-1">
                           <button
@@ -3553,7 +4012,7 @@ export default function BeautyPassportExperience() {
                               recTab === "set" ? "bg-white text-[#0a0a0a] shadow-[0_2px_8px_-2px_rgba(0,0,0,0.14)]" : "text-[#71717a]"
                             }`}
                           >
-                            추천 세트
+                            {t("추천 세트", lang)}
                           </button>
                           <button
                             type="button"
@@ -3562,7 +4021,7 @@ export default function BeautyPassportExperience() {
                               recTab === "compare" ? "bg-white text-[#0a0a0a] shadow-[0_2px_8px_-2px_rgba(0,0,0,0.14)]" : "text-[#71717a]"
                             }`}
                           >
-                            내 제품과 비교
+                            {t("내 제품과 비교", lang)}
                           </button>
                         </div>
 
@@ -3571,7 +4030,7 @@ export default function BeautyPassportExperience() {
                             <div className="rounded-xl bg-[#f4f4f5] px-4 py-3 text-center text-[13px] font-semibold text-[#3f3f46]">
                               {lang === "jp" ? result.recSummaryJp : lang === "en" ? result.recSummaryEn : result.recSummary}
                             </div>
-                            <p className="mt-3 text-xs text-[#71717a]">카테고리별 대표 {result.recItems.length}개 · 좌우로 넘겨보세요</p>
+                            <p className="mt-3 text-xs text-[#71717a]">{t("카테고리별 대표", lang)} {countLabel(result.recItems.length, lang)} · {t("좌우로 넘겨보세요", lang)}</p>
                             <div className="scroll-x mt-2 flex gap-2.5 overflow-x-auto pb-1">
                               {result.recItems.map(({ p, reason, reasonJp, reasonEn }) => (
                                 <button
@@ -3585,7 +4044,7 @@ export default function BeautyPassportExperience() {
                                   </div>
                                   <div className="p-2">
                                     <div className="line-clamp-2 text-[11.5px] font-extrabold leading-tight text-[#0a0a0a]">{p.name}</div>
-                                    <span className="mt-1.5 inline-block rounded-full bg-[#f4f4f5] px-1.5 py-0.5 text-[9px] font-semibold text-[#71717a]">{p.category}</span>
+                                    <span className="mt-1.5 inline-block rounded-full bg-[#f4f4f5] px-1.5 py-0.5 text-[9px] font-semibold text-[#71717a]">{t(p.category, lang)}</span>
                                     <div className="mt-1 line-clamp-2 text-[9.5px] leading-snug text-[#9ca3af]">
                                       {lang === "jp" ? reasonJp : lang === "en" ? reasonEn : reason}
                                     </div>
@@ -3599,14 +4058,14 @@ export default function BeautyPassportExperience() {
                                 onClick={addAllRec}
                                 className="flex-1 rounded-[12px] bg-[#0a0a0a] px-3 py-3 text-[13.5px] font-extrabold text-white transition active:scale-[0.985]"
                               >
-                                전체 담기 →
+                                {t("전체 담기 →", lang)}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setResultView("pick")}
                                 className="flex-1 rounded-[12px] border-[1.5px] border-[#e7e7ea] bg-white px-3 py-3 text-[13.5px] font-extrabold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
                               >
-                                직접 고르기 →
+                                {t("직접 고르기 →", lang)}
                               </button>
                             </div>
                           </div>
@@ -3616,15 +4075,15 @@ export default function BeautyPassportExperience() {
                           <div className="mt-4 rounded-2xl border-[1.5px] border-dashed border-[#d7dbe0] bg-[#fafbfc] p-6 text-center">
                             <div className="text-3xl">📷</div>
                             <p className="mt-2.5 text-[13.5px] text-[#0a0a0a]">
-                              내가 쓰는 화장품을 촬영하면 <b className="text-[#ec1c24]">AI가 성분을 분석</b>해줘요.
+                              {t("내가 쓰는 화장품을 촬영하면", lang)} <b className="text-[#ec1c24]">{t("AI가 성분을 분석", lang)}</b>{t("해줘요.", lang)}
                             </p>
-                            <p className="mt-1 text-xs text-[#71717a]">이 여행지 기준 주의 성분·안전 여부까지 함께 확인할 수 있어요.</p>
+                            <p className="mt-1 text-xs text-[#71717a]">{t("이 여행지 기준 주의 성분·안전 여부까지 함께 확인할 수 있어요.", lang)}</p>
                             <button
                               type="button"
                               onClick={openScanFromResult}
                               className="mt-4 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.985]"
                             >
-                              촬영해서 내 제품 분석하기 →
+                              {t("촬영해서 내 제품 분석하기 →", lang)}
                             </button>
                           </div>
                         )}
@@ -3633,8 +4092,8 @@ export default function BeautyPassportExperience() {
                       {/* [6-2] 장바구니는 우측 하단 플로팅 버튼에서 확인 */}
                       {cart.length > 0 && (
                         <div className="mt-3.5 flex items-center justify-between rounded-2xl border border-[#e7e7ea] bg-white px-4 py-2.5 text-sm text-[#0a0a0a]">
-                          <span>🧳 담긴 샘플 {cartCount}개</span>
-                          <button onClick={() => setCartOpen(true)} className="font-bold text-[#0a0a0a]">장바구니 보기 →</button>
+                          <span>{t("🧳 담긴 샘플", lang)} {countLabel(cartCount, lang)}</span>
+                          <button onClick={() => setCartOpen(true)} className="font-bold text-[#0a0a0a]">{t("장바구니 보기 →", lang)}</button>
                         </div>
                       )}
 
@@ -3643,7 +4102,7 @@ export default function BeautyPassportExperience() {
                         onClick={() => setResultView("plan")}
                         className="mt-4 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-[15px] text-[14.5px] font-extrabold text-white transition active:scale-[0.985]"
                       >
-                        여행 케어 플랜 보기 →
+                        {t("여행 케어 플랜 보기 →", lang)}
                       </button>
 
                       {/* 하단 영수증 바코드 */}
@@ -3660,14 +4119,14 @@ export default function BeautyPassportExperience() {
                   {/* 직접 고르기: 전체 카탈로그 · 카테고리 탭 */}
                   {resultView === "pick" && (
                     <div>
-                      <button type="button" onClick={() => setResultView("main")} className="text-sm font-semibold text-[#71717a]">← 추천으로</button>
+                      <button type="button" onClick={() => setResultView("main")} className="text-sm font-semibold text-[#71717a]">{t("← 추천으로", lang)}</button>
                       <h2
                         className="mt-3 text-[22px] font-black tracking-[-0.02em] text-[#0a0a0a]"
                         style={{ fontFamily: "var(--font-inter), sans-serif" }}
                       >
-                        전체 제품에서 고르기
+                        {t("전체 제품에서 고르기", lang)}
                       </h2>
-                      <p className="mt-1 text-xs text-[#71717a]">카테고리별로 모든 제품을 둘러보고 담을 수 있어요.</p>
+                      <p className="mt-1 text-xs text-[#71717a]">{t("카테고리별로 모든 제품을 둘러보고 담을 수 있어요.", lang)}</p>
 
                       <div className="scroll-x mt-3 flex gap-2 overflow-x-auto pb-2">
                         {PICK_CATEGORIES.map((cat) => (
@@ -3679,7 +4138,7 @@ export default function BeautyPassportExperience() {
                               pickCat === cat ? "border-[#0a0a0a] bg-[#0a0a0a] text-white" : "border-[#e7e7ea] bg-white text-[#71717a]"
                             }`}
                           >
-                            {cat}
+                            {t(cat, lang)}
                           </button>
                         ))}
                       </div>
@@ -3707,7 +4166,7 @@ export default function BeautyPassportExperience() {
                                       <span key={ing} className="rounded-full bg-[#f4f4f5] px-2 py-0.5 text-[10px] text-[#3f3f46]">#{ing}</span>
                                     ))}
                                   </div>
-                                  <div className="mt-1 text-right text-[10px] font-bold text-[#0a0a0a]">자세히 보기 →</div>
+                                  <div className="mt-1 text-right text-[10px] font-bold text-[#0a0a0a]">{t("자세히 보기 →", lang)}</div>
                                 </div>
                               </button>
 
@@ -3715,12 +4174,12 @@ export default function BeautyPassportExperience() {
 
                               {rec.full ? (
                                 <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
-                                  <span className="flex-1 rounded-xl bg-[#fbe7e5] px-2.5 py-1.5 text-[11px] font-bold text-[#ec1c24]">본품 추천 · {p.fullMl}ml</span>
+                                  <span className="flex-1 rounded-xl bg-[#fbe7e5] px-2.5 py-1.5 text-[11px] font-bold text-[#ec1c24]">{t("본품 추천", lang)} · {p.fullMl}ml</span>
                                   <button
                                     onClick={() => setFullBuyProduct(p)}
                                     className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
                                   >
-                                    본품 구매하기
+                                    {t("본품 구매하기", lang)}
                                   </button>
                                 </div>
                               ) : (
@@ -3730,20 +4189,20 @@ export default function BeautyPassportExperience() {
                                     onChange={(e) => setVolumeSel((v) => ({ ...v, [p.id]: Number(e.target.value) }))}
                                     className="flex-1 rounded-xl border border-[#e7e7ea] bg-white px-2 py-1.5 text-[12px] text-[#0a0a0a] outline-none focus:border-[#0a0a0a]"
                                   >
-                                    {validSampleTiers(p.fullMl).map((t) => (
-                                      <option key={t} value={t}>
-                                        {t}ml{t === rec.ml ? " · 추천" : ""}
+                                    {validSampleTiers(p.fullMl).map((tier) => (
+                                      <option key={tier} value={tier}>
+                                        {tier}ml{tier === rec.ml ? t("· 추천", lang) : ""}
                                       </option>
                                     ))}
                                   </select>
-                                  <span className="rounded-full bg-[#f4f4f5] px-2 py-1 text-[10px] font-semibold text-[#3f3f46]">기내 반입 가능 ✈️</span>
+                                  <span className="rounded-full bg-[#f4f4f5] px-2 py-1 text-[10px] font-semibold text-[#3f3f46]">{t("기내 반입 가능", lang)} ✈️</span>
                                   <span className="text-sm font-extrabold text-[#0a0a0a]">{price.toLocaleString()}원</span>
                                   {qty === 0 ? (
                                     <button
                                       onClick={() => addSample(p.id, ml)}
                                       className="rounded-full bg-[#0a0a0a] px-3 py-1.5 text-xs font-bold text-white transition active:scale-95"
                                     >
-                                      담기
+                                      {t("담기", lang)}
                                     </button>
                                   ) : (
                                     <div className="flex items-center gap-2 rounded-full bg-[#f4f4f5] px-2 py-1">
@@ -3778,9 +4237,9 @@ export default function BeautyPassportExperience() {
                         className="mt-2.5 text-[24px] font-black leading-[0.95] tracking-[-0.02em] text-[#0a0a0a]"
                         style={{ fontFamily: "var(--font-inter), sans-serif" }}
                       >
-                        여행 전 · 중 · 후
+                        {t("여행 전 · 중 · 후", lang)}
                       </h1>
-                      <p className="mt-1 text-xs text-[#71717a]">시점을 고르면 체크리스트와 타임라인 케어가 나와요.</p>
+                      <p className="mt-1 text-xs text-[#71717a]">{t("시점을 고르면 체크리스트와 타임라인 케어가 나와요.", lang)}</p>
 
                       <div className="mt-4 flex gap-2">
                         {(["여행 전", "여행 중", "여행 후"] as const).map((label, i) => (
@@ -3792,27 +4251,27 @@ export default function BeautyPassportExperience() {
                               carePhase === i ? "border-[#0a0a0a] bg-[#0a0a0a]" : "border-[#e7e7ea] bg-white"
                             }`}
                           >
-                            <b className={`block text-[13.5px] ${carePhase === i ? "text-white" : "text-[#0a0a0a]"}`}>{label}</b>
+                            <b className={`block text-[13.5px] ${carePhase === i ? "text-white" : "text-[#0a0a0a]"}`}>{t(label, lang)}</b>
                           </button>
                         ))}
                       </div>
 
                       {carePhase === 0 && (
                         <Card>
-                          <CardTitle>🛫 출국 전</CardTitle>
+                          <CardTitle>{t("🛫 출국 전", lang)}</CardTitle>
                           {dday !== null ? (
                             <div className="mt-2 flex items-center justify-between">
-                              <span className="text-sm text-[#3f3f46]">출발까지</span>
+                              <span className="text-sm text-[#3f3f46]">{t("출발까지", lang)}</span>
                               <span className="text-xl font-black text-[#ec1c24]">
-                                {dday > 0 ? `D-${dday}` : dday === 0 ? "D-DAY" : "여행 중"}
+                                {dday > 0 ? `D-${dday}` : dday === 0 ? "D-DAY" : t("여행 중", lang)}
                               </span>
                             </div>
                           ) : (
-                            <p className="mt-2 text-sm text-[#71717a]">출발일을 선택하면 D-day가 표시돼요.</p>
+                            <p className="mt-2 text-sm text-[#71717a]">{t("출발일을 선택하면 D-day가 표시돼요.", lang)}</p>
                           )}
                           {departDate && (
                             <div className="mt-2 rounded-xl bg-[#f4f4f5] px-3 py-2 text-xs text-[#3f3f46]">
-                              📦 소용량 키트 도착 예정일 <b className="text-[#0a0a0a]">{fmtISO(addDaysISO(departDate, -2))}</b> (출발 2일 전)
+                              {t("📦 소용량 키트 도착 예정일", lang)} <b className="text-[#0a0a0a]">{fmtISO(addDaysISO(departDate, -2))}</b> ({t("출발 2일 전", lang)})
                             </div>
                           )}
                           {orderNo && (
@@ -3821,7 +4280,7 @@ export default function BeautyPassportExperience() {
                               onClick={() => setDeliveryStatusOpen(true)}
                               className="mt-2 w-full rounded-xl border-[1.5px] border-[#e7e7ea] bg-white px-3 py-2.5 text-xs font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
                             >
-                              📦 배송 현황 확인하기
+                              {t("📦 배송 현황 확인하기", lang)}
                             </button>
                           )}
                           <div className="mt-3 space-y-2">
@@ -3833,7 +4292,7 @@ export default function BeautyPassportExperience() {
                                   onChange={() => toggleChecklist(0, i)}
                                   className="h-4 w-4 rounded accent-[#0a0a0a]"
                                 />
-                                <span className={checklist[0][i] ? "text-[#9ca3af] line-through" : "text-[#3f3f46]"}>{item}</span>
+                                <span className={checklist[0][i] ? "text-[#9ca3af] line-through" : "text-[#3f3f46]"}>{t(item, lang)}</span>
                               </label>
                             ))}
                           </div>
@@ -3842,7 +4301,7 @@ export default function BeautyPassportExperience() {
                             onClick={() => setCarePhase(1)}
                             className="mt-4 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.985]"
                           >
-                            출국하기 →
+                            {t("출국하기 →", lang)}
                           </button>
                         </Card>
                       )}
@@ -3870,7 +4329,7 @@ export default function BeautyPassportExperience() {
 
                       {carePhase === 1 && (
                         <Card>
-                          <CardTitle>✅ 여행 중 체크리스트</CardTitle>
+                          <CardTitle>{t("✅ 여행 중 체크리스트", lang)}</CardTitle>
                           <div className="mt-3 space-y-2">
                             {CHECKLIST_GROUPS[1].map((item, i) => (
                               <label key={i} className="flex items-center gap-2 text-sm">
@@ -3880,7 +4339,7 @@ export default function BeautyPassportExperience() {
                                   onChange={() => toggleChecklist(1, i)}
                                   className="h-4 w-4 rounded accent-[#0a0a0a]"
                                 />
-                                <span className={checklist[1][i] ? "text-[#9ca3af] line-through" : "text-[#3f3f46]"}>{item}</span>
+                                <span className={checklist[1][i] ? "text-[#9ca3af] line-through" : "text-[#3f3f46]"}>{t(item, lang)}</span>
                               </label>
                             ))}
                           </div>
@@ -3889,9 +4348,9 @@ export default function BeautyPassportExperience() {
 
                       {carePhase === 2 && (
                         <Card>
-                          <CardTitle>🏠 귀국 후 · 리커버리</CardTitle>
+                          <CardTitle>{t("🏠 귀국 후 · 리커버리", lang)}</CardTitle>
                           <p className="mt-2 text-sm leading-relaxed text-[#3f3f46]">
-                            여행 중 자극받은 피부 장벽을 되돌리는 진정 회복 루틴을 추천해요.
+                            {t("여행 중 자극받은 피부 장벽을 되돌리는 진정 회복 루틴을 추천해요.", lang)}
                           </p>
                           <div className="mt-3 space-y-2">
                             {RECOVERY_IDS.map((id) => {
@@ -3909,7 +4368,7 @@ export default function BeautyPassportExperience() {
                             })}
                           </div>
                           <div className="mt-3 flex items-center justify-between rounded-xl bg-[#f4f4f5] px-4 py-3">
-                            <span className="text-sm text-[#3f3f46]">이번 여행 피부 자극 지수</span>
+                            <span className="text-sm text-[#3f3f46]">{t("이번 여행 피부 자극 지수", lang)}</span>
                             <span className="text-lg font-black text-[#0a0a0a]">
                               {result.index.score} · {result.index.level}
                             </span>
@@ -3923,7 +4382,7 @@ export default function BeautyPassportExperience() {
                                   onChange={() => toggleChecklist(2, i)}
                                   className="h-4 w-4 rounded accent-[#0a0a0a]"
                                 />
-                                <span className={checklist[2][i] ? "text-[#9ca3af] line-through" : "text-[#3f3f46]"}>{item}</span>
+                                <span className={checklist[2][i] ? "text-[#9ca3af] line-through" : "text-[#3f3f46]"}>{t(item, lang)}</span>
                               </label>
                             ))}
                           </div>
@@ -3936,13 +4395,13 @@ export default function BeautyPassportExperience() {
                           onClick={restartTrip}
                           className="flex-1 rounded-[14px] border-[1.5px] border-[#e7e7ea] bg-white px-6 py-4 text-[15px] font-extrabold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
                         >
-                          다시하기 ↺
+                          {t("다시하기 ↺", lang)}
                         </button>
                         <div className="flex-1">
-                          <PrimaryButton onClick={shareResult}>공유하기 🔗</PrimaryButton>
+                          <PrimaryButton onClick={shareResult}>{t("공유하기 🔗", lang)}</PrimaryButton>
                         </div>
                       </div>
-                      {shared && <div className="mt-3 text-center text-sm text-[#71717a]">링크가 복사되었어요!</div>}
+                      {shared && <div className="mt-3 text-center text-sm text-[#71717a]">{t("링크가 복사되었어요!", lang)}</div>}
 
                       {/* 하단 영수증 바코드 */}
                       <footer className="mt-6 border-t-[1.5px] border-dashed border-[#e7e7ea] pt-4 text-center">
@@ -4408,6 +4867,7 @@ export default function BeautyPassportExperience() {
                 onRemove={removeSample}
                 onClose={() => setCartOpen(false)}
                 onCheckout={goCheckout}
+                lang={lang}
               />
             )}
           </AnimatePresence>
@@ -4417,6 +4877,11 @@ export default function BeautyPassportExperience() {
             {makeupOpen && (
               <StyleNoteModal key="style-note" countryCode={countryCode} onClose={() => setMakeupOpen(false)} />
             )}
+          </AnimatePresence>
+
+          {/* 본품 구매 모달 — 어느 stage에서 setFullBuyProduct가 호출되든 항상 마운트돼 있어야 함 */}
+          <AnimatePresence>
+            {fullBuyProduct && <FullSizeBuyModal key="full-buy" product={fullBuyProduct} onClose={() => setFullBuyProduct(null)} lang={lang} />}
           </AnimatePresence>
 
           {/* 배송 현황 확인 모달 */}
@@ -4432,6 +4897,7 @@ export default function BeautyPassportExperience() {
                 pickupDate={pickupDate}
                 pickupTime={pickupTime}
                 onClose={() => setDeliveryStatusOpen(false)}
+                lang={lang}
               />
             )}
           </AnimatePresence>
@@ -4638,7 +5104,7 @@ function AiDetailModal({
       >
         <div className="sticky top-0 z-10 flex items-start justify-between gap-2 border-b border-[#e7e7ea] bg-white/95 px-5 py-3 backdrop-blur">
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Detail · 상세 리포트</div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">{t("Detail · 상세 리포트", lang)}</div>
             <div className="mt-0.5 text-lg font-black text-[#0a0a0a]">{skin.code} · {bt?.nick ?? skin.code}</div>
           </div>
           <button onClick={onClose} className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[#f4f4f5] text-base text-[#0a0a0a]">×</button>
@@ -4646,21 +5112,21 @@ function AiDetailModal({
 
         <div className="px-5 pb-8 pt-4">
           {/* AI 판단 상세 */}
-          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">AI Reasoning · AI 판단 상세</div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">{t("AI Reasoning · AI 판단 상세", lang)}</div>
           {carePar.map((para, i) => (
             <p key={i} className="mt-2.5 text-[13px] leading-relaxed text-[#444]">{para}</p>
           ))}
 
           {/* 날짜별 날씨 */}
-          <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Weather Detail · 날짜별 날씨</div>
+          <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">{t("Weather Detail · 날짜별 날씨", lang)}</div>
           <table className="mt-3 w-full border-collapse text-xs">
             <thead>
               <tr className="text-left text-[10px] font-bold text-[#71717a]">
-                <th className="border-b border-[#e7e7ea] pb-1.5 pr-2">날짜</th>
-                <th className="border-b border-[#e7e7ea] pb-1.5 pr-2">날씨</th>
-                <th className="border-b border-[#e7e7ea] pb-1.5 pr-2">기온</th>
-                <th className="border-b border-[#e7e7ea] pb-1.5 pr-2">습도</th>
-                <th className="border-b border-[#e7e7ea] pb-1.5">미세먼지</th>
+                <th className="border-b border-[#e7e7ea] pb-1.5 pr-2">{t("날짜", lang)}</th>
+                <th className="border-b border-[#e7e7ea] pb-1.5 pr-2">{t("날씨", lang)}</th>
+                <th className="border-b border-[#e7e7ea] pb-1.5 pr-2">{t("기온", lang)}</th>
+                <th className="border-b border-[#e7e7ea] pb-1.5 pr-2">{t("습도", lang)}</th>
+                <th className="border-b border-[#e7e7ea] pb-1.5">{t("미세먼지", lang)}</th>
               </tr>
             </thead>
             <tbody>
@@ -4677,7 +5143,7 @@ function AiDetailModal({
           </table>
 
           {/* 수질 */}
-          <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Water Quality · 여행지 수돗물</div>
+          <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">{t("Water Quality · 여행지 수돗물", lang)}</div>
           <div className="mt-3 rounded-xl border border-[#e7e7ea] bg-[#f9fbfc] p-3">
             <span className="rounded-full bg-[#eef6fb] px-2.5 py-1 text-[11px] font-bold text-[#2b6b86]">💧 {result.waterQuality.level}</span>
             <p className="mt-2 text-[12px] leading-relaxed text-[#3f3f46]">{result.waterQuality.note}</p>
@@ -4691,7 +5157,7 @@ function AiDetailModal({
           )}
 
           {/* 바우만 4축 */}
-          <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Baumann Axis · 피부 타입 4축</div>
+          <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">{t("Baumann Axis · 피부 타입 4축", lang)}</div>
           <div className="mt-3 grid grid-cols-2 gap-2.5">
             {BAUMANN_AXES.map((ax, i) => {
               const opt = skin.code[i] === ax.a.letter ? ax.a : ax.b;
@@ -4699,50 +5165,50 @@ function AiDetailModal({
                 <div key={ax.key} className="rounded-xl border border-[#e7e7ea] bg-white p-3">
                   <div className="flex items-center gap-2">
                     <span className="text-base">{opt.icon}</span>
-                    <span className="text-sm font-extrabold text-[#0a0a0a]">{opt.ko}</span>
+                    <span className="text-sm font-extrabold text-[#0a0a0a]">{t(opt.ko, lang)}</span>
                   </div>
                   <div className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[#9ca3af]">{opt.en}</div>
-                  <div className="mt-1.5 text-[11px] leading-snug text-[#71717a]">{opt.desc}</div>
+                  <div className="mt-1.5 text-[11px] leading-snug text-[#71717a]">{t(opt.desc, lang)}</div>
                 </div>
               );
             })}
           </div>
 
           {/* 성분 가이드 */}
-          <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Ingredients · 성분 가이드</div>
+          <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">{t("Ingredients · 성분 가이드", lang)}</div>
           <div className="mt-3 grid grid-cols-2 gap-4">
             <div>
-              <div className="text-xs font-extrabold text-[#0a0a0a]">👍 추천 성분</div>
+              <div className="text-xs font-extrabold text-[#0a0a0a]">{t("👍 추천 성분", lang)}</div>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {care.good.length ? (
                   care.good.map((g) => (
                     <span key={g} className="rounded-full border border-[#0a0a0a] bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#0a0a0a]">{trIngredient(g, lang)}</span>
                   ))
                 ) : (
-                  <span className="text-[11px] text-[#9ca3af]">추천 성분 정보가 없어요</span>
+                  <span className="text-[11px] text-[#9ca3af]">{t("추천 성분 정보가 없어요", lang)}</span>
                 )}
               </div>
             </div>
             <div>
-              <div className="text-xs font-extrabold text-[#ec1c24]">⚠️ 주의 성분</div>
+              <div className="text-xs font-extrabold text-[#ec1c24]">{t("⚠️ 주의 성분", lang)}</div>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {care.avoid.length ? (
                   care.avoid.map((g) => (
                     <span key={g} className="rounded-full border border-[#ec1c24] bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#ec1c24]">{trIngredient(g, lang)}</span>
                   ))
                 ) : (
-                  <span className="text-[11px] text-[#9ca3af]">특별히 피할 성분은 없어요</span>
+                  <span className="text-[11px] text-[#9ca3af]">{t("특별히 피할 성분은 없어요", lang)}</span>
                 )}
               </div>
             </div>
           </div>
 
           {/* 데일리 루틴 */}
-          <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Daily Routine · 데일리 루틴</div>
+          <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">{t("Daily Routine · 데일리 루틴", lang)}</div>
           <div className="mt-3 space-y-2.5">
             <div className="rounded-xl border border-[#e7e7ea] p-3.5">
               <div className="mb-1.5 flex items-center gap-2 text-xs font-extrabold text-[#0a0a0a]">
-                <span className="h-2 w-2 rounded-full bg-[#0a0a0a]" /> 아침 (AM)
+                <span className="h-2 w-2 rounded-full bg-[#0a0a0a]" /> {t("아침", lang)} (AM)
               </div>
               <p className="text-[12px] leading-relaxed text-[#3f3f46]">
                 {rt.gentleCleanse} → <b className="text-[#ec1c24]">{care.good[0] ? trIngredient(care.good[0], lang) : rt.moistureSerum}</b> → {rt.moistureCream} → {rt.spfReapply}
@@ -4750,7 +5216,7 @@ function AiDetailModal({
             </div>
             <div className="rounded-xl border border-[#e7e7ea] p-3.5">
               <div className="mb-1.5 flex items-center gap-2 text-xs font-extrabold text-[#0a0a0a]">
-                <span className="h-2 w-2 rounded-full bg-[#0a0a0a]" /> 저녁 (PM)
+                <span className="h-2 w-2 rounded-full bg-[#0a0a0a]" /> {t("저녁", lang)} (PM)
               </div>
               <p className="text-[12px] leading-relaxed text-[#3f3f46]">
                 {rt.doubleCleanse} → <b className="text-[#ec1c24]">{care.good[1] ? trIngredient(care.good[1], lang) : care.good[0] ? trIngredient(care.good[0], lang) : rt.soothingToner}</b> → {care.good[2] ? trIngredient(care.good[2], lang) : rt.moistureSerum} → {rt.ceramideCream}
@@ -4758,7 +5224,7 @@ function AiDetailModal({
             </div>
           </div>
 
-          <button onClick={onClose} className="mt-6 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3.5 text-base font-extrabold text-white transition">닫기</button>
+          <button onClick={onClose} className="mt-6 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3.5 text-base font-extrabold text-white transition">{t("닫기", lang)}</button>
         </div>
       </motion.div>
     </>
@@ -4776,6 +5242,7 @@ function DeliveryStatusModal({
   pickupDate,
   pickupTime,
   onClose,
+  lang,
 }: {
   orderNo: string;
   lockerNo: string | null;
@@ -4785,11 +5252,14 @@ function DeliveryStatusModal({
   pickupDate: string | null;
   pickupTime: string | null;
   onClose: () => void;
+  lang: "ko" | "jp" | "en";
 }) {
   const isPickup = method === "pickup";
-  const steps = isPickup
-    ? ["결제 완료", "공항 보관함 입고 준비", "보관함 입고 완료", "수령 대기"]
-    : ["결제 완료", "상품 준비 중", "배송 중", "배송 완료"];
+  const steps = (
+    isPickup
+      ? ["결제 완료", "공항 보관함 입고 준비", "보관함 입고 완료", "수령 대기"]
+      : ["결제 완료", "상품 준비 중", "배송 중", "배송 완료"]
+  ).map((s) => t(s, lang));
   const current = isPickup
     ? dday === null ? 1 : dday >= 2 ? 1 : dday >= 0 ? 2 : 3
     : dday === null ? 1 : dday > 2 ? 1 : dday >= 1 ? 2 : 3;
@@ -4806,8 +5276,8 @@ function DeliveryStatusModal({
       >
         <div className="sticky top-0 z-10 flex items-start justify-between gap-2 border-b border-[#e7e7ea] bg-white/95 px-5 py-3 backdrop-blur">
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Status · 배송 현황</div>
-            <div className="mt-0.5 text-lg font-black text-[#0a0a0a]">주문번호 {orderNo}</div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">{t("Status · 배송 현황", lang)}</div>
+            <div className="mt-0.5 text-lg font-black text-[#0a0a0a]">{t("주문번호", lang)} {orderNo}</div>
           </div>
           <button onClick={onClose} className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[#f4f4f5] text-base text-[#0a0a0a]">×</button>
         </div>
@@ -4832,23 +5302,26 @@ function DeliveryStatusModal({
 
           {isPickup ? (
             <div className="rounded-xl bg-[#f4f4f5] p-4 text-center">
-              <div className="text-xs text-[#71717a]">{pickupAirport} 보관함</div>
+              <div className="text-xs text-[#71717a]">{pickupAirport} {t("보관함", lang)}</div>
               <div className="text-3xl font-black tracking-[0.04em] text-[#ec1c24]">{lockerNo}</div>
               <div className="text-xs text-[#71717a]">
-                {pickupDate ? fmtISO(pickupDate) : ""} {pickupTime} 이후 수령 가능
+                {pickupDate ? fmtISO(pickupDate) : ""} {pickupTime} {t("이후 수령 가능", lang)}
               </div>
             </div>
           ) : (
             <p className="text-sm leading-relaxed text-[#3f3f46]">
-              {current >= 3
-                ? "배송이 완료됐어요. 여행 가방에 잘 챙겨주세요!"
-                : current === 2
-                  ? "지금 배송 중이에요. 출발 전에 도착 예정이에요."
-                  : "상품을 준비하고 있어요. 출발일에 맞춰 배송될 예정이에요."}
+              {t(
+                current >= 3
+                  ? "배송이 완료됐어요. 여행 가방에 잘 챙겨주세요!"
+                  : current === 2
+                    ? "지금 배송 중이에요. 출발 전에 도착 예정이에요."
+                    : "상품을 준비하고 있어요. 출발일에 맞춰 배송될 예정이에요.",
+                lang
+              )}
             </p>
           )}
 
-          <button onClick={onClose} className="mt-6 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3.5 text-base font-extrabold text-white transition">닫기</button>
+          <button onClick={onClose} className="mt-6 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3.5 text-base font-extrabold text-white transition">{t("닫기", lang)}</button>
         </div>
       </motion.div>
     </>
@@ -4857,7 +5330,7 @@ function DeliveryStatusModal({
 
 // 애프터케어 "본품 구매 · 10% 할인" 모달 — 공용 샘플 장바구니와 분리된, 단일 제품 전용 주문 흐름.
 // AcScreenChrome과 동일하게 document.body로 포털해 앱 프레임의 perspective 스태킹 컨텍스트를 벗어난다.
-function FullSizeBuyModal({ product, onClose }: { product: Cosmetic; onClose: () => void }) {
+function FullSizeBuyModal({ product, onClose, lang }: { product: Cosmetic; onClose: () => void; lang: "ko" | "jp" | "en" }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const [name, setName] = useState("");
@@ -4878,7 +5351,7 @@ function FullSizeBuyModal({ product, onClose }: { product: Cosmetic; onClose: ()
         transition={{ type: "spring", stiffness: 320, damping: 34 }}
       >
         <div className="sticky top-0 z-10 flex items-start justify-between gap-2 border-b border-[#e7e7ea] bg-white/95 px-5 py-3 backdrop-blur">
-          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Full Size · 본품 구매</div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">{t("Full Size · 본품 구매", lang)}</div>
           <button onClick={onClose} className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[#f4f4f5] text-base text-[#0a0a0a]">×</button>
         </div>
 
@@ -4886,10 +5359,10 @@ function FullSizeBuyModal({ product, onClose }: { product: Cosmetic; onClose: ()
           {orderNo ? (
             <div className="py-6 text-center">
               <div className="text-3xl">✅</div>
-              <div className="mt-3 text-lg font-black text-[#0a0a0a]">주문 완료</div>
-              <p className="mt-1.5 text-sm text-[#71717a]">10% 할인가로 본품 주문이 접수됐어요.</p>
-              <div className="mt-4 inline-block rounded-full bg-[#f4f4f5] px-4 py-2 text-sm font-bold text-[#0a0a0a]">주문번호 {orderNo}</div>
-              <button onClick={onClose} className="mt-6 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3.5 text-base font-extrabold text-white transition">닫기</button>
+              <div className="mt-3 text-lg font-black text-[#0a0a0a]">{t("주문 완료", lang)}</div>
+              <p className="mt-1.5 text-sm text-[#71717a]">{t("10% 할인가로 본품 주문이 접수됐어요.", lang)}</p>
+              <div className="mt-4 inline-block rounded-full bg-[#f4f4f5] px-4 py-2 text-sm font-bold text-[#0a0a0a]">{t("주문번호", lang)} {orderNo}</div>
+              <button onClick={onClose} className="mt-6 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3.5 text-base font-extrabold text-white transition">{t("닫기", lang)}</button>
             </div>
           ) : (
             <>
@@ -4898,29 +5371,29 @@ function FullSizeBuyModal({ product, onClose }: { product: Cosmetic; onClose: ()
                 <div className="min-w-0 flex-1">
                   <div className="text-[10.5px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{product.brand}</div>
                   <div className="mt-0.5 truncate text-sm font-extrabold text-[#0a0a0a]">{product.name}</div>
-                  <div className="mt-1 text-[11px] text-[#9ca3af]">{product.fullMl}ml · 본품</div>
+                  <div className="mt-1 text-[11px] text-[#9ca3af]">{product.fullMl}ml · {t("본품", lang)}</div>
                   <div className="mt-1.5 flex items-center gap-1.5">
                     <span className="text-[12px] text-[#9ca3af] line-through">{product.price.toLocaleString()}원</span>
                     <span className="text-base font-extrabold text-[#ec1c24]">{discounted.toLocaleString()}원</span>
-                    <span className="rounded-full bg-[#fbe7e5] px-2 py-0.5 text-[10px] font-bold text-[#ec1c24]">10% 할인</span>
+                    <span className="rounded-full bg-[#fbe7e5] px-2 py-0.5 text-[10px] font-bold text-[#ec1c24]">{t("10% 할인", lang)}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">Order · 배송 정보</div>
-              <label className="mt-3 block text-sm font-extrabold text-[#0a0a0a]">받는 사람</label>
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="이름" className="np-input" />
-              <label className="mt-3 block text-sm font-extrabold text-[#0a0a0a]">연락처</label>
+              <div className="mt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">{t("Order · 배송 정보", lang)}</div>
+              <label className="mt-3 block text-sm font-extrabold text-[#0a0a0a]">{t("받는 사람", lang)}</label>
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("이름", lang)} className="np-input" />
+              <label className="mt-3 block text-sm font-extrabold text-[#0a0a0a]">{t("연락처", lang)}</label>
               <input value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^0-9-]/g, ""))} placeholder="010-0000-0000" inputMode="tel" className="np-input" />
-              <label className="mt-3 block text-sm font-extrabold text-[#0a0a0a]">배송지</label>
-              <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="주소를 입력하세요" className="np-input" />
+              <label className="mt-3 block text-sm font-extrabold text-[#0a0a0a]">{t("배송지", lang)}</label>
+              <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder={t("주소를 입력하세요", lang)} className="np-input" />
 
               <button
                 disabled={!canOrder}
                 onClick={() => setOrderNoLocal(genOrderNo())}
                 className="mt-6 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-3.5 text-base font-extrabold text-white transition disabled:opacity-35"
               >
-                10% 할인가로 주문하기 · {discounted.toLocaleString()}원
+                {t("10% 할인가로 주문하기", lang)} · {discounted.toLocaleString()}원
               </button>
             </>
           )}
@@ -4979,7 +5452,7 @@ function ProductDetail({
       >
         {/* 상단 바 */}
         <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-[#e7e7ea] bg-white/95 px-5 py-3 backdrop-blur">
-          <button onClick={onClose} className="text-sm font-semibold text-[#71717a]">← 목록으로</button>
+          <button onClick={onClose} className="text-sm font-semibold text-[#71717a]">{t("← 목록으로", lang)}</button>
           <div className="mx-auto h-1 w-10 rounded-full bg-[#e7e7ea]" />
         </div>
 
@@ -4995,7 +5468,7 @@ function ProductDetail({
           </div>
           <h2 className="mt-0.5 text-xl font-black tracking-[-0.01em] text-[#0a0a0a]">{product.name}</h2>
           <div className="mt-1 text-sm text-[#71717a]">
-            정품 {product.fullMl}ml · 정가 {product.price.toLocaleString()}원
+            {t("정품", lang)} {product.fullMl}ml · {t("정가", lang)} {product.price.toLocaleString()}원
           </div>
 
           {/* 안전 배지 */}
@@ -5017,11 +5490,11 @@ function ProductDetail({
             ))}
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {product.forTypes.map((t) => (
-              <span key={t} className="rounded-full border border-[#e7e7ea] px-2.5 py-1 text-[11px] text-[#52525b]">{t}</span>
+            {product.forTypes.map((ft) => (
+              <span key={ft} className="rounded-full border border-[#e7e7ea] px-2.5 py-1 text-[11px] text-[#52525b]">{t(ft, lang)}</span>
             ))}
             {product.concerns.map((c) => (
-              <span key={c} className="rounded-full border border-[#ec1c24] bg-white px-2.5 py-1 text-[11px] text-[#ec1c24]">{c}</span>
+              <span key={c} className="rounded-full border border-[#ec1c24] bg-white px-2.5 py-1 text-[11px] text-[#ec1c24]">{t(c, lang)}</span>
             ))}
           </div>
 
@@ -5030,35 +5503,40 @@ function ProductDetail({
           {/* 이 여행에 왜 맞는지 */}
           {reason && (
             <div className="mt-3 rounded-xl bg-[#f4f4f5] px-4 py-3 text-[13px] leading-relaxed text-[#3f3f46]">
-              💡 이 여행에 딱 맞아요 — {reason}
+              {t("💡 이 여행에 딱 맞아요 —", lang)} {reason}
             </div>
           )}
 
           {/* 소용량 선택 (본품 용량 이상 필요하면 샘플 대신 본품 추천) */}
           {rec.full ? (
             <div className="mt-5 rounded-2xl border border-[#f6d0d0] bg-[#fbe7e5] p-4">
-              <div className="text-sm font-extrabold text-[#ec1c24]">이번 여행엔 본품을 추천해요</div>
+              <div className="text-sm font-extrabold text-[#ec1c24]">{t("이번 여행엔 본품을 추천해요", lang)}</div>
               <p className="mt-1 text-xs leading-relaxed text-[#71717a]">
-                {nights}박 {days}일이면 필요한 양이 정품({product.fullMl}ml)에 가깝거나 넘어서, 소용량 샘플보다 본품 구매가 더 알맞아요.
+                {tripLenLabel(nights, days, lang)}
+                {lang === "jp"
+                  ? `なら必要な量が正規品（${product.fullMl}ml）に近いか超えるため、少量サンプルより本品購入がおすすめです。`
+                  : lang === "en"
+                    ? ` trips need close to (or more than) the full size (${product.fullMl}ml), so buying the full size makes more sense than a sample.`
+                    : `이면 필요한 양이 정품(${product.fullMl}ml)에 가깝거나 넘어서, 소용량 샘플보다 본품 구매가 더 알맞아요.`}
               </p>
             </div>
           ) : (
             <div className="mt-5 rounded-2xl border border-[#e7e7ea] bg-[#fafafa] p-4">
-              <div className="text-sm font-extrabold text-[#0a0a0a]">소용량 선택 (기내 반입 가능 ✈️)</div>
+              <div className="text-sm font-extrabold text-[#0a0a0a]">{t("소용량 선택 (기내 반입 가능 ✈️)", lang)}</div>
               <select
                 value={ml}
                 onChange={(e) => setMl(Number(e.target.value))}
                 className="mt-2 w-full appearance-none rounded-xl border border-[#e7e7ea] bg-white px-4 py-3 text-[15px] text-[#0a0a0a] outline-none focus:border-[#0a0a0a]"
               >
-                {validSampleTiers(product.fullMl).map((t) => (
-                  <option key={t} value={t}>
-                    {t}ml · 기내 반입 가능 ✈️{t === rec.ml ? " (추천)" : ""}
+                {validSampleTiers(product.fullMl).map((tier) => (
+                  <option key={tier} value={tier}>
+                    {tier}ml · {t("기내 반입 가능", lang)} ✈️{tier === rec.ml ? t("(추천)", lang) : ""}
                   </option>
                 ))}
               </select>
               <div className="mt-2 flex items-center justify-between">
                 <span className="text-xs text-[#71717a]">
-                  {nights}박 {days}일에 딱 맞는 <b className="text-[#0a0a0a]">{rec.ml}ml</b>
+                  {tripLenLabel(nights, days, lang)} {t("딱 맞는", lang)} <b className="text-[#0a0a0a]">{rec.ml}ml</b>
                   {rec.qty > 1 && <> (×{rec.qty})</>}
                 </span>
                 <span className="text-xl font-black text-[#0a0a0a]">{price.toLocaleString()}원</span>
@@ -5072,7 +5550,7 @@ function ProductDetail({
               onClick={() => window.open(product.oliveYoungUrl, "_blank", "noopener")}
               className="w-full rounded-[14px] border-[1.5px] border-[#e7e7ea] py-3.5 text-base font-extrabold text-[#0a0a0a] transition hover:bg-[#f4f4f5]"
             >
-              본품 구매하기 (올리브영){product.linkType === "search" && <span className="ml-1 text-xs font-normal text-[#9ca3af]">· 검색</span>}
+              {t("본품 구매하기 (올리브영)", lang)}{product.linkType === "search" && <span className="ml-1 text-xs font-normal text-[#9ca3af]">{t("· 검색", lang)}</span>}
             </button>
             {rec.full ? (
               <motion.button
@@ -5080,7 +5558,7 @@ function ProductDetail({
                 onClick={() => onBuyFull(product)}
                 className="w-full rounded-[14px] bg-[#0a0a0a] py-3.5 text-base font-extrabold text-white transition"
               >
-                본품 구매하기 · 10% 할인
+                {t("본품 구매하기 · 10% 할인", lang)}
               </motion.button>
             ) : qty === 0 ? (
               <motion.button
@@ -5088,11 +5566,11 @@ function ProductDetail({
                 onClick={() => onAdd(product.id, ml)}
                 className="w-full rounded-[14px] bg-[#0a0a0a] py-3.5 text-base font-extrabold text-white transition"
               >
-                샘플 담기 · {price.toLocaleString()}원
+                {t("샘플 담기 ·", lang)} {price.toLocaleString()}원
               </motion.button>
             ) : (
               <div className="flex items-center justify-between rounded-[14px] bg-[#f4f4f5] px-4 py-2.5">
-                <span className="text-sm font-semibold text-[#0a0a0a]">샘플 {ml}ml 담김</span>
+                <span className="text-sm font-semibold text-[#0a0a0a]">{t("샘플", lang)} {ml}ml {t("담김", lang)}</span>
                 <div className="flex items-center gap-4">
                   <button onClick={() => onDec(product.id, ml)} className="text-xl text-[#0a0a0a]">−</button>
                   <span className="w-5 text-center font-bold text-[#0a0a0a]">{qty}</span>
@@ -5119,6 +5597,7 @@ function CartSheet({
   onRemove,
   onClose,
   onCheckout,
+  lang,
 }: {
   lines: CartLine[];
   totalQty: number;
@@ -5130,6 +5609,7 @@ function CartSheet({
   onRemove: (id: string, ml: number) => void;
   onClose: () => void;
   onCheckout: () => void;
+  lang: "ko" | "jp" | "en";
 }) {
   return (
     <>
@@ -5142,13 +5622,13 @@ function CartSheet({
         transition={{ type: "spring", stiffness: 320, damping: 34 }}
       >
         <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-[#e7e7ea] bg-white/95 px-5 py-3 backdrop-blur">
-          <span className="text-lg font-black text-[#0a0a0a]">🧳 여행 샘플 장바구니</span>
-          <button onClick={onClose} className="ml-auto text-sm font-semibold text-[#71717a]">닫기</button>
+          <span className="text-lg font-black text-[#0a0a0a]">{t("🧳 여행 샘플 장바구니", lang)}</span>
+          <button onClick={onClose} className="ml-auto text-sm font-semibold text-[#71717a]">{t("닫기", lang)}</button>
         </div>
 
         <div className="px-5 pb-8 pt-4">
           {lines.length === 0 ? (
-            <p className="py-8 text-center text-sm text-[#9ca3af]">장바구니가 비어있어요.</p>
+            <p className="py-8 text-center text-sm text-[#9ca3af]">{t("장바구니가 비어있어요.", lang)}</p>
           ) : (
             <div className="space-y-3">
               {lines.map(({ item, p, lineTotal }) => (
@@ -5158,8 +5638,14 @@ function CartSheet({
                     <div className="text-[11px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{p.brand}</div>
                     <div className="truncate text-sm font-extrabold text-[#0a0a0a]">{p.name}</div>
                     <div className="mt-1 flex items-center gap-1.5">
-                      <span className="rounded-full bg-[#f4f4f5] px-2 py-0.5 text-[10px] font-semibold text-[#3f3f46]">{item.ml}ml</span>
-                      <span className="rounded-full bg-[#f4f4f5] px-2 py-0.5 text-[10px] font-semibold text-[#3f3f46]">기내 반입 ✈️</span>
+                      {item.ml >= p.fullMl ? (
+                        <span className="rounded-full bg-[#fbe7e5] px-2 py-0.5 text-[10px] font-semibold text-[#ec1c24]">{t("본품 · 10%↓", lang)}</span>
+                      ) : (
+                        <>
+                          <span className="rounded-full bg-[#f4f4f5] px-2 py-0.5 text-[10px] font-semibold text-[#3f3f46]">{item.ml}ml</span>
+                          <span className="rounded-full bg-[#f4f4f5] px-2 py-0.5 text-[10px] font-semibold text-[#3f3f46]">{t("기내 반입 ✈️", lang)}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
@@ -5170,7 +5656,7 @@ function CartSheet({
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-semibold text-[#0a0a0a]">{lineTotal.toLocaleString()}원</span>
-                      <button onClick={() => onRemove(item.id, item.ml)} className="text-xs text-[#9ca3af] underline">삭제</button>
+                      <button onClick={() => onRemove(item.id, item.ml)} className="text-xs text-[#9ca3af] underline">{t("삭제", lang)}</button>
                     </div>
                   </div>
                 </div>
@@ -5181,15 +5667,15 @@ function CartSheet({
           {lines.length > 0 && (
             <>
               <div className="mt-4 space-y-1 rounded-2xl bg-[#f4f4f5] p-4 text-sm">
-                <div className="flex justify-between text-[#71717a]"><span>총 제품 수</span><span className="font-semibold text-[#0a0a0a]">{totalQty}개</span></div>
-                <div className="flex justify-between text-[#71717a]"><span>총 용량</span><span className="font-semibold text-[#0a0a0a]">{totalMl}ml</span></div>
-                <div className="flex justify-between border-t border-dashed border-[#e7e7ea] pt-1.5 font-extrabold text-[#0a0a0a]"><span>총 금액</span><span>{totalPrice.toLocaleString()}원</span></div>
+                <div className="flex justify-between text-[#71717a]"><span>{t("총 제품 수", lang)}</span><span className="font-semibold text-[#0a0a0a]">{countLabel(totalQty, lang)}</span></div>
+                <div className="flex justify-between text-[#71717a]"><span>{t("총 용량", lang)}</span><span className="font-semibold text-[#0a0a0a]">{totalMl}ml</span></div>
+                <div className="flex justify-between border-t border-dashed border-[#e7e7ea] pt-1.5 font-extrabold text-[#0a0a0a]"><span>{t("총 금액", lang)}</span><span>{totalPrice.toLocaleString()}원</span></div>
               </div>
 
               <div className={`mt-3 rounded-xl px-4 py-3 text-[12px] leading-relaxed ${allUnder100 ? "bg-[#f4f4f5] text-[#3f3f46]" : "border border-[#ec1c24] bg-white text-[#ec1c24]"}`}>
-                ✈️ {allUnder100 ? "전 제품 개별 100ml 이하 — 기내 반입 가능해요." : "일부 제품이 100ml를 초과해요 — 위탁수하물로 부쳐야 해요."}
+                ✈️ {t(allUnder100 ? "전 제품 개별 100ml 이하 — 기내 반입 가능해요." : "일부 제품이 100ml를 초과해요 — 위탁수하물로 부쳐야 해요.", lang)}
                 <br />
-                <span className="text-[11px] opacity-80">기내 액체 규정: 개별 100ml 이하 · 총합 1L 이하 · 투명 지퍼백 권장</span>
+                <span className="text-[11px] opacity-80">{t("기내 액체 규정: 개별 100ml 이하 · 총합 1L 이하 · 투명 지퍼백 권장", lang)}</span>
               </div>
 
               <motion.button
@@ -5197,7 +5683,7 @@ function CartSheet({
                 onClick={onCheckout}
                 className="mt-4 w-full rounded-[14px] bg-[#0a0a0a] py-3.5 text-base font-extrabold text-white transition"
               >
-                신청하기 →
+                {t("신청하기 →", lang)}
               </motion.button>
             </>
           )}
