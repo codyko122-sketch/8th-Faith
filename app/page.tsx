@@ -1158,6 +1158,97 @@ const UI_TR: Record<string, { jp: string; en: string }> = {
   "잔지바르": { jp: "ザンジバル", en: "Zanzibar" },
   "포트루이스": { jp: "ポートルイス", en: "Port Louis" },
   "마헤": { jp: "マヘ", en: "Mahé" },
+
+  // 성별
+  "여성": { jp: "女性", en: "Female" },
+  "남성": { jp: "男性", en: "Male" },
+
+  // 요일
+  "일": { jp: "日", en: "Sun" },
+  "월": { jp: "月", en: "Mon" },
+  "화": { jp: "火", en: "Tue" },
+  "수": { jp: "水", en: "Wed" },
+  "목": { jp: "木", en: "Thu" },
+  "금": { jp: "金", en: "Fri" },
+  "토": { jp: "土", en: "Sat" },
+
+  // Baumann 16타입 닉네임 · 한줄설명
+  "잡티 관리형 도자기": { jp: "シミケア型陶器肌", en: "Porcelain Spot-Care Type" },
+  "건조하지만 튼튼한 장벽, 색소만 잡으면 매끈": { jp: "乾燥しているけど丈夫なバリア、色素さえ整えればつるすべ", en: "Dry but sturdy barrier — smooth once pigmentation is under control" },
+  "물만 주면 되는 순둥이": { jp: "水さえあげればいい素直タイプ", en: "The Easygoing \"Just Add Water\" Type" },
+  "가장 관리 쉬운 타입, 수분 보충이 전부": { jp: "一番お手入れが簡単なタイプ、水分補給がすべて", en: "The easiest type to manage — just add hydration" },
+  "예민한 백조": { jp: "敏感な白鳥", en: "The Sensitive Swan" },
+  "건조·민감·색소, 진정하며 톤까지 챙겨야": { jp: "乾燥・敏感・色素、鎮静しながらトーンもケアが必要", en: "Dry, sensitive, pigmented — needs soothing and tone care together" },
+  "여린 순둥이": { jp: "繊細な素直タイプ", en: "The Delicate Sweetheart" },
+  "건조하고 예민하지만 색소·주름 걱정은 적어요": { jp: "乾燥して敏感だけど色素・シワの心配は少ない", en: "Dry and sensitive, but little to worry about with spots or wrinkles" },
+  "관록의 그을림": { jp: "貫禄の陽焼け型", en: "The Seasoned Sun-Kissed Type" },
+  "건조·색소·주름, 미백과 안티에이징 동시에": { jp: "乾燥・色素・シワ、美白とアンチエイジングを同時に", en: "Dry, pigmented, wrinkle-prone — brightening and anti-aging together" },
+  "우아한 세월": { jp: "優雅な年月", en: "Graceful Aging" },
+  "건조하고 주름 관리가 필요한 튼튼 피부": { jp: "乾燥していてシワケアが必要な丈夫な肌", en: "Dry, sturdy skin that needs wrinkle care" },
+  "종합 케어 장인": { jp: "総合ケアの匠", en: "The Full-Care Artisan" },
+  "네 가지 모두 신경 써야 하는 섬세한 타입": { jp: "4つすべてに気を配る必要がある繊細なタイプ", en: "A delicate type that needs attention on all four fronts" },
+  "섬세한 시간": { jp: "繊細な時間", en: "Delicate Time" },
+  "건조·민감·주름, 저자극 재생 케어가 핵심": { jp: "乾燥・敏感・シワ、低刺激の再生ケアが鍵", en: "Dry, sensitive, wrinkle-prone — low-irritation renewal care is key" },
+  "생기 넘치는 구릿빛": { jp: "生き生きした小麦肌", en: "Vibrant Bronze" },
+  "튼튼한 지성, 색소만 잡으면 완벽": { jp: "丈夫な脂性肌、色素さえ整えれば完璧", en: "Sturdy oily skin — perfect once pigmentation is handled" },
+  "철벽 피부": { jp: "鉄壁肌", en: "Iron-Clad Skin" },
+  "가장 튼튼한 타입, 피지·자외선 관리면 끝": { jp: "最も丈夫なタイプ、皮脂・紫外線管理だけで十分", en: "The sturdiest type — just manage sebum and sun" },
+  "번들 예민러": { jp: "テカリ敏感さん", en: "The Shiny & Sensitive Type" },
+  "지성·민감·색소, 진정과 피지 밸런스가 관건": { jp: "脂性・敏感・色素、鎮静と皮脂バランスが鍵", en: "Oily, sensitive, pigmented — soothing and sebum balance matter most" },
+  "촉촉 지성 순둥이": { jp: "しっとり脂性の素直タイプ", en: "The Dewy Oily Sweetheart" },
+  "지성이지만 예민한 편, 색소·주름은 여유": { jp: "脂性だけど敏感な方、色素・シワは余裕", en: "Oily but somewhat sensitive; little worry about spots or wrinkles" },
+  "관리형 오일리": { jp: "管理型オイリー肌", en: "The Well-Managed Oily Type" },
+  "튼튼한 지성, 색소·주름을 함께 케어": { jp: "丈夫な脂性肌、色素・シワを一緒にケア", en: "Sturdy oily skin — care for spots and wrinkles together" },
+  "여유로운 오일리": { jp: "余裕のオイリー肌", en: "The Relaxed Oily Type" },
+  "튼튼한 지성, 주름 예방에 집중": { jp: "丈夫な脂性肌、シワ予防に集中", en: "Sturdy oily skin — focus on wrinkle prevention" },
+  "복합 고민러": { jp: "複合お悩みさん", en: "The All-Rounder" },
+  "지성·민감·색소·주름, 균형 잡힌 진정 케어": { jp: "脂性・敏感・色素・シワ、バランスの取れた鎮静ケア", en: "Oily, sensitive, pigmented, wrinkle-prone — balanced soothing care" },
+  "예민한 오일리 타임": { jp: "敏感オイリータイム", en: "The Sensitive Oily Type" },
+  "지성·민감·주름, 자극 없는 안티에이징": { jp: "脂性・敏感・シワ、刺激のないアンチエイジング", en: "Oily, sensitive, wrinkle-prone — gentle anti-aging" },
+
+  // 수질 등급
+  "경수": { jp: "硬水", en: "Hard water" },
+  "경수·위생 주의": { jp: "硬水・衛生注意", en: "Hard water · hygiene caution" },
+  "연수~중연수": { jp: "軟水〜中軟水", en: "Soft to medium-soft water" },
+  "중경수": { jp: "中硬水", en: "Moderately hard water" },
+  "연수": { jp: "軟水", en: "Soft water" },
+  "지역 편차 큼": { jp: "地域差が大きい", en: "Large regional variation" },
+  "연수·소독 강함": { jp: "軟水・消毒強め", en: "Soft water · heavily disinfected" },
+  "중연수": { jp: "中軟水", en: "Medium-soft water" },
+  "정보 부족": { jp: "情報不足", en: "Info unavailable" },
+
+  // 수질 설명(국가별)
+  "석회질이 있는 경수인 데다 지역별 정수 편차가 있어, 세안 후 당김이나 트러블이 흔해요. 생수로 마무리 세안을 권장해요.": { jp: "石灰質のある硬水な上に地域ごとの浄水差があり、洗顔後のつっぱりやトラブルがよく見られます。ミネラルウォーターでの仕上げ洗顔がおすすめです。", en: "It's hard water with mineral buildup and uneven water treatment by region, so tightness or breakouts after washing are common. A bottled-water final rinse is recommended." },
+  "경수 성향에 상하수도 인프라가 고르지 않아 세안수만으로도 트러블이 잦은 편으로 알려져 있어요. 세안 후 보습 마무리가 특히 중요해요.": { jp: "硬水傾向に加え上下水道インフラが均一でなく、洗顔水だけでもトラブルが多いと言われています。洗顔後の保湿仕上げが特に重要です。", en: "Tends toward hard water with uneven water infrastructure, so breakouts from tap water alone are fairly common. Moisturizing right after washing matters a lot here." },
+  "석회질이 많은 경수로 알려져 있고 수돗물 음용은 권장되지 않아요. 세안 후 당김을 느끼기 쉬워요.": { jp: "石灰質の多い硬水として知られ、水道水の飲用は推奨されません。洗顔後につっぱりを感じやすいです。", en: "Known for mineral-heavy hard water; drinking tap water isn't recommended. Tightness after washing is common." },
+  "지역별로 정수 상태 편차가 커서 세안수로도 자극을 느끼는 여행자가 많아요.": { jp: "地域による浄水状態の差が大きく、洗顔水でも刺激を感じる旅行者が多いです。", en: "Water treatment varies a lot by area, so many travelers feel irritation even just from washing their face." },
+  "정수 인프라가 세계적으로 우수해 세안 자극이 적은 편이에요.": { jp: "浄水インフラが世界的に優秀で、洗顔時の刺激が少ない方です。", en: "World-class water treatment infrastructure means minimal irritation when washing." },
+  "도시 상수도는 기준을 충족하지만 현지에서도 끓여 마시는 경우가 많아요. 세안 시 가벼운 당김이 있을 수 있어요.": { jp: "都市部の水道水は基準を満たしていますが、現地でも沸かして飲むことが多いです。洗顔時に軽いつっぱりを感じることがあります。", en: "City tap water meets standards, but locals often boil it before drinking. You may notice slight tightness when washing." },
+  "정수 인프라가 취약한 지역이 많아 세안수 자극에 특히 유의하는 게 좋아요.": { jp: "浄水インフラが脆弱な地域が多く、洗顔水の刺激に特に注意が必要です。", en: "Water treatment infrastructure is weak in many areas, so be especially mindful of irritation from tap water." },
+  "대체로 연수라 세안 자극이 적고 순한 편이에요.": { jp: "概ね軟水のため、洗顔刺激が少なくやさしい方です。", en: "Mostly soft water, so it's gentle with little irritation when washing." },
+  "지역별 편차가 있는 중경수권으로, 현지인도 끓여 마시는 습관이 있어요. 민감 피부는 가벼운 당김을 느낄 수 있어요.": { jp: "地域差のある中硬水圏で、現地の人も沸かして飲む習慣があります。敏感肌は軽いつっぱりを感じることがあります。", en: "A moderately-hard-water region with regional variation; locals often boil water before drinking. Sensitive skin may feel slight tightness." },
+  "석회질이 많은 경수로 잘 알려져 있어, 세안 후 당김이나 두피 건조를 겪는 여행자가 많아요.": { jp: "石灰質の多い硬水として知られ、洗顔後のつっぱりや頭皮の乾燥を感じる旅行者が多いです。", en: "Well known for mineral-heavy hard water; many travelers experience tightness after washing or scalp dryness." },
+  "석회질이 많은 경수 지역이 흔해 세안 후 당김을 느끼기 쉬워요.": { jp: "石灰質の多い硬水地域が多く、洗顔後につっぱりを感じやすいです。", en: "Mineral-heavy hard water is common, so tightness after washing is likely." },
+  "지역별 편차는 있지만 경수 지역이 흔해 세안 후 당김을 느낄 수 있어요.": { jp: "地域差はありますが硬水地域が多く、洗顔後につっぱりを感じることがあります。", en: "Varies by region, but hard water areas are common, so you may feel tightness after washing." },
+  "특히 잉글랜드 남동부는 대표적인 경수 지역이라 세안·모발에 뻑뻑함을 느끼기 쉬워요.": { jp: "特にイングランド南東部は代表的な硬水地域で、洗顔・髪にごわつきを感じやすいです。", en: "Southeast England especially is a classic hard-water area, so your skin and hair may feel a bit stiff." },
+  "지역별 편차가 있지만 경수 지역이 많은 편으로 알려져 있어요.": { jp: "地域差はありますが硬水地域が多いと言われています。", en: "Varies by region, but hard water areas are said to be common." },
+  "알프스 용천수 기반으로 수질이 우수해 세안 자극이 적은 편이에요.": { jp: "アルプスの湧水由来で水質が優秀なため、洗顔刺激が少ない方です。", en: "Sourced from Alpine spring water with excellent quality, so washing tends to cause little irritation." },
+  "세계적으로도 손꼽히는 우수한 수질의 연수라 세안 자극이 적어요.": { jp: "世界でも屈指の優れた水質の軟水で、洗顔刺激が少ないです。", en: "Some of the world's best-quality soft water, so irritation from washing is minimal." },
+  "수질이 우수한 연수라 세안 자극이 적은 편이에요.": { jp: "水質の優れた軟水で、洗顔刺激が少ない方です。", en: "High-quality soft water with little irritation when washing." },
+  "화산 지형의 깨끗한 연수로 유명해 세안 자극이 거의 없는 편이에요.": { jp: "火山地形由来の清らかな軟水で有名で、洗顔刺激がほとんどない方です。", en: "Famous for clean soft water from volcanic terrain, with almost no irritation when washing." },
+  "대도시도 정수 인프라 편차가 있다고 알려져 있어, 세안수 자극에 유의하는 게 좋아요.": { jp: "大都市でも浄水インフラに差があると言われ、洗顔水の刺激に注意した方が良いです。", en: "Even major cities are said to have uneven water treatment, so watch for irritation from tap water." },
+  "대부분 해수 담수화 처리수라 미네랄은 적지만 소독(염소) 농도가 높은 편으로 알려져 있어, 장벽이 약한 피부는 자극을 느낄 수 있어요.": { jp: "ほとんどが海水淡水化処理水でミネラルは少ないものの、消毒（塩素）濃度が高めと言われており、バリアが弱い肌は刺激を感じることがあります。", en: "Mostly desalinated seawater, so mineral content is low but chlorine disinfection levels are said to run high — skin with a weaker barrier may feel irritation." },
+  "나일강 취수 기반에 정수 인프라 편차가 있어 세안수로도 자극을 느끼는 경우가 있어요. 생수 세안 마무리를 권장해요.": { jp: "ナイル川取水を基盤に浄水インフラの差があり、洗顔水でも刺激を感じることがあります。ミネラルウォーターでの仕上げ洗顔がおすすめです。", en: "Sourced from the Nile with uneven water treatment, so irritation from washing is possible. A bottled-water final rinse is recommended." },
+  "석회질이 많은 경수 지역이 흔하고 수돗물 음용은 권장되지 않아요.": { jp: "石灰質の多い硬水地域が多く、水道水の飲用は推奨されません。", en: "Mineral-heavy hard water areas are common; drinking tap water isn't recommended." },
+  "물 부족 국가로 급수 인프라 편차가 있는 경수 지역이 많아요.": { jp: "水不足国で給水インフラに差がある硬水地域が多いです。", en: "A water-scarce country with many hard-water areas and uneven supply infrastructure." },
+  "동부는 연수, 서부·남서부는 경수 경향이 뚜렷해 지역차가 커요. 세안 후 당김이 느껴지면 보습을 더해주세요.": { jp: "東部は軟水、西部・南西部は硬水傾向が顕著で地域差が大きいです。洗顔後につっぱりを感じたら保湿を追加してください。", en: "The East tends toward soft water while the West/Southwest lean hard — regional differences are significant. Add extra moisturizer if you feel tightness after washing." },
+  "화산암반을 통과한 지하수원이라 비교적 깨끗하고 순한 편이에요.": { jp: "火山岩盤を通過した地下水源のため、比較的清らかでやさしい方です。", en: "Groundwater filtered through volcanic rock, so it's relatively clean and gentle." },
+  "전반적으로 양호하지만 지역별 편차가 있어요.": { jp: "全般的に良好ですが地域差があります。", en: "Generally good, though it varies by region." },
+  "리조트 대부분 해수 담수화 처리수를 써서 미네랄이 적은 순한 연수에 가까워요.": { jp: "リゾートのほとんどが海水淡水化処理水を使用しており、ミネラルが少ないやさしい軟水に近いです。", en: "Most resorts use desalinated seawater, so it's close to gentle, low-mineral soft water." },
+  "대도시는 정수 인프라가 우수해 세안 자극이 적은 편이에요.": { jp: "大都市は浄水インフラが優秀で、洗顔刺激が少ない方です。", en: "Major cities have excellent water treatment, so irritation from washing tends to be minimal." },
+  "미국 기준의 상수도 관리라 대체로 양호하지만 태풍철엔 일시적으로 불안정할 수 있어요.": { jp: "米国基準の上水道管理で概ね良好ですが、台風シーズンは一時的に不安定になることがあります。", en: "Managed to U.S. water standards and generally good, though it can be temporarily unstable during typhoon season." },
+  "미국 기준의 상수도 관리라 대체로 양호한 편이에요.": { jp: "米国基準の上水道管理で概ね良好な方です。", en: "Managed to U.S. water standards and generally good." },
+  "이 여행지의 수질 정보를 아직 확인하지 못했어요. 지역마다 물 성분이 달라 평소와 다른 당김·자극이 생길 수 있으니 세안 후 보습을 챙기는 게 좋아요.": { jp: "この旅行先の水質情報はまだ確認できていません。地域によって水の成分が異なるため、いつもと違うつっぱりや刺激が出ることがあるので、洗顔後の保湿を心がけましょう。", en: "We don't have water quality info for this destination yet. Mineral content varies by region, so you might notice different tightness or irritation than usual — be sure to moisturize after washing." },
 };
 function t(ko: string, lang: "ko" | "jp" | "en") {
   if (lang === "ko") return ko;
@@ -3861,7 +3952,7 @@ export default function BeautyPassportExperience() {
                                     <div className="mt-0.5 text-[22px] font-black tracking-[-0.02em] text-[#0a0a0a]">{name || t("여행자", lang)}</div>
                                   </div>
                                   <div className="text-right text-xs text-[#71717a]">
-                                    {age && <>{lang === "ko" ? `만 ${ageLabel(age, lang)}` : ageLabel(age, lang)} · </>}{gender}
+                                    {age && <>{lang === "ko" ? `만 ${ageLabel(age, lang)}` : ageLabel(age, lang)} · </>}{t(gender, lang)}
                                   </div>
                                 </div>
 
@@ -3893,8 +3984,8 @@ export default function BeautyPassportExperience() {
                                       {skin.code}
                                     </div>
                                     <div className="min-w-0">
-                                      <div className="text-[17px] font-black leading-tight text-[#0a0a0a]">{bt?.nick ?? skin.code}</div>
-                                      <div className="text-[12px] leading-snug text-[#71717a]">{bt?.tagline}</div>
+                                      <div className="text-[17px] font-black leading-tight text-[#0a0a0a]">{bt ? t(bt.nick, lang) : skin.code}</div>
+                                      <div className="text-[12px] leading-snug text-[#71717a]">{bt && t(bt.tagline, lang)}</div>
                                     </div>
                                   </div>
                                 </div>
@@ -3941,7 +4032,7 @@ export default function BeautyPassportExperience() {
                                         >
                                           <span className={`absolute inset-x-0 top-0 h-[3px] ${hot ? "bg-[#ec1c24]" : "bg-[#9ca3af]"}`} />
                                           <div className="text-[11px] font-bold text-[#0a0a0a]">
-                                            {c.date} <span className="text-[#9ca3af]">({c.weekday})</span>
+                                            {c.date} <span className="text-[#9ca3af]">({t(c.weekday, lang)})</span>
                                           </div>
                                           <div className="my-1 text-lg leading-none">{c.emojis.map((e) => e.icon).join("")}</div>
                                           <div className="text-[11px] font-bold text-[#0a0a0a]">{c.temp}℃</div>
@@ -3971,7 +4062,7 @@ export default function BeautyPassportExperience() {
                                       <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">{result.profile.tag}</span>
                                     )}
                                     <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">UV {result.profile.uv}</span>
-                                    <span className="rounded-full bg-[#eef6fb] px-2.5 py-1 text-[10.5px] font-bold text-[#2b6b86]">💧 {t("수질", lang)} {result.waterQuality.level}</span>
+                                    <span className="rounded-full bg-[#eef6fb] px-2.5 py-1 text-[10.5px] font-bold text-[#2b6b86]">💧 {t("수질", lang)} {t(result.waterQuality.level, lang)}</span>
                                   </div>
                                   {aiSummaryLoading && !aiSummary ? (
                                     <p className="mt-2.5 animate-pulse text-[13.5px] leading-relaxed text-[#9ca3af]">💬 {lang === "jp" ? "AIが旅行先の天気・微細粉塵・水質を分析しています…" : lang === "en" ? "The AI is analyzing the weather, dust, and water quality for your destination…" : "AI가 여행지 날씨·미세먼지·수질을 분석하고 있어요…"}</p>
@@ -5105,7 +5196,7 @@ function AiDetailModal({
         <div className="sticky top-0 z-10 flex items-start justify-between gap-2 border-b border-[#e7e7ea] bg-white/95 px-5 py-3 backdrop-blur">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">{t("Detail · 상세 리포트", lang)}</div>
-            <div className="mt-0.5 text-lg font-black text-[#0a0a0a]">{skin.code} · {bt?.nick ?? skin.code}</div>
+            <div className="mt-0.5 text-lg font-black text-[#0a0a0a]">{skin.code} · {bt ? t(bt.nick, lang) : skin.code}</div>
           </div>
           <button onClick={onClose} className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[#f4f4f5] text-base text-[#0a0a0a]">×</button>
         </div>
@@ -5132,7 +5223,7 @@ function AiDetailModal({
             <tbody>
               {result.calendar.map((c, k) => (
                 <tr key={k} className="text-[#3f3f46]">
-                  <td className="border-b border-[#e7e7ea] py-1.5 pr-2">{c.date} {c.weekday}</td>
+                  <td className="border-b border-[#e7e7ea] py-1.5 pr-2">{c.date} {t(c.weekday, lang)}</td>
                   <td className="border-b border-[#e7e7ea] py-1.5 pr-2">{c.emojis.map((e) => e.icon).join("")}</td>
                   <td className="border-b border-[#e7e7ea] py-1.5 pr-2">{c.temp}℃</td>
                   <td className="border-b border-[#e7e7ea] py-1.5 pr-2">{c.humidity}%</td>
@@ -5145,8 +5236,8 @@ function AiDetailModal({
           {/* 수질 */}
           <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">{t("Water Quality · 여행지 수돗물", lang)}</div>
           <div className="mt-3 rounded-xl border border-[#e7e7ea] bg-[#f9fbfc] p-3">
-            <span className="rounded-full bg-[#eef6fb] px-2.5 py-1 text-[11px] font-bold text-[#2b6b86]">💧 {result.waterQuality.level}</span>
-            <p className="mt-2 text-[12px] leading-relaxed text-[#3f3f46]">{result.waterQuality.note}</p>
+            <span className="rounded-full bg-[#eef6fb] px-2.5 py-1 text-[11px] font-bold text-[#2b6b86]">💧 {t(result.waterQuality.level, lang)}</span>
+            <p className="mt-2 text-[12px] leading-relaxed text-[#3f3f46]">{t(result.waterQuality.note, lang)}</p>
           </div>
           {aiSummary && aiSummary.tips.length > 0 && (
             <ul className="mt-3 space-y-1.5">
