@@ -87,6 +87,8 @@ type Stage =
   | "acQ3"
   | "acResult"
   | "result"
+  | "myPassport"
+  | "cartPage"
   | "receive"
   | "delivery"
   | "pickup"
@@ -1346,6 +1348,20 @@ const UI_TR: Record<string, { jp: string; en: string }> = {
   "미국 기준의 상수도 관리라 대체로 양호하지만 태풍철엔 일시적으로 불안정할 수 있어요.": { jp: "米国基準の上水道管理で概ね良好ですが、台風シーズンは一時的に不安定になることがあります。", en: "Managed to U.S. water standards and generally good, though it can be temporarily unstable during typhoon season." },
   "미국 기준의 상수도 관리라 대체로 양호한 편이에요.": { jp: "米国基準の上水道管理で概ね良好な方です。", en: "Managed to U.S. water standards and generally good." },
   "이 여행지의 수질 정보를 아직 확인하지 못했어요. 지역마다 물 성분이 달라 평소와 다른 당김·자극이 생길 수 있으니 세안 후 보습을 챙기는 게 좋아요.": { jp: "この旅行先の水質情報はまだ確認できていません。地域によって水の成分が異なるため、いつもと違うつっぱりや刺激が出ることがあるので、洗顔後の保湿を心がけましょう。", en: "We don't have water quality info for this destination yet. Mineral content varies by region, so you might notice different tightness or irritation than usual — be sure to moisturize after washing." },
+  // 내 여권 · 장바구니/배송현황 페이지
+  "내 여권": { jp: "マイパスポート", en: "My Passport" },
+  "내 여권 보기": { jp: "マイパスポートを見る", en: "View My Passport" },
+  "저장된 내 정보를 확인해요": { jp: "保存された情報を確認します", en: "Check your saved info" },
+  "아이디": { jp: "ID", en: "ID" },
+  "나이": { jp: "年齢", en: "Age" },
+  "피부타입": { jp: "肌タイプ", en: "Skin type" },
+  "최근 업데이트": { jp: "最終更新", en: "Last updated" },
+  "아직 진단 기록이 없어요": { jp: "まだ診断記録がありません", en: "No diagnosis on record yet" },
+  "알러지·기피 성분": { jp: "アレルギー・避けたい成分", en: "Allergies & ingredients to avoid" },
+  "이번 여행": { jp: "今回の旅行", en: "This trip" },
+  "저장한 제품": { jp: "保存した製品", en: "Saved products" },
+  "장바구니": { jp: "カート", en: "Cart" },
+  "담은 샘플과 배송 현황을 확인해요": { jp: "カートのサンプルと配送状況を確認します", en: "Check your cart and delivery status" },
 };
 function t(ko: string, lang: "ko" | "jp" | "en") {
   if (lang === "ko") return ko;
@@ -1616,6 +1632,9 @@ export default function BeautyPassportExperience() {
   const [checklist, setChecklist] = useState<boolean[][]>(CHECKLIST_GROUPS.map((g) => Array(g.length).fill(false)));
   // [6-2] 장바구니 시트
   const [cartOpen, setCartOpen] = useState(false);
+  // 전역 상단바 — 메뉴(내 여권) · 장바구니 페이지 이동, 어느 stage에서 열었는지 기억해뒀다가 복귀
+  const [globalMenuOpen, setGlobalMenuOpen] = useState(false);
+  const [preMenuStage, setPreMenuStage] = useState<Stage | null>(null);
   // 여행지 대표 메이크업 스타일노트
   const [makeupOpen, setMakeupOpen] = useState(false);
   // 결과 화면 내 서브뷰(보딩패스 요약 ↔ 직접 고르기 ↔ 여행 케어 플랜) · AI 판단 상세 모달 · 여행 전/중/후 탭
@@ -1636,6 +1655,9 @@ export default function BeautyPassportExperience() {
   }, [lang]);
   // [6-3] 수령 방식
   const [receiveMethod, setReceiveMethod] = useState<"delivery" | "pickup" | null>(null);
+  // 체크아웃 시점 — 여행 전(메인 결과 화면)에서 왔는지, 여행 후(애프터케어)에서 왔는지에 따라
+  // 배송 시점 기본값·픽업 날짜/문구가 자동으로 갈린다(사용자가 고르는 체크란 없음).
+  const [checkoutTiming, setCheckoutTiming] = useState<"before" | "after">("before");
   // [6-3A] 배송 신청
   const [deliveryBefore, setDeliveryBefore] = useState(true);
   const [deliveryAfter, setDeliveryAfter] = useState(false);
@@ -1917,9 +1939,29 @@ export default function BeautyPassportExperience() {
     });
   }
   function goCheckout() {
+    const timing = stage === "acResult" ? "after" : "before";
+    setCheckoutTiming(timing);
+    setDeliveryBefore(timing === "before");
+    setDeliveryAfter(timing === "after");
+    if (timing === "after" && arriveDate) setPickupDate(arriveDate);
     setCartOpen(false);
     setReceiveMethod(null);
     setStage("receive");
+  }
+  // 전역 상단바에서 "내 여권"·"장바구니" 페이지로 이동 — 원래 있던 stage를 기억해뒀다가 뒤로가기 시 복귀
+  function openMyPassport() {
+    setPreMenuStage((prev) => prev ?? stage);
+    setGlobalMenuOpen(false);
+    setStage("myPassport");
+  }
+  function openCartPage() {
+    setPreMenuStage((prev) => prev ?? stage);
+    setGlobalMenuOpen(false);
+    setStage("cartPage");
+  }
+  function closeOverlayStage() {
+    setStage(preMenuStage ?? "member");
+    setPreMenuStage(null);
   }
   function submitDelivery() {
     setOrderNo(genOrderNo());
@@ -2274,11 +2316,36 @@ export default function BeautyPassportExperience() {
   }, [result, skin, name, age, gender, userAllergies, lang]);
 
   const dday = departDate ? daysUntil(departDate) : null;
+  // 전역 상단바(메뉴·장바구니) — 로그인 전 화면에는 노출하지 않음. 애프터케어(acArrival~acResult)는
+  // document.body로 포털되는 별개 DOM이라 이 in-frame 바 대신 acTopBarProps를 AcScreenChrome에 넘겨 그 안에서 렌더한다.
+  const NO_GLOBAL_BAR_STAGES: Stage[] = ["intro", "login", "findId", "findPw", "signup", "acArrival", "acQ1", "acUsed", "acUsedPick", "acQ3", "acResult"];
+  const showGlobalBar = !NO_GLOBAL_BAR_STAGES.includes(stage);
+  const acTopBarProps = {
+    menuLabel: t("내 여권 보기", lang),
+    cartCount,
+    menuOpen: globalMenuOpen,
+    onToggleMenu: () => setGlobalMenuOpen((v) => !v),
+    onCloseMenu: () => setGlobalMenuOpen(false),
+    onOpenPassport: openMyPassport,
+    onOpenCart: openCartPage,
+  };
 
   return (
     <div className="min-h-[100dvh] w-full" style={{ background: "linear-gradient(180deg,#c6dcec,#aecbe2)" }}>
       <div className="mx-auto flex min-h-[100dvh] max-w-[480px] items-stretch sm:py-6">
         <div className="relative w-full overflow-hidden min-h-[100dvh] sm:min-h-[calc(100dvh-3rem)] sm:rounded-[38px] sm:shadow-[0_40px_90px_rgba(43,120,170,0.4)]" style={{ perspective: 1600 }}>
+          {showGlobalBar && (
+            <GlobalTopBar
+              lang={lang}
+              cartCount={cartCount}
+              menuOpen={globalMenuOpen}
+              onToggleMenu={() => setGlobalMenuOpen((v) => !v)}
+              onCloseMenu={() => setGlobalMenuOpen(false)}
+              onOpenPassport={openMyPassport}
+              onOpenCart={openCartPage}
+            />
+          )}
+          <div className="absolute inset-x-0 bottom-0" style={{ top: showGlobalBar ? 44 : 0 }}>
           <AnimatePresence mode="wait">
             {/* 1. 인트로 — 도트 지구본 */}
             {stage === "intro" && (
@@ -3038,6 +3105,7 @@ export default function BeautyPassportExperience() {
                   title="즐거운 여행되셨나요?"
                   subtitle={acSubtitle}
                   footerCode={acFooterCode}
+                  topBar={acTopBarProps}
                 >
                   <AcTripCard dest={acDestName} dates={acDestDates} />
                   <p className={acStyles.lead} style={{ marginBottom: 20 }}>
@@ -3072,7 +3140,7 @@ export default function BeautyPassportExperience() {
                 exit="exit"
                 className="absolute inset-0"
               >
-                <AcScreenChrome step={1} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode}>
+                <AcScreenChrome step={1} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode} topBar={acTopBarProps}>
                   <AcLabel en="Skin Check" ko="피부 점검" />
                   <p className={acStyles.lead}>피부 상태가 달라지셨나요?</p>
                   <p className={acStyles.leadSub}>여행 전과 비교해 피부 컨디션에 어떤 변화가 느껴지는지 알려주세요.</p>
@@ -3109,7 +3177,7 @@ export default function BeautyPassportExperience() {
                 exit="exit"
                 className="absolute inset-0"
               >
-                <AcScreenChrome step={2} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode}>
+                <AcScreenChrome step={2} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode} topBar={acTopBarProps}>
                   <AcLabel en="Product Check" ko="제품 확인" />
                   <p className={acStyles.lead}>저희가 추천해드린 제품을 사용해보셨나요?</p>
                   <p className={acStyles.leadSub}>여행 전 맞춤 추천해드린 제품 중 사용하신 게 있는지 알려주세요.</p>
@@ -3143,7 +3211,7 @@ export default function BeautyPassportExperience() {
                 exit="exit"
                 className="absolute inset-0"
               >
-                <AcScreenChrome step={3} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode}>
+                <AcScreenChrome step={3} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode} topBar={acTopBarProps}>
                   <AcLabel en="Which One" ko="사용 제품" />
                   <p className={acStyles.lead}>어떤 제품을 사용하셨나요?</p>
                   <p className={acStyles.leadSub}>해당하는 제품을 모두 선택해 주세요. (중복 선택 가능)</p>
@@ -3181,7 +3249,7 @@ export default function BeautyPassportExperience() {
                 exit="exit"
                 className="absolute inset-0"
               >
-                <AcScreenChrome step={3} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode}>
+                <AcScreenChrome step={3} eyebrow="ARRIVAL · 입국 심사" title="즐거운 여행되셨나요?" subtitle={acSubtitle} footerCode={acFooterCode} topBar={acTopBarProps}>
                   <AcLabel en="Declare" ko="피부 신고" />
                   <p className={acStyles.lead}>어떤 고민이 새롭게 생겼나요?</p>
                   <p className={acStyles.leadSub}>해당하는 항목을 모두 선택해 주세요. (중복 선택 가능)</p>
@@ -3232,6 +3300,7 @@ export default function BeautyPassportExperience() {
                       subtitle={acSubtitle}
                       footerCode={acFooterCode}
                       onBack={() => setStage(backTarget)}
+                      topBar={acTopBarProps}
                     >
                       <AcStampSeal />
                       <h2 className={acStyles.resultHead}>
@@ -5020,7 +5089,238 @@ export default function BeautyPassportExperience() {
                 </div>
               </motion.section>
             )}
+
+            {/* 내 여권 — 마이페이지 형태로 저장된 내 정보 확인 */}
+            {stage === "myPassport" && (
+              <motion.section key="myPassport" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto bg-white px-7 pb-8 pt-5">
+                <PassportTopBar compact onBack={closeOverlayStage} />
+                <PassportEyebrow>My Beauty Passport</PassportEyebrow>
+                <PassportTitle compact>{t("내 여권", lang)}</PassportTitle>
+                <PassportKSub>{t("저장된 내 정보를 확인해요", lang)}</PassportKSub>
+
+                {(() => {
+                  const account = loggedInId ? findAccount(loggedInId) : null;
+                  const skinCode = account?.skinCode ?? skin?.code ?? null;
+                  const bTag = skinCode ? BAUMANN_TYPES[skinCode] : null;
+                  const allergies = account?.allergyIngredients ?? userAllergies;
+                  return (
+                    <div className="mt-4 flex flex-col gap-2.5">
+                      <div className="flex flex-col gap-2.5 rounded-2xl border-[1.5px] border-[#0a0a0a] p-[15px]">
+                        <div className="flex items-center justify-between">
+                          <div className="font-sans text-[17px] font-black text-[#0a0a0a]">{account?.name ?? name} 님</div>
+                          <PassportStampChip>VERIFIED</PassportStampChip>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <PassportTag>{t("아이디", lang)} · {loggedInId ?? "-"}</PassportTag>
+                          {(account?.age ?? age) && <PassportTag>{t("나이", lang)} · {ageLabel(account?.age ?? age, lang)}</PassportTag>}
+                          {(account?.gender ?? gender) && <PassportTag>{t(account?.gender ?? gender, lang)}</PassportTag>}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {bTag ? (
+                            <>
+                              <PassportTag>{t("피부타입", lang)} · {t(bTag.nick, lang)}</PassportTag>
+                              {account?.skinUpdatedAt && <PassportTag>{t("최근 업데이트", lang)} · {daysAgoLabel(account.skinUpdatedAt)}</PassportTag>}
+                            </>
+                          ) : (
+                            <PassportTag>{t("아직 진단 기록이 없어요", lang)}</PassportTag>
+                          )}
+                        </div>
+                      </div>
+
+                      {allergies.length > 0 && (
+                        <div className="rounded-2xl border-[1.5px] border-[#e7e7ea] p-[15px]">
+                          <div className="font-sans text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9ca3af]">{t("알러지·기피 성분", lang)}</div>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {allergies.map((a) => (
+                              <span key={a} className="rounded-full bg-[#fdecea] px-2.5 py-1 text-[11.5px] font-semibold text-[#c0322b]">{t(a, lang)}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {country && (
+                        <div className="rounded-2xl border-[1.5px] border-[#e7e7ea] p-[15px]">
+                          <div className="font-sans text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9ca3af]">{t("이번 여행", lang)}</div>
+                          <div className="mt-1.5 text-[15px] font-extrabold text-[#0a0a0a]">
+                            {t(country.name, lang)}
+                            {city ? ` · ${t(city.name, lang)}` : ""}
+                          </div>
+                          {departDate && (
+                            <div className="mt-1 text-[12px] text-[#71717a]">
+                              {fmtISO(departDate)}
+                              {arriveDate ? ` ~ ${fmtISO(arriveDate)}` : ""}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {(() => {
+                        const saved = loggedInId ? getSavedProducts(loggedInId) : [];
+                        if (saved.length === 0) return null;
+                        return (
+                          <div className="rounded-2xl border-[1.5px] border-[#e7e7ea] p-[15px]">
+                            <div className="flex items-center justify-between">
+                              <div className="font-sans text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9ca3af]">Saved Products · {t("저장한 제품", lang)}</div>
+                              <div className="font-sans text-[11px] font-bold text-[#71717a]">{saved.length}</div>
+                            </div>
+                            <div className="mt-2.5 flex flex-col gap-2">
+                              {saved.slice(0, 5).map((p: SavedProduct) => (
+                                <div key={p.key} className="flex items-center gap-2.5">
+                                  <span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-[#f4f4f5] text-[13px]">🧴</span>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="truncate font-sans text-[13px] font-bold text-[#0a0a0a]">{p.name}</div>
+                                    <div className="font-sans text-[11px] text-[#9ca3af]">{p.brand} · {p.category}</div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  );
+                })()}
+
+                <PassportFooter compact />
+              </motion.section>
+            )}
+
+            {/* 장바구니 + 배송현황 통합 페이지 */}
+            {stage === "cartPage" && (
+              <motion.section key="cartPage" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto bg-white px-7 pb-8 pt-5">
+                <PassportTopBar compact onBack={closeOverlayStage} />
+                <PassportEyebrow>Cart · Delivery</PassportEyebrow>
+                <PassportTitle compact>{t("장바구니", lang)}</PassportTitle>
+                <PassportKSub>{t("담은 샘플과 배송 현황을 확인해요", lang)}</PassportKSub>
+
+                <div className="mt-4">
+                  {cartLines.length === 0 ? (
+                    <p className="py-8 text-center text-sm text-[#9ca3af]">{t("장바구니가 비어있어요.", lang)}</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {cartLines.map(({ item, p, lineTotal }) => (
+                        <div key={`${item.id}-${item.ml}`} className="flex items-center gap-3 rounded-2xl border border-[#e7e7ea] p-3">
+                          <ProductImage product={p} />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[11px] font-bold uppercase tracking-[0.05em] text-[#9ca3af]">{productBrand(p, lang)}</div>
+                            <div className="truncate text-sm font-extrabold text-[#0a0a0a]">{productName(p, lang)}</div>
+                            <div className="mt-1 flex items-center gap-1.5">
+                              {item.ml >= p.fullMl ? (
+                                <span className="rounded-full bg-[#fbe7e5] px-2 py-0.5 text-[10px] font-semibold text-[#ec1c24]">{t("본품 · 10%↓", lang)}</span>
+                              ) : (
+                                <>
+                                  <span className="rounded-full bg-[#f4f4f5] px-2 py-0.5 text-[10px] font-semibold text-[#3f3f46]">{item.ml}ml</span>
+                                  <span className="rounded-full bg-[#f4f4f5] px-2 py-0.5 text-[10px] font-semibold text-[#3f3f46]">{t("기내 반입 ✈️", lang)}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <div className="flex items-center gap-2 rounded-full bg-[#f4f4f5] px-2 py-1">
+                              <button onClick={() => decSample(item.id, item.ml)} className="text-sm font-bold text-[#0a0a0a]">−</button>
+                              <span className="w-4 text-center text-xs font-bold text-[#0a0a0a]">{item.qty}</span>
+                              <button onClick={() => addSample(item.id, item.ml)} className="text-sm font-bold text-[#0a0a0a]">＋</button>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-[#0a0a0a]">{lineTotal.toLocaleString()}원</span>
+                              <button onClick={() => removeSample(item.id, item.ml)} className="text-xs text-[#9ca3af] underline">{t("삭제", lang)}</button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {cartLines.length > 0 && (
+                    <>
+                      <div className="mt-4 space-y-1 rounded-2xl bg-[#f4f4f5] p-4 text-sm">
+                        <div className="flex justify-between text-[#71717a]"><span>{t("총 제품 수", lang)}</span><span className="font-semibold text-[#0a0a0a]">{countLabel(cartCount, lang)}</span></div>
+                        <div className="flex justify-between text-[#71717a]"><span>{t("총 용량", lang)}</span><span className="font-semibold text-[#0a0a0a]">{cartTotalMl}ml</span></div>
+                        <div className="flex justify-between border-t border-dashed border-[#e7e7ea] pt-1.5 font-extrabold text-[#0a0a0a]"><span>{t("총 금액", lang)}</span><span>{cartTotalPrice.toLocaleString()}원</span></div>
+                      </div>
+
+                      <div className={`mt-3 rounded-xl px-4 py-3 text-[12px] leading-relaxed ${cartAllUnder100 ? "bg-[#f4f4f5] text-[#3f3f46]" : "border border-[#ec1c24] bg-white text-[#ec1c24]"}`}>
+                        ✈️ {t(cartAllUnder100 ? "전 제품 개별 100ml 이하 — 기내 반입 가능해요." : "일부 제품이 100ml를 초과해요 — 위탁수하물로 부쳐야 해요.", lang)}
+                      </div>
+
+                      {!orderNo && (
+                        <motion.button
+                          whileTap={{ scale: 0.985 }}
+                          onClick={goCheckout}
+                          className="mt-4 w-full rounded-[14px] bg-[#0a0a0a] py-3.5 text-base font-extrabold text-white transition"
+                        >
+                          {t("신청하기 →", lang)}
+                        </motion.button>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {orderNo && (
+                  <div className="mt-6">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">{t("Status · 배송 현황", lang)}</div>
+                    <div className="mt-0.5 mb-3 text-lg font-black text-[#0a0a0a]">{t("주문번호", lang)} {orderNo}</div>
+
+                    {(() => {
+                      const isPickup = receiveMethod === "pickup";
+                      const steps = (
+                        isPickup
+                          ? ["결제 완료", "공항 보관함 입고 준비", "보관함 입고 완료", "수령 대기"]
+                          : ["결제 완료", "상품 준비 중", "배송 중", "배송 완료"]
+                      ).map((s) => t(s, lang));
+                      const current = isPickup
+                        ? dday === null ? 1 : dday >= 2 ? 1 : dday >= 0 ? 2 : 3
+                        : dday === null ? 1 : dday > 2 ? 1 : dday >= 1 ? 2 : 3;
+                      return (
+                        <>
+                          <div className="space-y-0">
+                            {steps.map((label, i) => {
+                              const done = i <= current;
+                              return (
+                                <div key={label} className="flex gap-3">
+                                  <div className="flex flex-col items-center">
+                                    <div className={`flex h-6 w-6 flex-none items-center justify-center rounded-full text-[11px] font-bold ${done ? "bg-[#0a0a0a] text-white" : "bg-[#f4f4f5] text-[#9ca3af]"}`}>
+                                      {done ? "✓" : i + 1}
+                                    </div>
+                                    {i < steps.length - 1 && <div className={`w-[1.5px] flex-1 ${i < current ? "bg-[#0a0a0a]" : "bg-[#e7e7ea]"}`} style={{ minHeight: 28 }} />}
+                                  </div>
+                                  <div className={`pb-6 text-sm ${done ? "font-bold text-[#0a0a0a]" : "text-[#9ca3af]"}`}>{label}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {isPickup ? (
+                            <div className="rounded-xl bg-[#f4f4f5] p-4 text-center">
+                              <div className="text-xs text-[#71717a]">{pickupAirport} {t("보관함", lang)}</div>
+                              <div className="text-3xl font-black tracking-[0.04em] text-[#ec1c24]">{lockerNo}</div>
+                              <div className="text-xs text-[#71717a]">
+                                {pickupDate ? fmtISO(pickupDate) : ""} {pickupTime} {t("이후 수령 가능", lang)}
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-sm leading-relaxed text-[#3f3f46]">
+                              {t(
+                                current >= 3
+                                  ? "배송이 완료됐어요. 여행 가방에 잘 챙겨주세요!"
+                                  : current === 2
+                                    ? "지금 배송 중이에요. 출발 전에 도착 예정이에요."
+                                    : "상품을 준비하고 있어요. 출발일에 맞춰 배송될 예정이에요.",
+                                lang
+                              )}
+                            </p>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                <PassportFooter compact />
+              </motion.section>
+            )}
           </AnimatePresence>
+          </div>
 
           {/* [6-2] 플로팅 장바구니 + 시트 */}
           <AnimatePresence>
@@ -5764,6 +6064,75 @@ function ProductDetail({
         </div>
       </motion.div>
     </>
+  );
+}
+
+// 전역 상단바 — 모든 로그인 후 화면에 고정 노출. 메뉴(내 여권 보기) · 장바구니(+배송현황 페이지) 진입점.
+function GlobalTopBar({
+  lang,
+  cartCount,
+  menuOpen,
+  onToggleMenu,
+  onCloseMenu,
+  onOpenPassport,
+  onOpenCart,
+}: {
+  lang: "ko" | "jp" | "en";
+  cartCount: number;
+  menuOpen: boolean;
+  onToggleMenu: () => void;
+  onCloseMenu: () => void;
+  onOpenPassport: () => void;
+  onOpenCart: () => void;
+}) {
+  return (
+    <div className="absolute inset-x-0 top-0 z-[95] flex h-11 items-center justify-between border-b border-[#e7e7ea] bg-white/95 px-3 backdrop-blur">
+      <div className="relative">
+        <button
+          type="button"
+          onClick={onToggleMenu}
+          aria-label="메뉴"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
+        >
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+            <line x1="4" y1="7" x2="20" y2="7" />
+            <line x1="4" y1="12" x2="20" y2="12" />
+            <line x1="4" y1="17" x2="20" y2="17" />
+          </svg>
+        </button>
+        {menuOpen && (
+          <>
+            <div className="fixed inset-0 z-[94]" onClick={onCloseMenu} />
+            <div className="absolute left-0 top-10 z-[96] w-44 overflow-hidden rounded-2xl border border-[#e7e7ea] bg-white shadow-[0_16px_40px_rgba(20,30,50,0.18)]">
+              <button
+                type="button"
+                onClick={onOpenPassport}
+                className="flex w-full items-center gap-2 px-4 py-3 text-left text-[13.5px] font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
+              >
+                🛂 {t("내 여권 보기", lang)}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/assets/passport-seal.png" alt="" className="h-[26px] w-auto flex-none" />
+
+      <button
+        type="button"
+        onClick={onOpenCart}
+        aria-label="장바구니"
+        className="relative flex h-8 w-8 items-center justify-center rounded-full text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
+      >
+        <span className="text-[17px] leading-none">🧳</span>
+        {cartCount > 0 && (
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#ec1c24] px-1 text-[9px] font-extrabold text-white">
+            {cartCount}
+          </span>
+        )}
+      </button>
+    </div>
   );
 }
 

@@ -167,6 +167,70 @@ export function AcFooter({ code }: { code: string }) {
   );
 }
 
+// 전역 상단바(메뉴 · 장바구니) — 애프터케어는 document.body로 포털돼 앱 프레임의 상단바와
+// 별개 DOM이라, 문구는 page.tsx에서 이미 번역된 문자열로 넘겨받아 그대로 표시만 한다.
+export type AcTopBarProps = {
+  menuLabel: string;
+  cartCount: number;
+  menuOpen: boolean;
+  onToggleMenu: () => void;
+  onCloseMenu: () => void;
+  onOpenPassport: () => void;
+  onOpenCart: () => void;
+};
+
+function AcTopBar({ menuLabel, cartCount, menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onOpenCart }: AcTopBarProps) {
+  return (
+    <div className="mb-3 flex h-11 flex-none items-center justify-between border-b border-[#e7e7ea]">
+      <div className="relative">
+        <button
+          type="button"
+          onClick={onToggleMenu}
+          aria-label="메뉴"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
+        >
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+            <line x1="4" y1="7" x2="20" y2="7" />
+            <line x1="4" y1="12" x2="20" y2="12" />
+            <line x1="4" y1="17" x2="20" y2="17" />
+          </svg>
+        </button>
+        {menuOpen && (
+          <>
+            <div className="fixed inset-0 z-[130]" onClick={onCloseMenu} />
+            <div className="absolute left-0 top-10 z-[131] w-44 overflow-hidden rounded-2xl border border-[#e7e7ea] bg-white shadow-[0_16px_40px_rgba(20,30,50,0.18)]">
+              <button
+                type="button"
+                onClick={onOpenPassport}
+                className="flex w-full items-center gap-2 px-4 py-3 text-left text-[13.5px] font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
+              >
+                🛂 {menuLabel}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/assets/passport-seal.png" alt="" className="h-[26px] w-auto flex-none" />
+
+      <button
+        type="button"
+        onClick={onOpenCart}
+        aria-label="장바구니"
+        className="relative flex h-8 w-8 items-center justify-center rounded-full text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
+      >
+        <span className="text-[17px] leading-none">🧳</span>
+        {cartCount > 0 && (
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#ec1c24] px-1 text-[9px] font-extrabold text-white">
+            {cartCount}
+          </span>
+        )}
+      </button>
+    </div>
+  );
+}
+
 export function AcScreenChrome({
   step,
   eyebrow,
@@ -175,6 +239,7 @@ export function AcScreenChrome({
   footerCode,
   onBack,
   children,
+  topBar,
 }: {
   step: number;
   eyebrow: string;
@@ -183,6 +248,7 @@ export function AcScreenChrome({
   footerCode: string;
   onBack?: () => void;
   children: ReactNode;
+  topBar?: AcTopBarProps;
 }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -192,6 +258,7 @@ export function AcScreenChrome({
   const content = (
     <div className={styles.backdrop}>
       <div className={`${styles.card} ${styles.root}`}>
+        {topBar && <AcTopBar {...topBar} />}
         <AcHeader eyebrow={eyebrow} title={title} subtitle={subtitle} onBack={onBack} />
         <AcSteps current={step} />
         <div className={styles.bodyScroll}>{children}</div>
