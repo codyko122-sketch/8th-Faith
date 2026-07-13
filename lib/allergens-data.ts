@@ -5,7 +5,7 @@ export type AllergenOption = {
   id: string;
   label: string; // 설문 칩·경고 문구에 쓰이는 한글 표기
   hint?: string; // 칩 아래 보여줄 짧은 설명
-  matchIngredients?: string[]; // lib/products.ts Cosmetic.ingredients 태그와 정확히 일치하면 위험으로 판단
+  matchIngredients?: string[]; // lib/products.ts Cosmetic.ingredients 태그 중 이 문자열을 포함하는 태그가 있으면 위험으로 판단(부분 일치)
   fragranceProxy?: boolean; // true면 제품 safety 배열에 "무향"이 없을 때 위험으로 판단(향료 프록시)
 };
 
@@ -27,16 +27,25 @@ export function allergenLabel(idOrText: string): string {
 }
 
 // 등록된 알러지 목록(아이디 또는 자유 입력) 중 이 제품에 있을 수 있는 항목을 찾아 라벨로 반환.
-// matchIngredients/향료 프록시로 못 잡는 자유 입력 텍스트는 성분 태그 문자열에 직접 포함되는지로 대조.
-export function allergyRiskForProduct(userAllergies: string[], ingredients: string[], safety: string[]): string[] {
+// matchIngredients/향료 프록시로 못 잡는 자유 입력 텍스트는 성분 태그 문자열에 직접 포함되는지로 대조하며,
+// 전성분표(fullIngredients, data/products.json)가 있으면 그것까지 함께 대조한다 — 사전 정의된 알러지
+// 항목(matchIngredients/fragranceProxy)은 짧은 마케팅 태그만 보고, 전성분 대조는 자유 입력 텍스트에 한정한다.
+export function allergyRiskForProduct(
+  userAllergies: string[],
+  ingredients: string[],
+  safety: string[],
+  fullIngredients?: string[]
+): string[] {
   const risks: string[] = [];
   const ingredientsText = ingredients.join(" ");
+  const fullIngredientsText = fullIngredients?.join(" ") ?? "";
   for (const a of userAllergies) {
     const opt = ALLERGEN_OPTIONS.find((o) => o.id === a);
     if (opt) {
-      if (opt.matchIngredients?.some((m) => ingredients.includes(m))) risks.push(opt.label);
+      // 부분 일치로 대조 — 예: "BHA"는 제품 태그 "살리실산(BHA)"에도 걸려야 한다(정확히 같은 문자열일 때만 잡던 버그 수정).
+      if (opt.matchIngredients?.some((m) => ingredients.some((ing) => ing.includes(m)))) risks.push(opt.label);
       else if (opt.fragranceProxy && !safety.includes("무향")) risks.push(opt.label);
-    } else if (a.trim() && ingredientsText.includes(a.trim())) {
+    } else if (a.trim() && (ingredientsText.includes(a.trim()) || fullIngredientsText.includes(a.trim()))) {
       risks.push(a.trim());
     }
   }

@@ -13,6 +13,7 @@ import {
   validSampleTiers,
   normType,
   COSMETICS,
+  fullIngredientsFor,
   type Cosmetic,
   type Recommendation,
 } from "@/lib/products";
@@ -47,7 +48,7 @@ import {
 import type { ScanResult } from "@/lib/scan-types";
 import type { AiSummaryResult } from "@/lib/ai-summary-types";
 import { getWaterQuality } from "@/lib/water-quality-data";
-import { ALLERGEN_OPTIONS, allergenLabel } from "@/lib/allergens-data";
+import { ALLERGEN_OPTIONS, allergenLabel, allergyRiskForProduct } from "@/lib/allergens-data";
 import {
   PassportTopBar,
   PassportEyebrow,
@@ -1571,12 +1572,14 @@ const CONCERN_COSMETIC_IDS: Record<string, string[]> = {
   redness: ["drg-red-blemish", "drg-red-blemish-hyalcica-serum"],
   hydration: ["ahc-herb-rose-toner", "manyo-bifida-biome-lotion"],
 };
-function concernProductMatches(chosenConcerns: Concern[]) {
+function concernProductMatches(chosenConcerns: Concern[], userAllergies: string[] = []) {
   const matches = new Map<string, { p: Cosmetic; concernLabels: string[] }>();
   chosenConcerns.forEach((concern) => {
     (CONCERN_COSMETIC_IDS[concern.id] ?? []).forEach((id) => {
       const p = COSMETICS.find((c) => c.id === id);
       if (!p) return;
+      // 등록된 알러지 성분과 겹치는 제품은 어떤 추천에도 나오지 않도록 아예 제외한다.
+      if (allergyRiskForProduct(userAllergies, p.ingredients, p.safety, fullIngredientsFor(p.id)).length > 0) return;
       const cur = matches.get(id);
       if (cur) cur.concernLabels.push(concern.label);
       else matches.set(id, { p, concernLabels: [concern.label] });
@@ -2556,7 +2559,7 @@ export default function BeautyPassportExperience() {
     const key = JSON.stringify({ acMode, acConcerns, acUsedProductIds, acChange, departDate, arriveDate, acCountryName });
     if (tripSavedKeyRef.current === key) return;
     tripSavedKeyRef.current = key;
-    const concernMatches = isConcern ? concernProductMatches(acChosenConcerns) : [];
+    const concernMatches = isConcern ? concernProductMatches(acChosenConcerns, userAllergies) : [];
     const usedItems = (preTripSnapshot?.recItems ?? []).filter(({ p }) => acUsedProductIds.includes(p.id));
     const tripProducts = (isConcern ? concernMatches : isBetter ? usedItems : preTripSnapshot?.recItems ?? []).map(({ p }) => ({
       id: p.id,
@@ -3587,7 +3590,7 @@ export default function BeautyPassportExperience() {
               (() => {
                 const isConcern = acMode === "concern";
                 const isBetter = acMode === "better";
-                const concernMatches = isConcern ? concernProductMatches(acChosenConcerns) : [];
+                const concernMatches = isConcern ? concernProductMatches(acChosenConcerns, userAllergies) : [];
                 const usedItems = (preTripSnapshot?.recItems ?? []).filter(({ p }) => acUsedProductIds.includes(p.id));
                 const backTarget = isConcern ? "acQ3" : isBetter ? (acUsedProducts === "yes" ? "acUsedPick" : "acUsed") : "acQ1";
                 return (
@@ -4927,6 +4930,8 @@ export default function BeautyPassportExperience() {
                             {RECOVERY_IDS.map((id) => {
                               const p = COSMETICS.find((c) => c.id === id);
                               if (!p) return null;
+                              // 등록된 알러지 성분과 겹치는 제품은 어떤 추천에도 나오지 않도록 아예 제외한다.
+                              if (allergyRiskForProduct(userAllergies, p.ingredients, p.safety, fullIngredientsFor(p.id)).length > 0) return null;
                               return (
                                 <div key={id} className="flex items-center gap-3 rounded-xl bg-[#f4f4f5] p-2.5">
                                   <ProductImage product={p} />

@@ -3,6 +3,16 @@
 // image: 실제 제품 이미지 URL을 넣으면 노출, 비어 있으면 브랜드 컬러 플레이스홀더로 폴백.
 
 import { allergyRiskForProduct } from "./allergens-data";
+import productsRegistry from "../data/products.json";
+
+// cosmetic_id → 전성분(전수, data/products.json) 조회 — 직접 입력한 알러지 자유 텍스트를
+// 짧은 마케팅 성분 태그(Cosmetic.ingredients)뿐 아니라 전성분표까지 대조하기 위해 쓴다.
+const INCI_BY_COSMETIC_ID: Record<string, string[]> = Object.fromEntries(
+  (productsRegistry as { cosmetic_id: string; ingredients_inci: string[] }[]).map((e) => [e.cosmetic_id, e.ingredients_inci])
+);
+export function fullIngredientsFor(cosmeticId: string): string[] | undefined {
+  return INCI_BY_COSMETIC_ID[cosmeticId];
+}
 
 export type Cosmetic = {
   id: string;
@@ -144,7 +154,8 @@ export function recommendCosmetics(
   const hiUV = wx.uv >= 8;
   const hiDust = wx.dust >= 80;
 
-  const scored = COSMETICS.map((p) => {
+  // 등록된 알러지 성분과 겹치는 제품은 어떤 추천 목록에도 나오지 않도록 아예 제외한다.
+  const scored = COSMETICS.filter((p) => allergyRiskForProduct(userAllergies, p.ingredients, p.safety, fullIngredientsFor(p.id)).length === 0).map((p) => {
     let s = 0;
     if (p.forTypes.includes(skin)) s += 3;
     const matched = concerns.filter((c) => p.concerns.includes(c));
@@ -164,11 +175,7 @@ export function recommendCosmetics(
       if (p.concerns.includes("기미")) s += 1;
     }
     if (hiDust && (p.concerns.includes("트러블") || p.category === "클렌징")) s += 1;
-    // 등록된 알러지 성분과 겹치는 제품은 완전히 배제하지 않고 순위만 낮춰서, 대안이 없을 때도
-    // "⚠️ 주의" 표시와 함께 여전히 확인할 수 있게 한다(오탐 가능성이 있는 로컬 매칭이라 강제 제외는 과함).
-    const allergyRisk = allergyRiskForProduct(userAllergies, p.ingredients, p.safety);
-    if (allergyRisk.length) s -= 3;
-    return { p, s, matched, allergyRisk };
+    return { p, s, matched };
   });
 
   scored.sort((a, b) => b.s - a.s || b.p.rating - a.p.rating);
@@ -185,15 +192,10 @@ export function recommendCosmetics(
 
   const skinTr = SKINTYPE_TR[skinTypeForRec] ?? { jp: skinTypeForRec, en: skinTypeForRec };
 
-  const items: Recommendation[] = top.map(({ p, matched, allergyRisk }) => {
+  const items: Recommendation[] = top.map(({ p, matched }) => {
     const bits: string[] = [];
     const bitsJp: string[] = [];
     const bitsEn: string[] = [];
-    if (allergyRisk.length) {
-      bits.push(`⚠️ ${allergyRisk.join("·")} 주의`);
-      bitsJp.push(`⚠️ ${allergyRisk.join("・")} 注意`);
-      bitsEn.push(`⚠️ Caution: ${allergyRisk.join(", ")}`);
-    }
     if (p.forTypes.includes(skin)) {
       bits.push(`${skinTypeForRec} 피부 적합`);
       bitsJp.push(`${skinTr.jp}に適合`);
