@@ -146,6 +146,12 @@ const HOME_CARE_PHASES: { key: string; label: string; icon: string; example: str
   { key: "during", label: "여행 중", icon: "🌏", example: "예: 자기 전 진정 마스크팩 하기" },
   { key: "after", label: "여행 후", icon: "🏠", example: "예: 미사용 소분 제품 냉장 보관하기" },
 ];
+// "체크리스트" 탭의 기본 제공 항목 — CHECKLIST_GROUPS(여행 전/중/후)를 그대로 기본값으로 사용
+const DEFAULT_HOME_CARE_ITEMS: Record<string, { text: string; done: boolean }[]> = {
+  before: CHECKLIST_GROUPS[0].map((text) => ({ text, done: false })),
+  during: CHECKLIST_GROUPS[1].map((text) => ({ text, done: false })),
+  after: CHECKLIST_GROUPS[2].map((text) => ({ text, done: false })),
+};
 // "직접 고르기" 카테고리 탭 — 전체 카탈로그(lib/products.ts) 기준
 const PICK_CATEGORIES = Array.from(new Set(COSMETICS.map((c) => c.category)));
 
@@ -1651,7 +1657,7 @@ export default function BeautyPassportExperience() {
   const [checklist, setChecklist] = useState<boolean[][]>(CHECKLIST_GROUPS.map((g) => Array(g.length).fill(false)));
   // "체크리스트" 페이지의 여행 케어 체크리스트 (여행 전/중/후) — 사용자가 직접 추가, 로컬 저장
   const [homeCarePhase, setHomeCarePhase] = useState(0);
-  const [homeCareItems, setHomeCareItems] = useState<Record<string, { text: string; done: boolean }[]>>({ before: [], during: [], after: [] });
+  const [homeCareItems, setHomeCareItems] = useState<Record<string, { text: string; done: boolean }[]>>(DEFAULT_HOME_CARE_ITEMS);
   const [homeCareInputOpen, setHomeCareInputOpen] = useState(false);
   const [homeCareInput, setHomeCareInput] = useState("");
   // [6-2] 장바구니 시트
@@ -1847,7 +1853,12 @@ export default function BeautyPassportExperience() {
     setAutoLoginChecked(isAutoLoginEnabled());
     try {
       const raw = localStorage.getItem("bp_home_care_items");
-      if (raw) setHomeCareItems(JSON.parse(raw));
+      if (raw) {
+        const parsed = JSON.parse(raw) as Record<string, { text: string; done: boolean }[]>;
+        // 저장된 값이 있어도 전부 비어있으면(한 번도 편집 안 함) 기본 체크리스트를 계속 보여줌
+        const hasAny = Object.values(parsed).some((arr) => Array.isArray(arr) && arr.length > 0);
+        if (hasAny) setHomeCareItems(parsed);
+      }
     } catch {
       /* 저장값 없음 */
     }
@@ -4347,7 +4358,9 @@ export default function BeautyPassportExperience() {
                                       <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">{t(result.profile.tag, lang)}</span>
                                     )}
                                     <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">UV {result.profile.uv}</span>
-                                    <span className="rounded-full bg-[#eef6fb] px-2.5 py-1 text-[10.5px] font-bold text-[#2b6b86]">💧 {t("수질", lang)} {t(result.waterQuality.level, lang)}</span>
+                                    {!result.waterQuality.skip && (
+                                      <span className="rounded-full bg-[#eef6fb] px-2.5 py-1 text-[10.5px] font-bold text-[#2b6b86]">💧 {t("수질", lang)} {t(result.waterQuality.level, lang)}</span>
+                                    )}
                                   </div>
                                   {aiSummaryLoading && !aiSummary ? (
                                     <p className="mt-2.5 animate-pulse text-[13.5px] leading-relaxed text-[#9ca3af]">💬 {lang === "jp" ? "AIが旅行先の天気・微細粉塵・水質を分析しています…" : lang === "en" ? "The AI is analyzing the weather, dust, and water quality for your destination…" : "AI가 여행지 날씨·미세먼지·수질을 분석하고 있어요…"}</p>
@@ -5910,7 +5923,7 @@ function AiDetailModal({
   result: {
     profile: { temp: number; humidity: number; uv: number; dust: number; tag?: string };
     calendar: { date: string; weekday: string; temp: number; humidity: number; dust: number; emojis: { icon: string; label: string }[] }[];
-    waterQuality: { level: string; note: string };
+    waterQuality: { level: string; note: string; skip?: boolean };
   };
   aiSummary: AiSummaryResult | null;
   onClose: () => void;
@@ -5970,12 +5983,16 @@ function AiDetailModal({
             </tbody>
           </table>
 
-          {/* 수질 */}
-          <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">{t("Water Quality · 여행지 수돗물", lang)}</div>
-          <div className="mt-3 rounded-xl border border-[#e7e7ea] bg-[#f9fbfc] p-3">
-            <span className="rounded-full bg-[#eef6fb] px-2.5 py-1 text-[11px] font-bold text-[#2b6b86]">💧 {t(result.waterQuality.level, lang)}</span>
-            <p className="mt-2 text-[12px] leading-relaxed text-[#3f3f46]">{t(result.waterQuality.note, lang)}</p>
-          </div>
+          {/* 수질 — 이미 수질이 우수해 언급이 불필요한 여행지(skip)는 섹션 자체를 생략 */}
+          {!result.waterQuality.skip && (
+            <>
+              <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">{t("Water Quality · 여행지 수돗물", lang)}</div>
+              <div className="mt-3 rounded-xl border border-[#e7e7ea] bg-[#f9fbfc] p-3">
+                <span className="rounded-full bg-[#eef6fb] px-2.5 py-1 text-[11px] font-bold text-[#2b6b86]">💧 {t(result.waterQuality.level, lang)}</span>
+                <p className="mt-2 text-[12px] leading-relaxed text-[#3f3f46]">{t(result.waterQuality.note, lang)}</p>
+              </div>
+            </>
+          )}
           {aiSummary && aiSummary.tips.length > 0 && (
             <ul className="mt-3 space-y-1.5">
               {aiSummary.tips.map((tip, i) => (

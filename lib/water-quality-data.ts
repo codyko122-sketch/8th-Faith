@@ -5,6 +5,7 @@
 export type WaterQuality = {
   level: string; // "연수" · "경수" · "중경수" · "정보 부족" 등 한글 요약 태그
   note: string; // 세안·샤워 시 피부에 미치는 영향 한 줄
+  skip?: boolean; // 수질이 이미 충분히 우수해 굳이 언급할 필요가 없는 여행지(예: 한국·일본) — true면 화면·AI 써머리 모두에서 수질 언급을 생략
 };
 
 export const WATER_QUALITY_BY_COUNTRY: Record<string, WaterQuality> = {
@@ -19,8 +20,9 @@ export const WATER_QUALITY_BY_COUNTRY: Record<string, WaterQuality> = {
   말레이시아: { level: "경수", note: "도시 상수도는 기준을 충족하지만 현지에서도 끓여 마시는 경우가 많아요. 세안 시 가벼운 당김이 있을 수 있어요." },
   캄보디아: { level: "경수·위생 주의", note: "정수 인프라가 취약한 지역이 많아 세안수 자극에 특히 유의하는 게 좋아요." },
 
-  // 동아시아
-  일본: { level: "연수", note: "대체로 연수라 세안 자극이 적고 순한 편이에요." },
+  // 동아시아 — 한국·일본은 수질이 이미 우수해 별도로 언급하지 않음(skip)
+  한국: { level: "연수", note: "대체로 연수라 세안 자극이 적고 순한 편이에요.", skip: true },
+  일본: { level: "연수", note: "대체로 연수라 세안 자극이 적고 순한 편이에요.", skip: true },
   대만: { level: "중경수", note: "지역별 편차가 있는 중경수권으로, 현지인도 끓여 마시는 습관이 있어요. 민감 피부는 가벼운 당김을 느낄 수 있어요." },
 
   // 유럽
