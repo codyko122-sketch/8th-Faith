@@ -41,14 +41,66 @@ const SEVERITY: Record<ComplianceStatus, number> = {
 // 제형(액상/크림/에어로졸)으로 간주해 항공 안내를 붙일 카테고리
 const LIQUID_CATEGORIES = new Set(["toner", "serum", "ampoule", "cream", "cleanser", "sunscreen", "essence", "lotion", "mist", "oil"]);
 
-const COVERAGE_WARNING =
-  "이 결과는 대표 규제 성분 목록과의 매칭 결과이며, 제품의 전체 성분을 검증한 것이 아닙니다. 매칭된 성분이 없어도 '안전' 또는 '반입 가능'을 의미하지 않습니다.";
+export type ComplianceLang = "ko" | "jp" | "en";
 
-const DISCLAIMER =
-  "규정은 수시로 변경될 수 있으며, 최종 반입 가능 여부는 도착국 세관·관련 기관을 통해 확인해야 합니다. 본 안내는 법적 판정이 아닙니다.";
+const COVERAGE_WARNING: Record<ComplianceLang, string> = {
+  ko: "이 결과는 대표 규제 성분 목록과의 매칭 결과이며, 제품의 전체 성분을 검증한 것이 아닙니다. 매칭된 성분이 없어도 '안전' 또는 '반입 가능'을 의미하지 않습니다.",
+  jp: "この結果は代表的な規制成分リストとの照合結果であり、製品の全成分を検証したものではありません。該当成分がなくても「安全」または「持ち込み可能」を意味しません。",
+  en: "This result is based on matching against a representative list of regulated ingredients — it is not a verification of the product's full ingredient list. No match doesn't mean 'safe' or 'importable.'",
+};
 
-const PARTIAL_DATA_WARNING =
-  "이 제품은 확인된 전성분 정보가 불완전합니다. 실제 반입 전 브랜드 공식 채널에서 전성분을 재확인하세요.";
+const DISCLAIMER: Record<ComplianceLang, string> = {
+  ko: "규정은 수시로 변경될 수 있으며, 최종 반입 가능 여부는 도착국 세관·관련 기관을 통해 확인해야 합니다. 본 안내는 법적 판정이 아닙니다.",
+  jp: "規定は随時変更される可能性があり、最終的な持ち込み可否は到着国の税関・関連機関を通じて確認する必要があります。本案内は法的判断ではありません。",
+  en: "Regulations can change at any time — final import eligibility should be confirmed with customs or relevant authorities at your destination. This guidance is not a legal determination.",
+};
+
+const PARTIAL_DATA_WARNING: Record<ComplianceLang, string> = {
+  ko: "이 제품은 확인된 전성분 정보가 불완전합니다. 실제 반입 전 브랜드 공식 채널에서 전성분을 재확인하세요.",
+  jp: "この製品は確認済みの全成分情報が不完全です。実際の持ち込み前にブランドの公式チャンネルで全成分を再確認してください。",
+  en: "Full ingredient data for this product is incomplete. Please double-check the full ingredient list via the brand's official channels before you travel.",
+};
+
+// 언어 전환(KO/JP/EN) — 국가명·성분명 등 이 모듈 안에서만 쓰는 짧은 고정 어휘 번역.
+const COUNTRY_NAME_TR: Record<string, { jp: string; en: string }> = {
+  "한국": { jp: "韓国", en: "Korea" },
+  "미국": { jp: "アメリカ", en: "United States" },
+  "유럽연합": { jp: "EU", en: "European Union" },
+  "영국": { jp: "イギリス", en: "United Kingdom" },
+  "프랑스": { jp: "フランス", en: "France" },
+  "이탈리아": { jp: "イタリア", en: "Italy" },
+  "스페인": { jp: "スペイン", en: "Spain" },
+  "일본": { jp: "日本", en: "Japan" },
+  "태국": { jp: "タイ", en: "Thailand" },
+  "베트남": { jp: "ベトナム", en: "Vietnam" },
+  "인도네시아": { jp: "インドネシア", en: "Indonesia" },
+  "싱가포르": { jp: "シンガポール", en: "Singapore" },
+  "중국": { jp: "中国", en: "China" },
+  "호주": { jp: "オーストラリア", en: "Australia" },
+  "몰디브": { jp: "モルディブ", en: "Maldives" },
+  "선택한 여행지": { jp: "選択した旅行先", en: "your destination" },
+};
+const INCI_NAME_TR: Record<string, { jp: string; en: string }> = {
+  "디에틸아미노하이드록시벤조일헥실벤조에이트": { jp: "ジエチルアミノヒドロキシベンゾイルヘキシルベンゾエート", en: "Diethylamino Hydroxybenzoyl Hexyl Benzoate" },
+  "비스에틸헥실옥시페놀메톡시페닐트리아진": { jp: "ビスエチルヘキシルオキシフェノールメトキシフェニルトリアジン", en: "Bis-Ethylhexyloxyphenol Methoxyphenyl Triazine" },
+  "메칠렌비스벤조트리아졸릴테트라메칠부틸페놀": { jp: "メチレンビスベンゾトリアゾリルテトラメチルブチルフェノール", en: "Methylene Bis-Benzotriazolyl Tetramethylbutylphenol" },
+  "디에틸헥실부타미도트리아존": { jp: "ジエチルヘキシルブタミドトリアゾン", en: "Diethylhexyl Butamido Triazone" },
+  "리날룰": { jp: "リナロール", en: "Linalool" },
+  "리모넨": { jp: "リモネン", en: "Limonene" },
+  "레티놀": { jp: "レチノール", en: "Retinol" },
+  "소듐디엔에이": { jp: "ソジウムDNA", en: "Sodium DNA" },
+  "머큐리": { jp: "マーキュリー（水銀）", en: "Mercury" },
+  "하이드로퀴논": { jp: "ハイドロキノン", en: "Hydroquinone" },
+  "칸나비디올": { jp: "カンナビジオール（CBD）", en: "Cannabidiol (CBD)" },
+};
+function trCountry(name: string, lang: ComplianceLang): string {
+  if (lang === "ko") return name;
+  return COUNTRY_NAME_TR[name]?.[lang] ?? name;
+}
+function trInci(name: string, lang: ComplianceLang): string {
+  if (lang === "ko") return name;
+  return INCI_NAME_TR[name]?.[lang] ?? name;
+}
 
 // 매칭 정규화: 소문자 + 공백/하이픈/언더스코어/쉼표 제거
 function normalize(s: string): string {
@@ -100,9 +152,55 @@ function levelFor(ri: RestrictedIngredient, country: CountryRule): FlagLevel {
 }
 
 // 사용자용 메시지 생성. 어디에도 "안전/반입 가능"을 단정하지 않는다.
-function buildMessage(ri: RestrictedIngredient, country: CountryRule, level: FlagLevel): string {
-  const c = country.country_name_ko;
-  const ing = ri.inci_name;
+function buildMessage(ri: RestrictedIngredient, country: CountryRule, level: FlagLevel, lang: ComplianceLang): string {
+  const c = trCountry(country.country_name_ko, lang);
+  const ing = trInci(ri.inci_name, lang);
+  if (lang === "jp") {
+    switch (ri.concern_type) {
+      case "uv_filter":
+        return `[${c}] '${ing}'（紫外線防止成分）を含みます。${c}が承認した紫外線防止成分リストにないため、持ち込み・販売が制限される場合があります。個人使用目的での持ち込み可否は確認が必要です。`;
+      case "allergen":
+        return `[${c}] '${ing}'を含みます。持ち込み禁止成分ではなく、${c}で香料アレルゲンの「表示（ラベリング）」対象となる成分です。ラベル表記の確認が必要です。`;
+      case "restricted_active":
+        if (level === "caution")
+          return `[${c}] '${ing}'を含みます。持ち込み禁止ではなく、${c}で含有量基準（例: Annex III）の規制対象成分のため、含有量によっては制限される場合があります。確認が必要です。`;
+        return `[${c}] '${ing}'を含みます。製品内の含有量情報が確認できないため、${c}基準への適合可否は直接確認が必要です。`;
+      case "animal_derived":
+        return `[${c}] '${ing}'（動物由来の可能性がある成分）を含みます。一部の国では動物性由来原料に対して検疫・バイオセキュリティ手続きが別途あることがあり、${c}の規定確認が必要です。`;
+      case "mercury":
+        return `[${c}] '${ing}'を含みます。多くの国で化粧品への使用が禁止されており、持ち込みが制限される場合があります。必ず確認してください。`;
+      case "hydroquinone":
+        return `[${c}] '${ing}'を含みます。国によっては医薬品に分類され、持ち込みが制限される場合があります。確認が必要です。`;
+      case "cbd_cannabis":
+        return `[${c}] '${ing}'を含みます。一部の国では持ち込みを厳しく禁止しているため、制限される場合があります。必ず確認してください。`;
+      case "preservative":
+      default:
+        return `[${c}] '${ing}'を含みます。${c}基準への適合可否は確認が必要です。`;
+    }
+  }
+  if (lang === "en") {
+    switch (ri.concern_type) {
+      case "uv_filter":
+        return `[${c}] Contains '${ing}' (a UV filter). It's not on ${c}'s approved UV filter list, so import/sale may be restricted. Check whether personal-use import is allowed.`;
+      case "allergen":
+        return `[${c}] Contains '${ing}'. This isn't a banned ingredient — it's a fragrance allergen subject to labeling requirements in ${c}. Check whether it's disclosed on the label.`;
+      case "restricted_active":
+        if (level === "caution")
+          return `[${c}] Contains '${ing}'. Not banned, but it's regulated by concentration limits (e.g. Annex III) in ${c} and may be restricted depending on the amount used. Verification needed.`;
+        return `[${c}] Contains '${ing}'. The concentration in this product isn't confirmed, so compliance with ${c}'s standards needs to be checked directly.`;
+      case "animal_derived":
+        return `[${c}] Contains '${ing}' (a possibly animal-derived ingredient). Some countries have separate quarantine/biosecurity procedures for animal-derived materials — check ${c}'s regulations.`;
+      case "mercury":
+        return `[${c}] Contains '${ing}'. Banned in cosmetics in many countries, so import may be restricted. Please be sure to check.`;
+      case "hydroquinone":
+        return `[${c}] Contains '${ing}'. Classified as a prescription drug in some countries, so import may be restricted. Verification needed.`;
+      case "cbd_cannabis":
+        return `[${c}] Contains '${ing}'. Some countries strictly prohibit import, so it may be restricted. Please be sure to check.`;
+      case "preservative":
+      default:
+        return `[${c}] Contains '${ing}'. Compliance with ${c}'s standards needs to be checked.`;
+    }
+  }
   switch (ri.concern_type) {
     case "uv_filter":
       return `[${c}] '${ing}'(자외선차단 성분)을 포함합니다. ${c}에서 승인한 자외선차단 성분 목록에 없어 반입·판매가 제한될 수 있습니다. 개인 사용 목적 반입 가능 여부는 확인이 필요합니다.`;
@@ -126,8 +224,22 @@ function buildMessage(ri: RestrictedIngredient, country: CountryRule, level: Fla
   }
 }
 
-function aviationNoteFor(category?: string): string | null {
+function aviationNoteFor(category: string | undefined, lang: ComplianceLang): string | null {
   if (!category || !LIQUID_CATEGORIES.has(category)) return null;
+  if (lang === "jp") {
+    return (
+      `機内持ち込み時は個別容器${AVIATION.carry_on.liquid_container_max_ml}ml以下、` +
+      `合計${AVIATION.carry_on.liquid_total_max_ml}ml（1L）ジップ袋基準を確認してください（一般基準）。` +
+      `引火性（高濃度アルコール・エアゾール）製品は別途制限がある場合があります。`
+    );
+  }
+  if (lang === "en") {
+    return (
+      `For carry-on, check that each container is under ${AVIATION.carry_on.liquid_container_max_ml}ml, ` +
+      `with a total of ${AVIATION.carry_on.liquid_total_max_ml}ml (1L) in a zip bag (general rule). ` +
+      `Flammable items (high-alcohol, aerosol) may have separate restrictions.`
+    );
+  }
   return (
     `기내 반입 시 개별 용기 ${AVIATION.carry_on.liquid_container_max_ml}ml 이하, ` +
     `전체 ${AVIATION.carry_on.liquid_total_max_ml}ml(1L) 지퍼백 기준을 확인하세요(일반 기준). ` +
@@ -138,6 +250,7 @@ function aviationNoteFor(category?: string): string | null {
 export type ComplianceOptions = {
   ingredientsComplete?: boolean;
   category?: string;
+  lang?: ComplianceLang;
   // 테스트/재현성을 위해 타임스탬프 주입 가능(미지정 시 현재 시각)
   now?: string;
 };
@@ -152,6 +265,7 @@ export function checkCosmeticCompliance(
   opts: ComplianceOptions = {}
 ): ComplianceResult {
   const country = COUNTRY_RULES.find((c) => c.country_code === destinationCountry) ?? fallbackRule(destinationCountry);
+  const lang = opts.lang ?? "ko";
 
   const flags: ComplianceFlag[] = [];
   const seen = new Set<string>();
@@ -166,10 +280,10 @@ export function checkCosmeticCompliance(
       if (seen.has(dedupeKey)) continue;
       seen.add(dedupeKey);
       flags.push({
-        ingredient: ri.inci_name,
+        ingredient: trInci(ri.inci_name, lang),
         concern_type: ri.concern_type,
         level,
-        message_ko: buildMessage(ri, country, level),
+        message_ko: buildMessage(ri, country, level, lang),
         source: ri.source,
         as_of_date: ri.as_of_date,
       });
@@ -182,15 +296,15 @@ export function checkCosmeticCompliance(
     if (SEVERITY[f.level] > SEVERITY[status]) status = f.level;
   }
 
-  const partial_data_warning = opts.ingredientsComplete === false ? PARTIAL_DATA_WARNING : null;
+  const partial_data_warning = opts.ingredientsComplete === false ? PARTIAL_DATA_WARNING[lang] : null;
 
   return {
     status,
     flags,
-    coverage_warning: COVERAGE_WARNING,
+    coverage_warning: COVERAGE_WARNING[lang],
     partial_data_warning,
-    aviation_note: aviationNoteFor(opts.category),
-    disclaimer: DISCLAIMER,
+    aviation_note: aviationNoteFor(opts.category, lang),
+    disclaimer: DISCLAIMER[lang],
     checked_at: opts.now ?? new Date().toISOString(),
   };
 }

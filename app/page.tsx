@@ -780,6 +780,93 @@ const UI_TR: Record<string, { jp: string; en: string }> = {
   "보통": { jp: "普通", en: "Moderate" },
   "낮음": { jp: "低い", en: "Low" },
   "높음": { jp: "高い", en: "High" },
+
+  // 기후 태그
+  "고온다습": { jp: "高温多湿", en: "Hot & Humid" },
+  "냉대": { jp: "冷帯", en: "Subarctic" },
+  "대륙성": { jp: "大陸性", en: "Continental" },
+  "사막": { jp: "砂漠", en: "Desert" },
+  "서늘": { jp: "冷涼", en: "Cool" },
+  "서안해양": { jp: "西岸海洋性", en: "Oceanic" },
+  "아열대": { jp: "亜熱帯", en: "Subtropical" },
+  "열대": { jp: "熱帯", en: "Tropical" },
+  "열대몬순": { jp: "熱帯モンスーン", en: "Tropical Monsoon" },
+  "온난": { jp: "温暖", en: "Mild" },
+  "온난습윤": { jp: "温暖湿潤", en: "Warm & Humid" },
+  "온대": { jp: "温帯", en: "Temperate" },
+  "지중해": { jp: "地中海性", en: "Mediterranean" },
+  "지중해성": { jp: "地中海性", en: "Mediterranean" },
+
+  // 제품 성분 태그(#표시)
+  "갈락토미세스발효여과물": { jp: "ガラクトミセス発酵濾過物", en: "Galactomyces Ferment Filtrate" },
+  "글루타치온": { jp: "グルタチオン", en: "Glutathione" },
+  "글리세린": { jp: "グリセリン", en: "Glycerin" },
+  "꿀추출물": { jp: "蜂蜜エキス", en: "Honey Extract" },
+  "노스카나인": { jp: "ノスカルニン", en: "Noscarnine" },
+  "다마스크장미꽃수": { jp: "ダマスクローズ水", en: "Damask Rose Water" },
+  "다시마": { jp: "昆布", en: "Kelp" },
+  "달팽이점액여과물": { jp: "カタツムリ分泌物濾過液", en: "Snail Secretion Filtrate" },
+  "독도해양심층수": { jp: "独島海洋深層水", en: "Dokdo Deep Sea Water" },
+  "레몬추출물": { jp: "レモンエキス", en: "Lemon Extract" },
+  "무기자차": { jp: "ノンケミカル", en: "Mineral (Physical) Sunscreen" },
+  "미네랄": { jp: "ミネラル", en: "Mineral" },
+  "바이옴": { jp: "バイオーム", en: "Biome" },
+  "병풀": { jp: "ツボクサ", en: "Centella Asiatica" },
+  "병풀잎추출물": { jp: "ツボクサ葉エキス", en: "Centella Asiatica Leaf Extract" },
+  "병풀추출물": { jp: "ツボクサエキス", en: "Centella Asiatica Extract" },
+  "비건세라마이드": { jp: "ヴィーガンセラミド", en: "Vegan Ceramide" },
+  "비타민나무수": { jp: "シーバックソーン水", en: "Sea Buckthorn Water" },
+  "비피다발효용해물": { jp: "ビフィダ発酵溶解物", en: "Bifida Ferment Lysate" },
+  "살리실산": { jp: "サリチル酸", en: "Salicylic Acid" },
+  "살리실산(BHA)": { jp: "サリチル酸（BHA）", en: "Salicylic Acid (BHA)" },
+  "새싹추출물": { jp: "新芽エキス", en: "Sprout Extract" },
+  "세라마이드": { jp: "セラミド", en: "Ceramide" },
+  "센텔라": { jp: "ツボクサ", en: "Centella" },
+  "소나무잎추출물": { jp: "松葉エキス", en: "Pine Needle Extract" },
+  "스쿠알란": { jp: "スクワラン", en: "Squalane" },
+  "스피큘": { jp: "スピキュール", en: "Spicule" },
+  "시카": { jp: "シカ", en: "Cica" },
+  "쌀겨수": { jp: "米ぬか水", en: "Rice Bran Water" },
+  "쌀추출물": { jp: "米エキス", en: "Rice Extract" },
+  "아데노신": { jp: "アデノシン", en: "Adenosine" },
+  "아미노산계면활성제": { jp: "アミノ酸系界面活性剤", en: "Amino Acid Surfactant" },
+  "아세틸헥사펩타이드-8": { jp: "アセチルヘキサペプチド-8", en: "Acetyl Hexapeptide-8" },
+  "아스코르빌글루코사이드": { jp: "アスコルビルグルコシド", en: "Ascorbyl Glucoside" },
+  "알란토인": { jp: "アラントイン", en: "Allantoin" },
+  "알로에": { jp: "アロエ", en: "Aloe" },
+  "알로에베라잎추출물": { jp: "アロエベラ葉エキス", en: "Aloe Vera Leaf Extract" },
+  "알부민추출물": { jp: "アルブミンエキス", en: "Albumin Extract" },
+  "약산성": { jp: "弱酸性", en: "pH-Balanced" },
+  "어성초추출물": { jp: "ドクダミエキス", en: "Heartleaf Extract" },
+  "에칠헥실메톡시신나메이트": { jp: "エチルヘキシルメトキシシンナメート", en: "Ethylhexyl Methoxycinnamate" },
+  "올리고히알루론산": { jp: "オリゴヒアルロン酸", en: "Oligo Hyaluronic Acid" },
+  "위치하젤": { jp: "ウィッチヘーゼル", en: "Witch Hazel" },
+  "유산균발효여과물": { jp: "乳酸菌発酵濾過物", en: "Lactobacillus Ferment Filtrate" },
+  "유칼립투스잎추출물": { jp: "ユーカリ葉エキス", en: "Eucalyptus Leaf Extract" },
+  "자작나무수": { jp: "白樺水", en: "Birch Water" },
+  "자작나무수액": { jp: "白樺樹液", en: "Birch Sap" },
+  "장미꽃추출물": { jp: "バラ花エキス", en: "Rose Flower Extract" },
+  "저분자": { jp: "低分子", en: "Low-Molecular" },
+  "진정": { jp: "鎮静", en: "Soothing" },
+  "징크옥사이드": { jp: "酸化亜鉛", en: "Zinc Oxide" },
+  "청귤추출물": { jp: "青みかんエキス", en: "Green Tangerine Extract" },
+  "콜라겐": { jp: "コラーゲン", en: "Collagen" },
+  "트라넥삼산": { jp: "トラネキサム酸", en: "Tranexamic Acid" },
+  "티타늄디옥사이드": { jp: "酸化チタン", en: "Titanium Dioxide" },
+  "티트리오일": { jp: "ティーツリーオイル", en: "Tea Tree Oil" },
+  "티트리추출물": { jp: "ティーツリーエキス", en: "Tea Tree Extract" },
+  "판테놀": { jp: "パンテノール", en: "Panthenol" },
+  "판테토인": { jp: "パンテトイン", en: "Pantethine" },
+  "펩타이드": { jp: "ペプチド", en: "Peptide" },
+  "프로바이오틱스": { jp: "プロバイオティクス", en: "Probiotics" },
+  "프로폴리스": { jp: "プロポリス", en: "Propolis" },
+  "프로폴리스추출물": { jp: "プロポリスエキス", en: "Propolis Extract" },
+  "하이드롤라이즈드콜라겐": { jp: "加水分解コラーゲン", en: "Hydrolyzed Collagen" },
+  "해수": { jp: "海水", en: "Seawater" },
+  "화분추출물": { jp: "花粉エキス", en: "Pollen Extract" },
+  "화이트트러플": { jp: "ホワイトトリュフ", en: "White Truffle" },
+  "화이트트러플추출물": { jp: "ホワイトトリュフエキス", en: "White Truffle Extract" },
+  "히알루론산": { jp: "ヒアルロン酸", en: "Hyaluronic Acid" },
   "🤖 AI가 이렇게 판단했어요": { jp: "🤖 AIはこう判断しました", en: "🤖 Here's what the AI found" },
   "수질": { jp: "水質", en: "Water quality" },
   "📋 상세보기 — AI 판단 · 날씨 · 수질 · 성분 · 루틴": { jp: "📋 詳細を見る — AI判断・天気・水質・成分・ルーティン", en: "📋 View details — AI reasoning, weather, water, ingredients, routine" },
@@ -3197,7 +3284,7 @@ export default function BeautyPassportExperience() {
                                     <div className="mt-1 text-[11px] font-semibold text-[#ec1c24]">{concernLabels.join(" · ")} 진정에 도움</div>
                                   </div>
                                 </button>
-                                <ComplianceBadge cosmeticId={p.id} destinationCountry={countryCode} compact />
+                                <ComplianceBadge cosmeticId={p.id} destinationCountry={countryCode} compact lang={lang} />
                                 {full ? (
                                   <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
                                     <span className="flex-1 rounded-xl bg-[#fbe7e5] px-2.5 py-1.5 text-[11px] font-bold text-[#ec1c24]">본품 추천 · {p.fullMl}ml</span>
@@ -3270,7 +3357,7 @@ export default function BeautyPassportExperience() {
                                     <div className="mt-1 text-[11px] leading-snug text-[#71717a]">{reason}</div>
                                   </div>
                                 </button>
-                                <ComplianceBadge cosmeticId={p.id} destinationCountry={countryCode} compact />
+                                <ComplianceBadge cosmeticId={p.id} destinationCountry={countryCode} compact lang={lang} />
                                 {full ? (
                                   <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
                                     <span className="flex-1 rounded-xl bg-[#fbe7e5] px-2.5 py-1.5 text-[11px] font-bold text-[#ec1c24]">본품 추천 · {p.fullMl}ml</span>
@@ -4061,7 +4148,7 @@ export default function BeautyPassportExperience() {
                                     {age && <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">{ageLabel(age, lang)}</span>}
                                     <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">{skin.code}</span>
                                     {result.profile.tag && (
-                                      <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">{result.profile.tag}</span>
+                                      <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">{t(result.profile.tag, lang)}</span>
                                     )}
                                     <span className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[10.5px] font-bold text-[#3f3f46]">UV {result.profile.uv}</span>
                                     <span className="rounded-full bg-[#eef6fb] px-2.5 py-1 text-[10.5px] font-bold text-[#2b6b86]">💧 {t("수질", lang)} {t(result.waterQuality.level, lang)}</span>
@@ -4256,14 +4343,14 @@ export default function BeautyPassportExperience() {
                                   <div className="mt-0.5 truncate text-sm font-extrabold text-[#0a0a0a]">{productName(p, lang)}</div>
                                   <div className="mt-1.5 flex flex-wrap items-center gap-1">
                                     {p.ingredients.map((ing) => (
-                                      <span key={ing} className="rounded-full bg-[#f4f4f5] px-2 py-0.5 text-[10px] text-[#3f3f46]">#{ing}</span>
+                                      <span key={ing} className="rounded-full bg-[#f4f4f5] px-2 py-0.5 text-[10px] text-[#3f3f46]">#{t(ing, lang)}</span>
                                     ))}
                                   </div>
                                   <div className="mt-1 text-right text-[10px] font-bold text-[#0a0a0a]">{t("자세히 보기 →", lang)}</div>
                                 </div>
                               </button>
 
-                              <ComplianceBadge cosmeticId={p.id} destinationCountry={countryCode} compact />
+                              <ComplianceBadge cosmeticId={p.id} destinationCountry={countryCode} compact lang={lang} />
 
                               {rec.full ? (
                                 <div className="mt-2 flex items-center gap-2 border-t border-dashed border-[#e7e7ea] pt-2">
@@ -5574,12 +5661,12 @@ function ProductDetail({
           )}
 
           {/* 성분 기반 반입 주의 플래그 (여행지 규정) */}
-          <ComplianceBadge cosmeticId={product.id} destinationCountry={destinationCountry} />
+          <ComplianceBadge cosmeticId={product.id} destinationCountry={destinationCountry} lang={lang} />
 
           {/* 성분 · 적합/고민 태그 */}
           <div className="mt-3 flex flex-wrap gap-1.5">
             {product.ingredients.map((ing) => (
-              <span key={ing} className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[11px] text-[#3f3f46]">#{ing}</span>
+              <span key={ing} className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[11px] text-[#3f3f46]">#{t(ing, lang)}</span>
             ))}
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
