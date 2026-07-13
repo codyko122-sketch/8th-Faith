@@ -134,6 +134,12 @@ const CHECKLIST_GROUPS: string[][] = [
 ];
 // 귀국 후 진정·장벽 회복 루틴 추천 (판테놀 진정 세럼 + 세라마이드 배리어 크림)
 const RECOVERY_IDS = ["layerlab-panthenol", "estra-atobarrier"];
+// 홈 화면 여행 케어 체크리스트 단계(여행 전·중·후) + 직접 입력 예시
+const HOME_CARE_PHASES: { key: string; label: string; icon: string; example: string }[] = [
+  { key: "before", label: "여행 전", icon: "🛫", example: "예: 자외선 차단제 미니 사이즈 챙기기" },
+  { key: "during", label: "여행 중", icon: "🌏", example: "예: 자기 전 진정 마스크팩 하기" },
+  { key: "after", label: "여행 후", icon: "🏠", example: "예: 미사용 소분 제품 냉장 보관하기" },
+];
 // "직접 고르기" 카테고리 탭 — 전체 카탈로그(lib/products.ts) 기준
 const PICK_CATEGORIES = Array.from(new Set(COSMETICS.map((c) => c.category)));
 
@@ -1614,6 +1620,14 @@ export default function BeautyPassportExperience() {
   const [volumeSel, setVolumeSel] = useState<Record<string, number>>({});
   // 여정 타임라인
   const [checklist, setChecklist] = useState<boolean[][]>(CHECKLIST_GROUPS.map((g) => Array(g.length).fill(false)));
+  // 홈 화면 여행 케어 체크리스트 (여행 전/중/후) — 사용자가 직접 추가, 로컬 저장
+  const [homeCareOpen, setHomeCareOpen] = useState(false);
+  const [homeCarePhase, setHomeCarePhase] = useState(0);
+  const [homeCareItems, setHomeCareItems] = useState<Record<string, { text: string; done: boolean }[]>>({ before: [], during: [], after: [] });
+  const [homeCareInputOpen, setHomeCareInputOpen] = useState(false);
+  const [homeCareInput, setHomeCareInput] = useState("");
+  // 홈 상단바(ZigZag 스타일) 햄버거 메뉴 열림 상태
+  const [homeMenuOpen, setHomeMenuOpen] = useState(false);
   // [6-2] 장바구니 시트
   const [cartOpen, setCartOpen] = useState(false);
   // 여행지 대표 메이크업 스타일노트
@@ -1798,6 +1812,12 @@ export default function BeautyPassportExperience() {
       setRememberId(true);
     }
     setAutoLoginChecked(isAutoLoginEnabled());
+    try {
+      const raw = localStorage.getItem("bp_home_care_items");
+      if (raw) setHomeCareItems(JSON.parse(raw));
+    } catch {
+      /* 저장값 없음 */
+    }
   }, []);
 
   useEffect(() => {
@@ -1905,6 +1925,38 @@ export default function BeautyPassportExperience() {
   const orderedProducts = Array.from(new Map(cartLines.map((l) => [l.p.id, l.p])).values());
   function toggleChecklist(group: number, i: number) {
     setChecklist((c) => c.map((g, gi) => (gi === group ? g.map((v, idx) => (idx === i ? !v : v)) : g)));
+  }
+  function persistHomeCare(next: Record<string, { text: string; done: boolean }[]>) {
+    try {
+      localStorage.setItem("bp_home_care_items", JSON.stringify(next));
+    } catch {
+      /* 저장 실패 무시 */
+    }
+  }
+  function addHomeCareItems() {
+    const parts = homeCareInput.split(",").map((s) => s.trim()).filter(Boolean);
+    if (parts.length === 0) return;
+    const key = HOME_CARE_PHASES[homeCarePhase].key;
+    setHomeCareItems((prev) => {
+      const next = { ...prev, [key]: [...(prev[key] ?? []), ...parts.map((t) => ({ text: t, done: false }))] };
+      persistHomeCare(next);
+      return next;
+    });
+    setHomeCareInput("");
+  }
+  function toggleHomeCareItem(key: string, idx: number) {
+    setHomeCareItems((prev) => {
+      const next = { ...prev, [key]: (prev[key] ?? []).map((it, i) => (i === idx ? { ...it, done: !it.done } : it)) };
+      persistHomeCare(next);
+      return next;
+    });
+  }
+  function removeHomeCareItem(key: string, idx: number) {
+    setHomeCareItems((prev) => {
+      const next = { ...prev, [key]: (prev[key] ?? []).filter((_, i) => i !== idx) };
+      persistHomeCare(next);
+      return next;
+    });
   }
   function addAllRec() {
     if (!result) return;
@@ -2710,7 +2762,99 @@ export default function BeautyPassportExperience() {
                 exit="exit"
                 className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
               >
-                <PassportTopBar compact onBack={() => setStage("login")} />
+                {/* ZigZag 스타일 홈 상단바 — 워드마크 + 메뉴/검색/백 아이콘 */}
+                <div className="relative -mx-7 mb-3 flex items-center justify-between border-b border-[#eee] px-7 pb-3">
+                  <div className="font-sans text-[19px] font-black tracking-[-0.01em] text-[#0a0a0a]">BEAUTY PASSPORT</div>
+                  <div className="flex items-center gap-0.5">
+                    <button
+                      type="button"
+                      aria-label="메뉴"
+                      onClick={() => setHomeMenuOpen((v) => !v)}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
+                    >
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                        <path d="M4 12h16M4 6h16M4 18h16" />
+                      </svg>
+                    </button>
+                    <a
+                      href="/ingredients"
+                      aria-label="성분 검색"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
+                    >
+                      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.3-4.3" />
+                      </svg>
+                    </a>
+                    <button
+                      type="button"
+                      aria-label="장바구니"
+                      onClick={() => setHomeMenuOpen((v) => !v)}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                        <path d="M3 6h18" />
+                        <path d="M16 10a4 4 0 0 1-8 0" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {homeMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setHomeMenuOpen(false)} />
+                      <div className="absolute right-7 top-full z-50 mt-1 w-56 overflow-hidden rounded-2xl border-[1.5px] border-[#e7e7ea] bg-white shadow-[0_14px_36px_rgba(20,30,50,0.14)]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHomeMenuOpen(false);
+                            setStage("checkin");
+                          }}
+                          className="flex w-full items-center gap-2.5 px-4 py-3 text-left transition active:bg-[#f4f4f5]"
+                        >
+                          <span className="text-[15px]">📝</span>
+                          <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">새 피부 설문</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHomeMenuOpen(false);
+                            openScan();
+                          }}
+                          className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
+                        >
+                          <span className="text-[15px]">📷</span>
+                          <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">화장품 성분 스캔</span>
+                        </button>
+                        <a
+                          href="/ingredients"
+                          className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
+                        >
+                          <span className="text-[15px]">🔍</span>
+                          <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">성분 가이드</span>
+                        </a>
+                        <a
+                          href="/diagnose"
+                          className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
+                        >
+                          <span className="text-[15px]">🧭</span>
+                          <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">여행 피부 진단</span>
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHomeMenuOpen(false);
+                            handleLogout();
+                          }}
+                          className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
+                        >
+                          <span className="text-[15px]">↩️</span>
+                          <span className="font-sans text-[13.5px] font-bold text-[#71717a]">다른 계정으로 로그인</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
                 <PassportEyebrow>Your Skin Journey</PassportEyebrow>
                 <PassportTitle compact>
                   WELCOME
@@ -2738,6 +2882,8 @@ export default function BeautyPassportExperience() {
                           ) : (
                             <PassportTag>아직 진단 기록이 없어요</PassportTag>
                           )}
+                          {account?.age && <PassportTag>{account.age}세</PassportTag>}
+                          {account?.gender && <PassportTag>{account.gender}</PassportTag>}
                         </div>
                         <PassportButton onClick={loadSavedSkin} disabled={!account?.skinCode}>
                           피부 정보 불러오기 →
@@ -2770,6 +2916,147 @@ export default function BeautyPassportExperience() {
                         ko="화장품 성분 스캔"
                         desc="쓰는 화장품을 찍으면 AI가 성분을 분석해요"
                       />
+
+                      {/* 여행 케어 체크리스트 (접이식 · 직접 입력) */}
+                      {(() => {
+                        const phase = HOME_CARE_PHASES[homeCarePhase];
+                        const items = homeCareItems[phase.key] ?? [];
+                        const doneCount = items.filter((it) => it.done).length;
+                        return (
+                          <div className="mt-1 overflow-hidden rounded-2xl border-[1.5px] border-[#e7e7ea]">
+                            {/* 헤더 버튼 — 탭하면 아래로 펼쳐짐 */}
+                            <button
+                              type="button"
+                              onClick={() => setHomeCareOpen((v) => !v)}
+                              className="flex w-full items-center gap-3 p-[15px] text-left transition active:bg-[#fafafa]"
+                            >
+                              <span className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-[#f4f4f5] text-[17px]">🧳</span>
+                              <div className="min-w-0 flex-1">
+                                <div className="font-sans text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9ca3af]">Travel Care</div>
+                                <div className="font-sans text-[14px] font-black text-[#0a0a0a]">여행 케어 체크리스트</div>
+                                <div className="font-sans text-[11px] text-[#9ca3af]">나만의 준비 항목을 직접 추가해요</div>
+                              </div>
+                              <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="#9ca3af"
+                                strokeWidth={2.4}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className={`flex-none transition-transform ${homeCareOpen ? "rotate-180" : ""}`}
+                              >
+                                <path d="M6 9l6 6 6-6" />
+                              </svg>
+                            </button>
+
+                            {homeCareOpen && (
+                              <div className="border-t border-[#f0f0f2] px-[15px] pb-[15px] pt-3">
+                                {/* 시점 탭 */}
+                                <div className="flex gap-1.5">
+                                  {HOME_CARE_PHASES.map((ph, i) => (
+                                    <button
+                                      key={ph.key}
+                                      type="button"
+                                      onClick={() => {
+                                        setHomeCarePhase(i);
+                                        setHomeCareInputOpen(false);
+                                        setHomeCareInput("");
+                                      }}
+                                      className={`flex-1 rounded-xl border-[1.5px] px-1 py-2 text-center transition ${
+                                        homeCarePhase === i ? "border-[#0a0a0a] bg-[#0a0a0a]" : "border-[#e7e7ea] bg-white"
+                                      }`}
+                                    >
+                                      <span className="block text-[15px] leading-none">{ph.icon}</span>
+                                      <span className={`mt-1 block text-[11px] font-bold ${homeCarePhase === i ? "text-white" : "text-[#3f3f46]"}`}>{ph.label}</span>
+                                    </button>
+                                  ))}
+                                </div>
+
+                                {/* 진행률 (항목이 있을 때만) */}
+                                {items.length > 0 && (
+                                  <div className="mt-2.5 flex items-center gap-2.5">
+                                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#f0f0f2]">
+                                      <div className="h-full rounded-full bg-[#ff8a6e] transition-all duration-300" style={{ width: `${Math.round((doneCount / items.length) * 100)}%` }} />
+                                    </div>
+                                    <span className="font-sans text-[11px] font-bold text-[#71717a]">
+                                      {doneCount}/{items.length}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* 항목 목록 — 없으면 예시 안내를 먼저 보여줌 */}
+                                {items.length === 0 ? (
+                                  <div className="mt-3 rounded-xl border border-dashed border-[#e0e2e6] bg-[#fafafa] px-3 py-2.5 font-sans text-[12.5px] text-[#b0b0b8]">
+                                    {phase.example}
+                                  </div>
+                                ) : (
+                                  <div className="mt-3 flex flex-col gap-1.5">
+                                    {items.map((it, idx) => (
+                                      <div key={idx} className="flex items-center gap-2.5 rounded-xl border border-[#e7e7ea] px-3 py-2.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleHomeCareItem(phase.key, idx)}
+                                          className={`flex h-5 w-5 flex-none items-center justify-center rounded-md border-[1.5px] text-[11px] font-bold transition ${
+                                            it.done ? "border-[#0a0a0a] bg-[#0a0a0a] text-white" : "border-[#d4d4d8] text-transparent"
+                                          }`}
+                                        >
+                                          ✓
+                                        </button>
+                                        <span className={`min-w-0 flex-1 font-sans text-[13px] ${it.done ? "text-[#9ca3af] line-through" : "text-[#3f3f46]"}`}>{it.text}</span>
+                                        <button
+                                          type="button"
+                                          aria-label="삭제"
+                                          onClick={() => removeHomeCareItem(phase.key, idx)}
+                                          className="flex-none px-1 font-sans text-[12px] font-semibold text-[#c4c4cc] transition active:scale-95"
+                                        >
+                                          ✕
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* 직접 입력 */}
+                                {homeCareInputOpen ? (
+                                  <div className="mt-2 flex gap-1.5">
+                                    <input
+                                      value={homeCareInput}
+                                      onChange={(e) => setHomeCareInput(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                          e.preventDefault();
+                                          addHomeCareItems();
+                                        }
+                                      }}
+                                      placeholder={`${phase.example.replace("예: ", "")} (쉼표로 여러 개)`}
+                                      autoFocus
+                                      className="flex-1 rounded-xl border border-transparent bg-[#f4f4f5] px-3.5 py-2.5 font-sans text-[13px] text-[#0a0a0a] outline-none transition placeholder:text-[#b0b0b8] focus:border-[#0a0a0a] focus:bg-white"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={addHomeCareItems}
+                                      disabled={!homeCareInput.trim()}
+                                      className="flex-none rounded-xl bg-[#0a0a0a] px-4 py-2.5 font-sans text-[13px] font-bold text-white transition active:scale-95 disabled:bg-[#d4d4d8]"
+                                    >
+                                      추가
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setHomeCareInputOpen(true)}
+                                    className="mt-2 w-full rounded-xl border-[1.5px] border-dashed border-[#c9c9cf] bg-white py-2.5 font-sans text-[13px] font-bold text-[#3f3f46] transition hover:border-[#0a0a0a]"
+                                  >
+                                    ＋ 직접 입력
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {(() => {
                         const saved = loggedInId ? getSavedProducts(loggedInId) : [];
