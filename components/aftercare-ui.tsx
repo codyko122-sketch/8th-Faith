@@ -174,6 +174,7 @@ export type AcTopBarProps = {
   onToggleMenu: () => void;
   onCloseMenu: () => void;
   onOpenPassport: () => void;
+  onOpenChecklist: () => void;
   onNewSurvey: () => void;
   onScan: () => void;
   onSwitchAccount: () => void;
@@ -181,7 +182,7 @@ export type AcTopBarProps = {
   cartCount: number;
 };
 
-function AcTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onNewSurvey, onScan, onSwitchAccount, onOpenCart, cartCount }: AcTopBarProps) {
+function AcTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onOpenChecklist, onNewSurvey, onScan, onSwitchAccount, onOpenCart, cartCount }: AcTopBarProps) {
   return (
     <div className="relative -mx-7 mb-3 flex items-center justify-between border-b border-[#eee] px-7 pb-3">
       <div className="font-sans text-[19px] font-black tracking-[-0.01em] text-[#0a0a0a]">BEAUTY PASSPORT</div>
@@ -239,6 +240,17 @@ function AcTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onNewSu
             >
               <span className="text-[15px]">🛂</span>
               <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">내 여권 보기</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onCloseMenu();
+                onOpenChecklist();
+              }}
+              className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
+            >
+              <span className="text-[15px]">✅</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">체크리스트</span>
             </button>
             <button
               type="button"

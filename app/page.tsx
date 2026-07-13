@@ -92,6 +92,7 @@ type Stage =
   | "result"
   | "myPassport"
   | "cartPage"
+  | "checklist"
   | "receive"
   | "delivery"
   | "pickup"
@@ -137,8 +138,8 @@ const CHECKLIST_GROUPS: string[][] = [
     "여행 뷰티 후기 SNS 공유",
   ],
 ];
-// 귀국 후 진정·장벽 회복 루틴 추천 (판테놀 진정 세럼 + 세라마이드 배리어 크림)
-const RECOVERY_IDS = ["layerlab-panthenol", "estra-atobarrier"];
+// 귀국 후 진정·장벽 회복 루틴 추천 (마데카소사이드 진정 세럼 + 세라마이드 배리어 크림)
+const RECOVERY_IDS = ["mediheal-madecassoside-serum", "estra-atobarrier"];
 // 홈 화면 여행 케어 체크리스트 단계(여행 전·중·후) + 직접 입력 예시
 const HOME_CARE_PHASES: { key: string; label: string; icon: string; example: string }[] = [
   { key: "before", label: "여행 전", icon: "🛫", example: "예: 자외선 차단제 미니 사이즈 챙기기" },
@@ -903,6 +904,7 @@ const UI_TR: Record<string, { jp: string; en: string }> = {
   "🧳 담긴 샘플": { jp: "🧳 カート内のサンプル", en: "🧳 Samples in cart" },
   "장바구니 보기 →": { jp: "カートを見る →", en: "View Cart →" },
   "여행 케어 플랜 보기 →": { jp: "旅行ケアプランを見る →", en: "View Travel Care Plan →" },
+  "이륙하기 →": { jp: "離陸する →", en: "Take Off →" },
 
   "← 추천으로": { jp: "← おすすめへ", en: "← Back to recommendations" },
   "전체 제품에서 고르기": { jp: "全製品から選ぶ", en: "Browse All Products" },
@@ -1369,6 +1371,7 @@ const UI_TR: Record<string, { jp: string; en: string }> = {
   "알러지·기피 성분": { jp: "アレルギー・避けたい成分", en: "Allergies & ingredients to avoid" },
   "이번 여행": { jp: "今回の旅行", en: "This trip" },
   "저장한 제품": { jp: "保存した製品", en: "Saved products" },
+  "내 화장품": { jp: "私の化粧品", en: "My Cosmetics" },
   "장바구니": { jp: "カート", en: "Cart" },
   "담은 샘플과 배송 현황을 확인해요": { jp: "カートのサンプルと配送状況を確認します", en: "Check your cart and delivery status" },
   "새 피부 설문": { jp: "新しい肌診断", en: "New skin survey" },
@@ -1541,12 +1544,12 @@ function aftercareSubindexChange(
 
 // 여행 후 새로 생긴 고민 → 실제 카탈로그(lib/products.ts) 제품 매칭 (소용량으로 구매 가능하게)
 const CONCERN_COSMETIC_IDS: Record<string, string[]> = {
-  wrinkle: ["anua-pdrn", "innisfree-retinol-cica"],
-  pore: ["numbuzin-no1", "roundlab-dokdo-toner"],
-  pigment: ["goodal-vitac", "numbuzin-no1"],
-  acne: ["beplain-mungbean", "clio-noscarnine"],
-  redness: ["drg-red-blemish", "layerlab-panthenol"],
-  hydration: ["esnature-aqua-toner", "wellage-blue-ampoule"],
+  wrinkle: ["missha-time-revolution-night-repair", "centellian24-madeca-power-ampoule"],
+  pore: ["drg-aclear-toner", "roundlab-dokdo-toner"],
+  pigment: ["numbuzin-no5-glutathione", "missha-vitac-plus-ampoule"],
+  acne: ["abib-heartleaf-toner", "manyo-bifida-biome-ampoule"],
+  redness: ["drg-red-blemish", "drg-red-blemish-hyalcica-serum"],
+  hydration: ["ahc-herb-rose-toner", "manyo-bifida-biome-lotion"],
 };
 function concernProductMatches(chosenConcerns: Concern[]) {
   const matches = new Map<string, { p: Cosmetic; concernLabels: string[] }>();
@@ -1645,8 +1648,7 @@ export default function BeautyPassportExperience() {
   const [volumeSel, setVolumeSel] = useState<Record<string, number>>({});
   // 여정 타임라인
   const [checklist, setChecklist] = useState<boolean[][]>(CHECKLIST_GROUPS.map((g) => Array(g.length).fill(false)));
-  // 홈 화면 여행 케어 체크리스트 (여행 전/중/후) — 사용자가 직접 추가, 로컬 저장
-  const [homeCareOpen, setHomeCareOpen] = useState(false);
+  // "체크리스트" 페이지의 여행 케어 체크리스트 (여행 전/중/후) — 사용자가 직접 추가, 로컬 저장
   const [homeCarePhase, setHomeCarePhase] = useState(0);
   const [homeCareItems, setHomeCareItems] = useState<Record<string, { text: string; done: boolean }[]>>({ before: [], during: [], after: [] });
   const [homeCareInputOpen, setHomeCareInputOpen] = useState(false);
@@ -2018,6 +2020,11 @@ export default function BeautyPassportExperience() {
     setPreMenuStage((prev) => prev ?? stage);
     setHomeMenuOpen(false);
     setStage("cartPage");
+  }
+  function openChecklist() {
+    setPreMenuStage((prev) => prev ?? stage);
+    setHomeMenuOpen(false);
+    setStage("checklist");
   }
   function closeOverlayStage() {
     setStage(preMenuStage ?? "member");
@@ -2409,6 +2416,7 @@ export default function BeautyPassportExperience() {
     onToggleMenu: () => setHomeMenuOpen((v) => !v),
     onCloseMenu: () => setHomeMenuOpen(false),
     onOpenPassport: openMyPassport,
+    onOpenChecklist: openChecklist,
     onNewSurvey: () => setStage("checkin"),
     onScan: openScan,
     onSwitchAccount: handleLogout,
@@ -2913,184 +2921,6 @@ export default function BeautyPassportExperience() {
                         ko="화장품 성분 스캔"
                         desc="쓰는 화장품을 찍으면 AI가 성분을 분석해요"
                       />
-
-                      {/* 여행 케어 체크리스트 (접이식 · 직접 입력) */}
-                      {(() => {
-                        const phase = HOME_CARE_PHASES[homeCarePhase];
-                        const items = homeCareItems[phase.key] ?? [];
-                        const doneCount = items.filter((it) => it.done).length;
-                        return (
-                          <div className="mt-1 overflow-hidden rounded-2xl border-[1.5px] border-[#e7e7ea]">
-                            {/* 헤더 버튼 — 탭하면 아래로 펼쳐짐 */}
-                            <button
-                              type="button"
-                              onClick={() => setHomeCareOpen((v) => !v)}
-                              className="flex w-full items-center gap-3 p-[15px] text-left transition active:bg-[#fafafa]"
-                            >
-                              <span className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-[#f4f4f5] text-[17px]">🧳</span>
-                              <div className="min-w-0 flex-1">
-                                <div className="font-sans text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9ca3af]">Travel Care</div>
-                                <div className="font-sans text-[14px] font-black text-[#0a0a0a]">여행 케어 체크리스트</div>
-                                <div className="font-sans text-[11px] text-[#9ca3af]">나만의 준비 항목을 직접 추가해요</div>
-                              </div>
-                              <svg
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="#9ca3af"
-                                strokeWidth={2.4}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className={`flex-none transition-transform ${homeCareOpen ? "rotate-180" : ""}`}
-                              >
-                                <path d="M6 9l6 6 6-6" />
-                              </svg>
-                            </button>
-
-                            {homeCareOpen && (
-                              <div className="border-t border-[#f0f0f2] px-[15px] pb-[15px] pt-3">
-                                {/* 시점 탭 */}
-                                <div className="flex gap-1.5">
-                                  {HOME_CARE_PHASES.map((ph, i) => (
-                                    <button
-                                      key={ph.key}
-                                      type="button"
-                                      onClick={() => {
-                                        setHomeCarePhase(i);
-                                        setHomeCareInputOpen(false);
-                                        setHomeCareInput("");
-                                      }}
-                                      className={`flex-1 rounded-xl border-[1.5px] px-1 py-2 text-center transition ${
-                                        homeCarePhase === i ? "border-[#0a0a0a] bg-[#0a0a0a]" : "border-[#e7e7ea] bg-white"
-                                      }`}
-                                    >
-                                      <span className="block text-[15px] leading-none">{ph.icon}</span>
-                                      <span className={`mt-1 block text-[11px] font-bold ${homeCarePhase === i ? "text-white" : "text-[#3f3f46]"}`}>{ph.label}</span>
-                                    </button>
-                                  ))}
-                                </div>
-
-                                {/* 진행률 (항목이 있을 때만) */}
-                                {items.length > 0 && (
-                                  <div className="mt-2.5 flex items-center gap-2.5">
-                                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#f0f0f2]">
-                                      <div className="h-full rounded-full bg-[#ff8a6e] transition-all duration-300" style={{ width: `${Math.round((doneCount / items.length) * 100)}%` }} />
-                                    </div>
-                                    <span className="font-sans text-[11px] font-bold text-[#71717a]">
-                                      {doneCount}/{items.length}
-                                    </span>
-                                  </div>
-                                )}
-
-                                {/* 항목 목록 — 없으면 예시 안내를 먼저 보여줌 */}
-                                {items.length === 0 ? (
-                                  <div className="mt-3 rounded-xl border border-dashed border-[#e0e2e6] bg-[#fafafa] px-3 py-2.5 font-sans text-[12.5px] text-[#b0b0b8]">
-                                    {phase.example}
-                                  </div>
-                                ) : (
-                                  <div className="mt-3 flex flex-col gap-1.5">
-                                    {items.map((it, idx) => (
-                                      <div key={idx} className="flex items-center gap-2.5 rounded-xl border border-[#e7e7ea] px-3 py-2.5">
-                                        <button
-                                          type="button"
-                                          onClick={() => toggleHomeCareItem(phase.key, idx)}
-                                          className={`flex h-5 w-5 flex-none items-center justify-center rounded-md border-[1.5px] text-[11px] font-bold transition ${
-                                            it.done ? "border-[#0a0a0a] bg-[#0a0a0a] text-white" : "border-[#d4d4d8] text-transparent"
-                                          }`}
-                                        >
-                                          ✓
-                                        </button>
-                                        <span className={`min-w-0 flex-1 font-sans text-[13px] ${it.done ? "text-[#9ca3af] line-through" : "text-[#3f3f46]"}`}>{it.text}</span>
-                                        <button
-                                          type="button"
-                                          aria-label="삭제"
-                                          onClick={() => removeHomeCareItem(phase.key, idx)}
-                                          className="flex-none px-1 font-sans text-[12px] font-semibold text-[#c4c4cc] transition active:scale-95"
-                                        >
-                                          ✕
-                                        </button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-
-                                {/* 직접 입력 */}
-                                {homeCareInputOpen ? (
-                                  <div className="mt-2 flex gap-1.5">
-                                    <input
-                                      value={homeCareInput}
-                                      onChange={(e) => setHomeCareInput(e.target.value)}
-                                      onKeyDown={(e) => {
-                                        if (e.key === "Enter") {
-                                          e.preventDefault();
-                                          addHomeCareItems();
-                                        }
-                                      }}
-                                      placeholder={`${phase.example.replace("예: ", "")} (쉼표로 여러 개)`}
-                                      autoFocus
-                                      className="flex-1 rounded-xl border border-transparent bg-[#f4f4f5] px-3.5 py-2.5 font-sans text-[13px] text-[#0a0a0a] outline-none transition placeholder:text-[#b0b0b8] focus:border-[#0a0a0a] focus:bg-white"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={addHomeCareItems}
-                                      disabled={!homeCareInput.trim()}
-                                      className="flex-none rounded-xl bg-[#0a0a0a] px-4 py-2.5 font-sans text-[13px] font-bold text-white transition active:scale-95 disabled:bg-[#d4d4d8]"
-                                    >
-                                      추가
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => setHomeCareInputOpen(true)}
-                                    className="mt-2 w-full rounded-xl border-[1.5px] border-dashed border-[#c9c9cf] bg-white py-2.5 font-sans text-[13px] font-bold text-[#3f3f46] transition hover:border-[#0a0a0a]"
-                                  >
-                                    ＋ 직접 입력
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-
-                      {(() => {
-                        const saved = loggedInId ? getSavedProducts(loggedInId) : [];
-                        if (saved.length === 0) return null;
-                        return (
-                          <div className="mt-1 rounded-2xl border-[1.5px] border-[#e7e7ea] p-[15px]">
-                            <div className="flex items-center justify-between">
-                              <div className="font-sans text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9ca3af]">Saved Products · 저장한 제품</div>
-                              <div className="font-sans text-[11px] font-bold text-[#71717a]">{saved.length}</div>
-                            </div>
-                            <div className="mt-2.5 flex flex-col gap-2">
-                              {saved.slice(0, 5).map((p: SavedProduct) => (
-                                <div key={p.key} className="flex items-center gap-2.5">
-                                  <span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-[#f4f4f5] text-[13px]">🧴</span>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="truncate font-sans text-[13px] font-bold text-[#0a0a0a]">{p.name}</div>
-                                    <div className="font-sans text-[11px] text-[#9ca3af]">{p.brand} · {p.category}</div>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    aria-label="삭제"
-                                    onClick={() => {
-                                      if (loggedInId) {
-                                        removeSavedProduct(loggedInId, p.key);
-                                        setMemberRefresh((n) => n + 1);
-                                      }
-                                    }}
-                                    className="flex-none rounded-lg px-2 py-1 font-sans text-[11px] font-semibold text-[#9ca3af] transition active:scale-95"
-                                  >
-                                    ✕
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })()}
                     </div>
                   );
                 })()}
@@ -4572,13 +4402,22 @@ export default function BeautyPassportExperience() {
                         </div>
                       )}
 
-                      <button
-                        type="button"
-                        onClick={() => setResultView("plan")}
-                        className="mt-4 w-full rounded-[14px] bg-[#0a0a0a] px-4 py-[15px] text-[14.5px] font-extrabold text-white transition active:scale-[0.985]"
-                      >
-                        {t("여행 케어 플랜 보기 →", lang)}
-                      </button>
+                      <div className="mt-4 flex gap-2.5">
+                        <button
+                          type="button"
+                          onClick={openMyPassport}
+                          className="flex-1 rounded-[14px] border-[1.5px] border-[#e7e7ea] bg-white px-4 py-[15px] text-[14.5px] font-extrabold text-[#0a0a0a] transition active:scale-[0.985] active:bg-[#f4f4f5]"
+                        >
+                          {t("내 여권 보기", lang)}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setJourneyPhase("during"); setStage("duringTrip"); }}
+                          className="flex-1 rounded-[14px] bg-[#0a0a0a] px-4 py-[15px] text-[14.5px] font-extrabold text-white transition active:scale-[0.985]"
+                        >
+                          {t("이륙하기 →", lang)}
+                        </button>
+                      </div>
 
                       {/* 하단 영수증 바코드 */}
                       <footer className="mt-6 border-t-[1.5px] border-dashed border-[#e7e7ea] pt-4 text-center">
@@ -4752,19 +4591,6 @@ export default function BeautyPassportExperience() {
                               {t("📦 배송 현황 확인하기", lang)}
                             </button>
                           )}
-                          <div className="mt-3 space-y-2">
-                            {CHECKLIST_GROUPS[0].map((item, i) => (
-                              <label key={i} className="flex items-center gap-2 text-sm">
-                                <input
-                                  type="checkbox"
-                                  checked={checklist[0][i]}
-                                  onChange={() => toggleChecklist(0, i)}
-                                  className="h-4 w-4 rounded accent-[#0a0a0a]"
-                                />
-                                <span className={checklist[0][i] ? "text-[#9ca3af] line-through" : "text-[#3f3f46]"}>{t(item, lang)}</span>
-                              </label>
-                            ))}
-                          </div>
                           <button
                             type="button"
                             onClick={() => setCarePhase(1)}
@@ -5315,7 +5141,7 @@ export default function BeautyPassportExperience() {
 
             {/* 내 여권 — 마이페이지 형태로 저장된 내 정보 확인 */}
             {stage === "myPassport" && (
-              <motion.section key="myPassport" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto bg-white px-7 pb-8 pt-5">
+              <motion.section key="myPassport" data-refresh={memberRefresh} variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto bg-white px-7 pb-8 pt-5">
                 <PassportTopBar compact onBack={closeOverlayStage} />
                 <PassportEyebrow>My Beauty Passport</PassportEyebrow>
                 <PassportTitle compact>{t("내 여권", lang)}</PassportTitle>
@@ -5435,7 +5261,7 @@ export default function BeautyPassportExperience() {
                         return (
                           <div className="rounded-2xl border-[1.5px] border-[#e7e7ea] p-[15px]">
                             <div className="flex items-center justify-between">
-                              <div className="font-sans text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9ca3af]">Saved Products · {t("내가 쓰는 화장품", lang)}</div>
+                              <div className="font-sans text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9ca3af]">My Cosmetics · {t("내 화장품", lang)}</div>
                               <div className="font-sans text-[11px] font-bold text-[#71717a]">{saved.length}</div>
                             </div>
                             <div className="mt-2.5 flex flex-col gap-2">
@@ -5446,6 +5272,19 @@ export default function BeautyPassportExperience() {
                                     <div className="truncate font-sans text-[13px] font-bold text-[#0a0a0a]">{p.name}</div>
                                     <div className="font-sans text-[11px] text-[#9ca3af]">{p.brand} · {p.category}</div>
                                   </div>
+                                  <button
+                                    type="button"
+                                    aria-label="삭제"
+                                    onClick={() => {
+                                      if (loggedInId) {
+                                        removeSavedProduct(loggedInId, p.key);
+                                        setMemberRefresh((n) => n + 1);
+                                      }
+                                    }}
+                                    className="flex-none rounded-lg px-2 py-1 font-sans text-[11px] font-semibold text-[#9ca3af] transition active:scale-95"
+                                  >
+                                    ✕
+                                  </button>
                                 </div>
                               ))}
                             </div>
@@ -5631,6 +5470,127 @@ export default function BeautyPassportExperience() {
                     })()}
                   </div>
                 )}
+
+                <PassportFooter compact />
+              </motion.section>
+            )}
+
+            {/* 여행 케어 체크리스트 (여행 전/중/후 · 직접 입력) */}
+            {stage === "checklist" && (
+              <motion.section key="checklist" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto bg-white px-7 pb-8 pt-5">
+                <PassportTopBar compact onBack={closeOverlayStage} />
+                <PassportEyebrow>Travel Care</PassportEyebrow>
+                <PassportTitle compact>체크리스트</PassportTitle>
+                <PassportKSub>여행 전·중·후 준비 항목을 직접 추가해요</PassportKSub>
+
+                {(() => {
+                  const phase = HOME_CARE_PHASES[homeCarePhase];
+                  const items = homeCareItems[phase.key] ?? [];
+                  const doneCount = items.filter((it) => it.done).length;
+                  return (
+                    <div className="mt-4">
+                      {/* 시점 탭 */}
+                      <div className="flex gap-1.5">
+                        {HOME_CARE_PHASES.map((ph, i) => (
+                          <button
+                            key={ph.key}
+                            type="button"
+                            onClick={() => {
+                              setHomeCarePhase(i);
+                              setHomeCareInputOpen(false);
+                              setHomeCareInput("");
+                            }}
+                            className={`flex-1 rounded-xl border-[1.5px] px-1 py-2 text-center transition ${
+                              homeCarePhase === i ? "border-[#0a0a0a] bg-[#0a0a0a]" : "border-[#e7e7ea] bg-white"
+                            }`}
+                          >
+                            <span className="block text-[15px] leading-none">{ph.icon}</span>
+                            <span className={`mt-1 block text-[11px] font-bold ${homeCarePhase === i ? "text-white" : "text-[#3f3f46]"}`}>{ph.label}</span>
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* 진행률 (항목이 있을 때만) */}
+                      {items.length > 0 && (
+                        <div className="mt-3 flex items-center gap-2.5">
+                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#f0f0f2]">
+                            <div className="h-full rounded-full bg-[#ff8a6e] transition-all duration-300" style={{ width: `${Math.round((doneCount / items.length) * 100)}%` }} />
+                          </div>
+                          <span className="font-sans text-[11px] font-bold text-[#71717a]">
+                            {doneCount}/{items.length}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* 항목 목록 — 없으면 예시 안내를 먼저 보여줌 */}
+                      {items.length === 0 ? (
+                        <div className="mt-3 rounded-xl border border-dashed border-[#e0e2e6] bg-[#fafafa] px-3 py-2.5 font-sans text-[12.5px] text-[#b0b0b8]">
+                          {phase.example}
+                        </div>
+                      ) : (
+                        <div className="mt-3 flex flex-col gap-1.5">
+                          {items.map((it, idx) => (
+                            <div key={idx} className="flex items-center gap-2.5 rounded-xl border border-[#e7e7ea] px-3 py-2.5">
+                              <button
+                                type="button"
+                                onClick={() => toggleHomeCareItem(phase.key, idx)}
+                                className={`flex h-5 w-5 flex-none items-center justify-center rounded-md border-[1.5px] text-[11px] font-bold transition ${
+                                  it.done ? "border-[#0a0a0a] bg-[#0a0a0a] text-white" : "border-[#d4d4d8] text-transparent"
+                                }`}
+                              >
+                                ✓
+                              </button>
+                              <span className={`min-w-0 flex-1 font-sans text-[13px] ${it.done ? "text-[#9ca3af] line-through" : "text-[#3f3f46]"}`}>{it.text}</span>
+                              <button
+                                type="button"
+                                aria-label="삭제"
+                                onClick={() => removeHomeCareItem(phase.key, idx)}
+                                className="flex-none px-1 font-sans text-[12px] font-semibold text-[#c4c4cc] transition active:scale-95"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* 직접 입력 */}
+                      {homeCareInputOpen ? (
+                        <div className="mt-2 flex gap-1.5">
+                          <input
+                            value={homeCareInput}
+                            onChange={(e) => setHomeCareInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                addHomeCareItems();
+                              }
+                            }}
+                            placeholder={`${phase.example.replace("예: ", "")} (쉼표로 여러 개)`}
+                            autoFocus
+                            className="flex-1 rounded-xl border border-transparent bg-[#f4f4f5] px-3.5 py-2.5 font-sans text-[13px] text-[#0a0a0a] outline-none transition placeholder:text-[#b0b0b8] focus:border-[#0a0a0a] focus:bg-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={addHomeCareItems}
+                            disabled={!homeCareInput.trim()}
+                            className="flex-none rounded-xl bg-[#0a0a0a] px-4 py-2.5 font-sans text-[13px] font-bold text-white transition active:scale-95 disabled:bg-[#d4d4d8]"
+                          >
+                            추가
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setHomeCareInputOpen(true)}
+                          className="mt-2 w-full rounded-xl border-[1.5px] border-dashed border-[#c9c9cf] bg-white py-2.5 font-sans text-[13px] font-bold text-[#3f3f46] transition hover:border-[#0a0a0a]"
+                        >
+                          ＋ 직접 입력
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <PassportFooter compact />
               </motion.section>
@@ -6390,6 +6350,7 @@ type ZigZagTopBarProps = {
   onToggleMenu: () => void;
   onCloseMenu: () => void;
   onOpenPassport: () => void;
+  onOpenChecklist: () => void;
   onNewSurvey: () => void;
   onScan: () => void;
   onSwitchAccount: () => void;
@@ -6397,7 +6358,7 @@ type ZigZagTopBarProps = {
   cartCount: number;
 };
 
-function ZigZagTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onNewSurvey, onScan, onSwitchAccount, onOpenCart, cartCount }: ZigZagTopBarProps) {
+function ZigZagTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onOpenChecklist, onNewSurvey, onScan, onSwitchAccount, onOpenCart, cartCount }: ZigZagTopBarProps) {
   return (
     <div className="relative -mx-7 mb-3 flex items-center justify-between border-b border-[#eee] px-7 pb-3">
       <div className="font-sans text-[19px] font-black tracking-[-0.01em] text-[#0a0a0a]">BEAUTY PASSPORT</div>
@@ -6455,6 +6416,17 @@ function ZigZagTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onN
             >
               <span className="text-[15px]">🛂</span>
               <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">내 여권 보기</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onCloseMenu();
+                onOpenChecklist();
+              }}
+              className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
+            >
+              <span className="text-[15px]">✅</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">체크리스트</span>
             </button>
             <button
               type="button"
