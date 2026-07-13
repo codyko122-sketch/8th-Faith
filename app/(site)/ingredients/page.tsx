@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Search, AlertTriangle } from "lucide-react";
 import { INGREDIENT_CATEGORIES, searchIngredients } from "@/lib/ingredients-data";
 
 export default function IngredientsPage() {
+  const router = useRouter();
   const [q, setQ] = useState("");
   const [category, setCategory] = useState<string>("전체");
   const searchRef = useRef<HTMLInputElement>(null);
@@ -21,7 +23,17 @@ export default function IngredientsPage() {
   return (
     <div className="min-h-screen bg-white font-sans">
       <div className="mx-auto max-w-[480px] px-6 pb-16 pt-8">
-        <div className="font-sans text-[11px] font-extrabold uppercase tracking-[0.2em] text-[#9ca3af]">Ingredients</div>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          aria-label="이전 페이지로"
+          className="flex h-9 w-9 items-center justify-center rounded-full border-[1.5px] border-[#e7e7ea] bg-white text-[#0a0a0a] transition active:bg-[#f4f4f5]"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+        <div className="mt-4 font-sans text-[11px] font-extrabold uppercase tracking-[0.2em] text-[#9ca3af]">Ingredients</div>
         <h1 className="mt-1.5 text-[30px] font-black tracking-[-0.02em] text-[#0a0a0a]" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
           성분 검색
         </h1>
