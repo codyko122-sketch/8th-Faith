@@ -1368,6 +1368,11 @@ const UI_TR: Record<string, { jp: string; en: string }> = {
   "저장한 제품": { jp: "保存した製品", en: "Saved products" },
   "장바구니": { jp: "カート", en: "Cart" },
   "담은 샘플과 배송 현황을 확인해요": { jp: "カートのサンプルと配送状況を確認します", en: "Check your cart and delivery status" },
+  "새 피부 설문": { jp: "新しい肌診断", en: "New skin survey" },
+  "화장품 성분 스캔": { jp: "化粧品成分スキャン", en: "Scan cosmetic ingredients" },
+  "성분 가이드": { jp: "成分ガイド", en: "Ingredient guide" },
+  "여행 피부 진단": { jp: "旅行肌診断", en: "Travel skin diagnosis" },
+  "다른 계정으로 로그인": { jp: "別のアカウントでログイン", en: "Log in with another account" },
 };
 function t(ko: string, lang: "ko" | "jp" | "en") {
   if (lang === "ko") return ko;
@@ -1642,8 +1647,6 @@ export default function BeautyPassportExperience() {
   const [homeCareItems, setHomeCareItems] = useState<Record<string, { text: string; done: boolean }[]>>({ before: [], during: [], after: [] });
   const [homeCareInputOpen, setHomeCareInputOpen] = useState(false);
   const [homeCareInput, setHomeCareInput] = useState("");
-  // 홈 상단바(ZigZag 스타일) 햄버거 메뉴 열림 상태
-  const [homeMenuOpen, setHomeMenuOpen] = useState(false);
   // [6-2] 장바구니 시트
   const [cartOpen, setCartOpen] = useState(false);
   // 전역 상단바 — 메뉴(내 여권) · 장바구니 페이지 이동, 어느 stage에서 열었는지 기억해뒀다가 복귀
@@ -2395,6 +2398,9 @@ export default function BeautyPassportExperience() {
               onCloseMenu={() => setGlobalMenuOpen(false)}
               onOpenPassport={openMyPassport}
               onOpenCart={openCartPage}
+              onNewSurvey={() => setStage("checkin")}
+              onScan={openScan}
+              onSwitchAccount={handleLogout}
             />
           )}
           <div className="absolute inset-x-0 bottom-0" style={{ top: showGlobalBar ? 44 : 0 }}>
@@ -2829,99 +2835,6 @@ export default function BeautyPassportExperience() {
                 exit="exit"
                 className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
               >
-                {/* ZigZag 스타일 홈 상단바 — 워드마크 + 메뉴/검색/백 아이콘 */}
-                <div className="relative -mx-7 mb-3 flex items-center justify-between border-b border-[#eee] px-7 pb-3">
-                  <div className="font-sans text-[19px] font-black tracking-[-0.01em] text-[#0a0a0a]">BEAUTY PASSPORT</div>
-                  <div className="flex items-center gap-0.5">
-                    <button
-                      type="button"
-                      aria-label="메뉴"
-                      onClick={() => setHomeMenuOpen((v) => !v)}
-                      className="flex h-9 w-9 items-center justify-center rounded-lg text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
-                    >
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                        <path d="M4 12h16M4 6h16M4 18h16" />
-                      </svg>
-                    </button>
-                    <a
-                      href="/ingredients"
-                      aria-label="성분 검색"
-                      className="flex h-9 w-9 items-center justify-center rounded-lg text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
-                    >
-                      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="11" cy="11" r="8" />
-                        <path d="m21 21-4.3-4.3" />
-                      </svg>
-                    </a>
-                    <button
-                      type="button"
-                      aria-label="장바구니"
-                      onClick={() => setHomeMenuOpen((v) => !v)}
-                      className="flex h-9 w-9 items-center justify-center rounded-lg text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                        <path d="M3 6h18" />
-                        <path d="M16 10a4 4 0 0 1-8 0" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {homeMenuOpen && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setHomeMenuOpen(false)} />
-                      <div className="absolute right-7 top-full z-50 mt-1 w-56 overflow-hidden rounded-2xl border-[1.5px] border-[#e7e7ea] bg-white shadow-[0_14px_36px_rgba(20,30,50,0.14)]">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setHomeMenuOpen(false);
-                            setStage("checkin");
-                          }}
-                          className="flex w-full items-center gap-2.5 px-4 py-3 text-left transition active:bg-[#f4f4f5]"
-                        >
-                          <span className="text-[15px]">📝</span>
-                          <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">새 피부 설문</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setHomeMenuOpen(false);
-                            openScan();
-                          }}
-                          className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
-                        >
-                          <span className="text-[15px]">📷</span>
-                          <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">화장품 성분 스캔</span>
-                        </button>
-                        <a
-                          href="/ingredients"
-                          className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
-                        >
-                          <span className="text-[15px]">🔍</span>
-                          <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">성분 가이드</span>
-                        </a>
-                        <a
-                          href="/diagnose"
-                          className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
-                        >
-                          <span className="text-[15px]">🧭</span>
-                          <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">여행 피부 진단</span>
-                        </a>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setHomeMenuOpen(false);
-                            handleLogout();
-                          }}
-                          className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
-                        >
-                          <span className="text-[15px]">↩️</span>
-                          <span className="font-sans text-[13.5px] font-bold text-[#71717a]">다른 계정으로 로그인</span>
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
                 <PassportEyebrow>Your Skin Journey</PassportEyebrow>
                 <PassportTitle compact>
                   WELCOME
@@ -6368,6 +6281,9 @@ function GlobalTopBar({
   onCloseMenu,
   onOpenPassport,
   onOpenCart,
+  onNewSurvey,
+  onScan,
+  onSwitchAccount,
 }: {
   lang: "ko" | "jp" | "en";
   cartCount: number;
@@ -6376,6 +6292,9 @@ function GlobalTopBar({
   onCloseMenu: () => void;
   onOpenPassport: () => void;
   onOpenCart: () => void;
+  onNewSurvey: () => void;
+  onScan: () => void;
+  onSwitchAccount: () => void;
 }) {
   return (
     <div className="absolute inset-x-0 top-0 z-[95] flex h-11 items-center justify-between border-b border-[#e7e7ea] bg-white/95 px-3 backdrop-blur">
@@ -6395,13 +6314,55 @@ function GlobalTopBar({
         {menuOpen && (
           <>
             <div className="fixed inset-0 z-[94]" onClick={onCloseMenu} />
-            <div className="absolute left-0 top-10 z-[96] w-44 overflow-hidden rounded-2xl border border-[#e7e7ea] bg-white shadow-[0_16px_40px_rgba(20,30,50,0.18)]">
+            <div className="absolute left-0 top-10 z-[96] w-56 overflow-hidden rounded-2xl border border-[#e7e7ea] bg-white shadow-[0_16px_40px_rgba(20,30,50,0.18)]">
               <button
                 type="button"
                 onClick={onOpenPassport}
-                className="flex w-full items-center gap-2 px-4 py-3 text-left text-[13.5px] font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
+                className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-[13.5px] font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
               >
-                🛂 {t("내 여권 보기", lang)}
+                <span className="text-[15px]">🛂</span> {t("내 여권 보기", lang)}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onCloseMenu();
+                  onNewSurvey();
+                }}
+                className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left text-[13.5px] font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
+              >
+                <span className="text-[15px]">📝</span> {t("새 피부 설문", lang)}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onCloseMenu();
+                  onScan();
+                }}
+                className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left text-[13.5px] font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
+              >
+                <span className="text-[15px]">📷</span> {t("화장품 성분 스캔", lang)}
+              </button>
+              <a
+                href="/ingredients"
+                className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left text-[13.5px] font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
+              >
+                <span className="text-[15px]">🔍</span> {t("성분 가이드", lang)}
+              </a>
+              <a
+                href="/diagnose"
+                className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left text-[13.5px] font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
+              >
+                <span className="text-[15px]">🧭</span> {t("여행 피부 진단", lang)}
+              </a>
+              <button
+                type="button"
+                onClick={() => {
+                  onCloseMenu();
+                  onSwitchAccount();
+                }}
+                className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left text-[13.5px] font-bold text-[#71717a] transition active:bg-[#f4f4f5]"
+              >
+                <span className="text-[15px]">↩️</span> {t("다른 계정으로 로그인", lang)}
               </button>
             </div>
           </>
