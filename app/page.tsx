@@ -778,6 +778,8 @@ const UI_TR: Record<string, { jp: string; en: string }> = {
   "미세먼지": { jp: "微細粉塵", en: "Fine dust" },
   "자외선 강함": { jp: "紫外線強い", en: "Strong UV" },
   "보통": { jp: "普通", en: "Moderate" },
+  "낮음": { jp: "低い", en: "Low" },
+  "높음": { jp: "高い", en: "High" },
   "🤖 AI가 이렇게 판단했어요": { jp: "🤖 AIはこう判断しました", en: "🤖 Here's what the AI found" },
   "수질": { jp: "水質", en: "Water quality" },
   "📋 상세보기 — AI 판단 · 날씨 · 수질 · 성분 · 루틴": { jp: "📋 詳細を見る — AI判断・天気・水質・成分・ルーティン", en: "📋 View details — AI reasoning, weather, water, ingredients, routine" },
@@ -4003,7 +4005,7 @@ export default function BeautyPassportExperience() {
                                       <div className="relative text-center leading-none">
                                         <div className="text-2xl font-black text-[#0a0a0a]">{result.index.score}</div>
                                         <div className="text-[9px] text-[#9ca3af]">/ 100</div>
-                                        <div className="mt-0.5 text-[9px] font-extrabold tracking-[0.06em] text-[#ec1c24]">{result.index.level}</div>
+                                        <div className="mt-0.5 text-[9px] font-extrabold tracking-[0.06em] text-[#ec1c24]">{t(result.index.level, lang)}</div>
                                       </div>
                                     </div>
                                     <div className="grid flex-1 grid-cols-2 gap-x-3.5 gap-y-2.5">
@@ -4461,7 +4463,7 @@ export default function BeautyPassportExperience() {
                           <div className="mt-3 flex items-center justify-between rounded-xl bg-[#f4f4f5] px-4 py-3">
                             <span className="text-sm text-[#3f3f46]">{t("이번 여행 피부 자극 지수", lang)}</span>
                             <span className="text-lg font-black text-[#0a0a0a]">
-                              {result.index.score} · {result.index.level}
+                              {result.index.score} · {t(result.index.level, lang)}
                             </span>
                           </div>
                           <div className="mt-3 space-y-2">
