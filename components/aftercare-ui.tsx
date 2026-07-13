@@ -180,9 +180,11 @@ export type AcTopBarProps = {
   onSwitchAccount: () => void;
   onOpenCart: () => void;
   cartCount: number;
+  lang: "ko" | "jp" | "en";
+  t: (ko: string, lang: "ko" | "jp" | "en") => string;
 };
 
-function AcTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onOpenChecklist, onNewSurvey, onScan, onSwitchAccount, onOpenCart, cartCount }: AcTopBarProps) {
+function AcTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onOpenChecklist, onNewSurvey, onScan, onSwitchAccount, onOpenCart, cartCount, lang, t }: AcTopBarProps) {
   return (
     <div className="relative -mx-7 mb-3 flex items-center justify-between border-b border-[#eee] px-7 pb-3">
       <div className="font-sans text-[19px] font-black tracking-[-0.01em] text-[#0a0a0a]">BEAUTY PASSPORT</div>
@@ -239,7 +241,7 @@ function AcTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onOpenC
               className="flex w-full items-center gap-2.5 px-4 py-3 text-left transition active:bg-[#f4f4f5]"
             >
               <span className="text-[15px]">🛂</span>
-              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">내 여권 보기</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">{t("내 여권 보기", lang)}</span>
             </button>
             <button
               type="button"
@@ -250,7 +252,7 @@ function AcTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onOpenC
               className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
             >
               <span className="text-[15px]">✅</span>
-              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">체크리스트</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">{t("체크리스트", lang)}</span>
             </button>
             <button
               type="button"
@@ -261,7 +263,7 @@ function AcTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onOpenC
               className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
             >
               <span className="text-[15px]">📝</span>
-              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">새 피부 설문</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">{t("새 피부 설문", lang)}</span>
             </button>
             <button
               type="button"
@@ -272,14 +274,14 @@ function AcTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onOpenC
               className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
             >
               <span className="text-[15px]">📷</span>
-              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">화장품 성분 스캔</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">{t("화장품 성분 스캔", lang)}</span>
             </button>
             <a
               href="/ingredients"
               className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
             >
               <span className="text-[15px]">🔍</span>
-              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">성분 가이드</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">{t("성분 가이드", lang)}</span>
             </a>
             <button
               type="button"
@@ -290,7 +292,7 @@ function AcTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onOpenC
               className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
             >
               <span className="text-[15px]">↩️</span>
-              <span className="font-sans text-[13.5px] font-bold text-[#71717a]">다른 계정으로 로그인</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#71717a]">{t("다른 계정으로 로그인", lang)}</span>
             </button>
           </div>
         </>

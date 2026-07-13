@@ -935,6 +935,13 @@ const UI_TR: Record<string, { jp: string; en: string }> = {
   "📦 배송 현황 확인하기": { jp: "📦 配送状況を確認する", en: "📦 Check Delivery Status" },
   "출국하기 →": { jp: "出発する →", en: "Depart →" },
   "✅ 여행 중 체크리스트": { jp: "✅ 旅行中チェックリスト", en: "✅ During-Trip Checklist" },
+  "여행 전·중·후 준비 항목을 직접 추가해요": { jp: "旅行前・中・後の準備項目を自分で追加しましょう", en: "Add your own before/during/after-trip prep items" },
+  "추가": { jp: "追加", en: "Add" },
+  "＋ 직접 입력": { jp: "＋ 直接入力", en: "＋ Add custom" },
+  "예: 자외선 차단제 미니 사이즈 챙기기": { jp: "例: 日焼け止めのミニサイズを持っていく", en: "e.g. Pack a travel-size sunscreen" },
+  "예: 자기 전 진정 마스크팩 하기": { jp: "例: 寝る前に鎮静マスクパックをする", en: "e.g. Use a soothing sheet mask before bed" },
+  "예: 미사용 소분 제품 냉장 보관하기": { jp: "例: 未使用の小分け製品を冷蔵保管する", en: "e.g. Refrigerate unused travel-size products" },
+  "(쉼표로 여러 개)": { jp: "（カンマ区切りで複数入力可）", en: "(comma-separated for multiple)" },
   "🏠 귀국 후 · 리커버리": { jp: "🏠 帰国後・リカバリー", en: "🏠 After Return · Recovery" },
   "여행 중 자극받은 피부 장벽을 되돌리는 진정 회복 루틴을 추천해요.": { jp: "旅行中に刺激を受けた肌バリアを整える鎮静回復ルーティンをおすすめします。", en: "We recommend a soothing recovery routine to restore your skin barrier after travel." },
   "이번 여행 피부 자극 지수": { jp: "今回の旅行の肌刺激指数", en: "This trip's Skin Irritation Index" },
@@ -1383,6 +1390,7 @@ const UI_TR: Record<string, { jp: string; en: string }> = {
   "새 피부 설문": { jp: "新しい肌診断", en: "New skin survey" },
   "화장품 성분 스캔": { jp: "化粧品成分スキャン", en: "Scan cosmetic ingredients" },
   "성분 가이드": { jp: "成分ガイド", en: "Ingredient guide" },
+  "체크리스트": { jp: "チェックリスト", en: "Checklist" },
   "여행 피부 진단": { jp: "旅行肌診断", en: "Travel skin diagnosis" },
   "다른 계정으로 로그인": { jp: "別のアカウントでログイン", en: "Log in with another account" },
 };
@@ -2481,6 +2489,8 @@ export default function BeautyPassportExperience() {
     onSwitchAccount: handleLogout,
     onOpenCart: openCartPage,
     cartCount,
+    lang,
+    t,
   };
 
   return (
@@ -5659,8 +5669,8 @@ export default function BeautyPassportExperience() {
               <motion.section key="checklist" variants={stageVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 overflow-y-auto bg-white px-7 pb-8 pt-5">
                 <PassportTopBar compact onBack={closeOverlayStage} />
                 <PassportEyebrow>Travel Care</PassportEyebrow>
-                <PassportTitle compact>체크리스트</PassportTitle>
-                <PassportKSub>여행 전·중·후 준비 항목을 직접 추가해요</PassportKSub>
+                <PassportTitle compact>{t("체크리스트", lang)}</PassportTitle>
+                <PassportKSub>{t("여행 전·중·후 준비 항목을 직접 추가해요", lang)}</PassportKSub>
 
                 {(() => {
                   const phase = HOME_CARE_PHASES[homeCarePhase];
@@ -5684,7 +5694,7 @@ export default function BeautyPassportExperience() {
                             }`}
                           >
                             <span className="block text-[15px] leading-none">{ph.icon}</span>
-                            <span className={`mt-1 block text-[11px] font-bold ${homeCarePhase === i ? "text-white" : "text-[#3f3f46]"}`}>{ph.label}</span>
+                            <span className={`mt-1 block text-[11px] font-bold ${homeCarePhase === i ? "text-white" : "text-[#3f3f46]"}`}>{t(ph.label, lang)}</span>
                           </button>
                         ))}
                       </div>
@@ -5704,7 +5714,7 @@ export default function BeautyPassportExperience() {
                       {/* 항목 목록 — 없으면 예시 안내를 먼저 보여줌 */}
                       {items.length === 0 ? (
                         <div className="mt-3 rounded-xl border border-dashed border-[#e0e2e6] bg-[#fafafa] px-3 py-2.5 font-sans text-[12.5px] text-[#b0b0b8]">
-                          {phase.example}
+                          {t(phase.example, lang)}
                         </div>
                       ) : (
                         <div className="mt-3 flex flex-col gap-1.5">
@@ -5719,10 +5729,10 @@ export default function BeautyPassportExperience() {
                               >
                                 ✓
                               </button>
-                              <span className={`min-w-0 flex-1 font-sans text-[13px] ${it.done ? "text-[#9ca3af] line-through" : "text-[#3f3f46]"}`}>{it.text}</span>
+                              <span className={`min-w-0 flex-1 font-sans text-[13px] ${it.done ? "text-[#9ca3af] line-through" : "text-[#3f3f46]"}`}>{t(it.text, lang)}</span>
                               <button
                                 type="button"
-                                aria-label="삭제"
+                                aria-label={t("삭제", lang)}
                                 onClick={() => removeHomeCareItem(phase.key, idx)}
                                 className="flex-none px-1 font-sans text-[12px] font-semibold text-[#c4c4cc] transition active:scale-95"
                               >
@@ -5745,7 +5755,7 @@ export default function BeautyPassportExperience() {
                                 addHomeCareItems();
                               }
                             }}
-                            placeholder={`${phase.example.replace("예: ", "")} (쉼표로 여러 개)`}
+                            placeholder={`${t(phase.example, lang).replace(/^(예: |例: |e\.g\. )/, "")} ${t("(쉼표로 여러 개)", lang)}`}
                             autoFocus
                             className="flex-1 rounded-xl border border-transparent bg-[#f4f4f5] px-3.5 py-2.5 font-sans text-[13px] text-[#0a0a0a] outline-none transition placeholder:text-[#b0b0b8] focus:border-[#0a0a0a] focus:bg-white"
                           />
@@ -5755,7 +5765,7 @@ export default function BeautyPassportExperience() {
                             disabled={!homeCareInput.trim()}
                             className="flex-none rounded-xl bg-[#0a0a0a] px-4 py-2.5 font-sans text-[13px] font-bold text-white transition active:scale-95 disabled:bg-[#d4d4d8]"
                           >
-                            추가
+                            {t("추가", lang)}
                           </button>
                         </div>
                       ) : (
@@ -5764,7 +5774,7 @@ export default function BeautyPassportExperience() {
                           onClick={() => setHomeCareInputOpen(true)}
                           className="mt-2 w-full rounded-xl border-[1.5px] border-dashed border-[#c9c9cf] bg-white py-2.5 font-sans text-[13px] font-bold text-[#3f3f46] transition hover:border-[#0a0a0a]"
                         >
-                          ＋ 직접 입력
+                          {t("＋ 직접 입력", lang)}
                         </button>
                       )}
                     </div>
@@ -6539,9 +6549,10 @@ type ZigZagTopBarProps = {
   onSwitchAccount: () => void;
   onOpenCart: () => void;
   cartCount: number;
+  lang: "ko" | "jp" | "en";
 };
 
-function ZigZagTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onOpenChecklist, onNewSurvey, onScan, onSwitchAccount, onOpenCart, cartCount }: ZigZagTopBarProps) {
+function ZigZagTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onOpenChecklist, onNewSurvey, onScan, onSwitchAccount, onOpenCart, cartCount, lang }: ZigZagTopBarProps) {
   return (
     <div className="relative -mx-7 mb-3 flex items-center justify-between border-b border-[#eee] px-7 pb-3">
       <div className="font-sans text-[19px] font-black tracking-[-0.01em] text-[#0a0a0a]">BEAUTY PASSPORT</div>
@@ -6598,7 +6609,7 @@ function ZigZagTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onO
               className="flex w-full items-center gap-2.5 px-4 py-3 text-left transition active:bg-[#f4f4f5]"
             >
               <span className="text-[15px]">🛂</span>
-              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">내 여권 보기</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">{t("내 여권 보기", lang)}</span>
             </button>
             <button
               type="button"
@@ -6609,7 +6620,7 @@ function ZigZagTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onO
               className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
             >
               <span className="text-[15px]">✅</span>
-              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">체크리스트</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">{t("체크리스트", lang)}</span>
             </button>
             <button
               type="button"
@@ -6620,7 +6631,7 @@ function ZigZagTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onO
               className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
             >
               <span className="text-[15px]">📝</span>
-              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">새 피부 설문</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">{t("새 피부 설문", lang)}</span>
             </button>
             <button
               type="button"
@@ -6631,14 +6642,14 @@ function ZigZagTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onO
               className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
             >
               <span className="text-[15px]">📷</span>
-              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">화장품 성분 스캔</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">{t("화장품 성분 스캔", lang)}</span>
             </button>
             <a
               href="/ingredients"
               className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
             >
               <span className="text-[15px]">🔍</span>
-              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">성분 가이드</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">{t("성분 가이드", lang)}</span>
             </a>
             <button
               type="button"
@@ -6649,7 +6660,7 @@ function ZigZagTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onO
               className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
             >
               <span className="text-[15px]">↩️</span>
-              <span className="font-sans text-[13.5px] font-bold text-[#71717a]">다른 계정으로 로그인</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#71717a]">{t("다른 계정으로 로그인", lang)}</span>
             </button>
           </div>
         </>
