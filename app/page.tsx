@@ -5092,6 +5092,14 @@ export default function BeautyPassportExperience() {
                   >
                     결제하기 · {cartTotalPrice.toLocaleString()}원
                   </motion.button>
+                  <motion.button
+                    disabled={!deliveryFormValid}
+                    whileTap={deliveryFormValid ? { scale: 0.985 } : undefined}
+                    onClick={submitDelivery}
+                    className="mt-2.5 w-full rounded-[14px] bg-[#0a0a0a] py-4 text-[15px] font-extrabold text-white transition disabled:bg-[#d4d4d8] disabled:text-[#fafafa]"
+                  >
+                    주문 완료
+                  </motion.button>
                 </div>
               </motion.section>
             )}
@@ -5187,6 +5195,14 @@ export default function BeautyPassportExperience() {
                     className="mt-6 w-full rounded-[14px] bg-[#0a0a0a] py-4 text-[15px] font-extrabold text-white transition disabled:bg-[#d4d4d8] disabled:text-[#fafafa]"
                   >
                     결제하기 · {cartTotalPrice.toLocaleString()}원
+                  </motion.button>
+                  <motion.button
+                    disabled={!pickupFormValid}
+                    whileTap={pickupFormValid ? { scale: 0.985 } : undefined}
+                    onClick={submitPickup}
+                    className="mt-2.5 w-full rounded-[14px] bg-[#0a0a0a] py-4 text-[15px] font-extrabold text-white transition disabled:bg-[#d4d4d8] disabled:text-[#fafafa]"
+                  >
+                    예약 완료
                   </motion.button>
                 </div>
               </motion.section>
