@@ -106,6 +106,8 @@ const COSMAX_GUEST = {
   name: "COSMAX 게스트",
   age: "25",
   gender: "여성",
+  phone: "010-1234-5678",
+  address: "경기도 성남시 분당구 판교로 255",
 };
 // 로딩(발급) 화면 스캔 바코드용 고정 막대 높이(%) 패턴
 const ANALYZE_BARS = [40, 70, 30, 90, 52, 62, 34, 80, 46, 66, 54, 76, 40, 86, 30, 60, 50, 70, 36, 90, 44, 56, 64, 40, 80, 30, 74, 50, 60, 36, 86, 46, 70, 54, 40, 66, 30, 80, 50, 62, 36, 76, 46, 90, 40, 56];
@@ -1717,6 +1719,14 @@ export default function BeautyPassportExperience() {
   const [pickupDate, setPickupDate] = useState<string | null>(null);
   const [pickupTime, setPickupTime] = useState<string | null>(null);
   const [pickupPhone, setPickupPhone] = useState("");
+  // COSMAX 게스트 계정은 매번 같은 테스트 연락처·배송지를 입력하지 않도록 고정값을 자동으로 채운다.
+  useEffect(() => {
+    if (loggedInId === COSMAX_GUEST.id) {
+      setDeliveryPhone(COSMAX_GUEST.phone);
+      setDeliveryAddress(COSMAX_GUEST.address);
+      setPickupPhone(COSMAX_GUEST.phone);
+    }
+  }, [loggedInId]);
   // [6-3C] 결제하기 (배송/픽업 폼에서 진입)
   const [pendingReceive, setPendingReceive] = useState<"delivery" | "pickup" | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"card" | "kakao" | "naver">("card");
@@ -2308,8 +2318,13 @@ export default function BeautyPassportExperience() {
     setChecklist(CHECKLIST_GROUPS.map((g) => Array(g.length).fill(false)));
     setCartOpen(false); setReceiveMethod(null);
     setDeliveryBefore(true); setDeliveryAfter(false);
-    setDeliveryName(""); setDeliveryPhone(""); setDeliveryAddress(""); setDeliveryNote("");
-    setPickupAirport(null); setPickupDate(null); setPickupTime(null); setPickupPhone("");
+    const isGuest = loggedInId === COSMAX_GUEST.id;
+    setDeliveryName(isGuest ? COSMAX_GUEST.name : "");
+    setDeliveryPhone(isGuest ? COSMAX_GUEST.phone : "");
+    setDeliveryAddress(isGuest ? COSMAX_GUEST.address : "");
+    setDeliveryNote("");
+    setPickupAirport(null); setPickupDate(null); setPickupTime(null);
+    setPickupPhone(isGuest ? COSMAX_GUEST.phone : "");
     setPendingReceive(null); setPaymentMethod("card"); setCardNumber(""); setCardExpiry(""); setCardCvc(""); setPaying(false);
     setOrderNo(null); setLockerNo(null); setOrderSnapshot(null);
     setResultView("main"); setShowAiDetail(false); setCarePhase(0); setPickCat(PICK_CATEGORIES[0]); setDeliveryStatusOpen(false);
