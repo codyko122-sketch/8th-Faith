@@ -37,7 +37,10 @@ import {
   saveProductToAccount,
   getSavedProducts,
   removeSavedProduct,
+  saveTripToAccount,
+  getTrips,
   type SavedProduct,
+  type TripRecord,
 } from "@/lib/auth";
 import type { ScanResult } from "@/lib/scan-types";
 import type { AiSummaryResult } from "@/lib/ai-summary-types";
@@ -1649,8 +1652,9 @@ export default function BeautyPassportExperience() {
   const [homeCareInput, setHomeCareInput] = useState("");
   // [6-2] 장바구니 시트
   const [cartOpen, setCartOpen] = useState(false);
-  // 전역 상단바 — 메뉴(내 여권) · 장바구니 페이지 이동, 어느 stage에서 열었는지 기억해뒀다가 복귀
-  const [globalMenuOpen, setGlobalMenuOpen] = useState(false);
+  // 홈 상단바(ZigZag 스타일) 햄버거 메뉴 열림 상태
+  const [homeMenuOpen, setHomeMenuOpen] = useState(false);
+  // "내 여권"·"장바구니" 페이지로 이동 시, 어느 stage에서 열었는지 기억해뒀다가 뒤로가기 시 복귀
   const [preMenuStage, setPreMenuStage] = useState<Stage | null>(null);
   // 여행지 대표 메이크업 스타일노트
   const [makeupOpen, setMakeupOpen] = useState(false);
@@ -2003,15 +2007,15 @@ export default function BeautyPassportExperience() {
     setReceiveMethod(null);
     setStage("receive");
   }
-  // 전역 상단바에서 "내 여권"·"장바구니" 페이지로 이동 — 원래 있던 stage를 기억해뒀다가 뒤로가기 시 복귀
+  // 홈 상단바 메뉴/장바구니 버튼에서 "내 여권"·"장바구니" 페이지로 이동 — 원래 있던 stage를 기억해뒀다가 뒤로가기 시 복귀
   function openMyPassport() {
     setPreMenuStage((prev) => prev ?? stage);
-    setGlobalMenuOpen(false);
+    setHomeMenuOpen(false);
     setStage("myPassport");
   }
   function openCartPage() {
     setPreMenuStage((prev) => prev ?? stage);
-    setGlobalMenuOpen(false);
+    setHomeMenuOpen(false);
     setStage("cartPage");
   }
   function closeOverlayStage() {
@@ -2371,39 +2375,23 @@ export default function BeautyPassportExperience() {
   }, [result, skin, name, age, gender, userAllergies, lang]);
 
   const dday = departDate ? daysUntil(departDate) : null;
-  // 전역 상단바(메뉴·장바구니) — 로그인 전 화면에는 노출하지 않음. 애프터케어(acArrival~acResult)는
-  // document.body로 포털되는 별개 DOM이라 이 in-frame 바 대신 acTopBarProps를 AcScreenChrome에 넘겨 그 안에서 렌더한다.
-  const NO_GLOBAL_BAR_STAGES: Stage[] = ["intro", "login", "findId", "findPw", "signup", "acArrival", "acQ1", "acUsed", "acUsedPick", "acQ3", "acResult"];
-  const showGlobalBar = !NO_GLOBAL_BAR_STAGES.includes(stage);
+  // 애프터케어 화면(document.body 포털)에도 홈 화면과 동일한 ZigZag 상단바를 그대로 노출
   const acTopBarProps = {
-    menuLabel: t("내 여권 보기", lang),
-    cartCount,
-    menuOpen: globalMenuOpen,
-    onToggleMenu: () => setGlobalMenuOpen((v) => !v),
-    onCloseMenu: () => setGlobalMenuOpen(false),
+    menuOpen: homeMenuOpen,
+    onToggleMenu: () => setHomeMenuOpen((v) => !v),
+    onCloseMenu: () => setHomeMenuOpen(false),
     onOpenPassport: openMyPassport,
+    onNewSurvey: () => setStage("checkin"),
+    onScan: openScan,
+    onSwitchAccount: handleLogout,
     onOpenCart: openCartPage,
+    cartCount,
   };
 
   return (
     <div className="min-h-[100dvh] w-full" style={{ background: "linear-gradient(180deg,#c6dcec,#aecbe2)" }}>
       <div className="mx-auto flex min-h-[100dvh] max-w-[480px] items-stretch sm:py-6">
         <div className="relative w-full overflow-hidden min-h-[100dvh] sm:min-h-[calc(100dvh-3rem)] sm:rounded-[38px] sm:shadow-[0_40px_90px_rgba(43,120,170,0.4)]" style={{ perspective: 1600 }}>
-          {showGlobalBar && (
-            <GlobalTopBar
-              lang={lang}
-              cartCount={cartCount}
-              menuOpen={globalMenuOpen}
-              onToggleMenu={() => setGlobalMenuOpen((v) => !v)}
-              onCloseMenu={() => setGlobalMenuOpen(false)}
-              onOpenPassport={openMyPassport}
-              onOpenCart={openCartPage}
-              onNewSurvey={() => setStage("checkin")}
-              onScan={openScan}
-              onSwitchAccount={handleLogout}
-            />
-          )}
-          <div className="absolute inset-x-0 bottom-0" style={{ top: showGlobalBar ? 44 : 0 }}>
           <AnimatePresence mode="wait">
             {/* 1. 인트로 — 도트 지구본 */}
             {stage === "intro" && (
@@ -2835,6 +2823,115 @@ export default function BeautyPassportExperience() {
                 exit="exit"
                 className="absolute inset-0 overflow-y-auto bg-white px-7 pb-6 pt-5"
               >
+                {/* ZigZag 스타일 홈 상단바 — 워드마크 + 메뉴/검색/장바구니 아이콘 */}
+                <div className="relative -mx-7 mb-3 flex items-center justify-between border-b border-[#eee] px-7 pb-3">
+                  <div className="font-sans text-[19px] font-black tracking-[-0.01em] text-[#0a0a0a]">BEAUTY PASSPORT</div>
+                  <div className="flex items-center gap-0.5">
+                    <button
+                      type="button"
+                      aria-label="메뉴"
+                      onClick={() => setHomeMenuOpen((v) => !v)}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
+                    >
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                        <path d="M4 12h16M4 6h16M4 18h16" />
+                      </svg>
+                    </button>
+                    <a
+                      href="/ingredients"
+                      aria-label="성분 검색"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
+                    >
+                      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.3-4.3" />
+                      </svg>
+                    </a>
+                    <button
+                      type="button"
+                      aria-label="장바구니"
+                      onClick={openCartPage}
+                      className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                        <path d="M3 6h18" />
+                        <path d="M16 10a4 4 0 0 1-8 0" />
+                      </svg>
+                      {cartCount > 0 && (
+                        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#ec1c24] px-1 text-[9px] font-extrabold text-white">
+                          {cartCount}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+
+                  {homeMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setHomeMenuOpen(false)} />
+                      <div className="absolute right-7 top-full z-50 mt-1 w-56 overflow-hidden rounded-2xl border-[1.5px] border-[#e7e7ea] bg-white shadow-[0_14px_36px_rgba(20,30,50,0.14)]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHomeMenuOpen(false);
+                            openMyPassport();
+                          }}
+                          className="flex w-full items-center gap-2.5 px-4 py-3 text-left transition active:bg-[#f4f4f5]"
+                        >
+                          <span className="text-[15px]">🛂</span>
+                          <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">내 여권 보기</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHomeMenuOpen(false);
+                            setStage("checkin");
+                          }}
+                          className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
+                        >
+                          <span className="text-[15px]">📝</span>
+                          <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">새 피부 설문</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHomeMenuOpen(false);
+                            openScan();
+                          }}
+                          className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
+                        >
+                          <span className="text-[15px]">📷</span>
+                          <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">화장품 성분 스캔</span>
+                        </button>
+                        <a
+                          href="/ingredients"
+                          className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
+                        >
+                          <span className="text-[15px]">🔍</span>
+                          <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">성분 가이드</span>
+                        </a>
+                        <a
+                          href="/diagnose"
+                          className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
+                        >
+                          <span className="text-[15px]">🧭</span>
+                          <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">여행 피부 진단</span>
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHomeMenuOpen(false);
+                            handleLogout();
+                          }}
+                          className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
+                        >
+                          <span className="text-[15px]">↩️</span>
+                          <span className="font-sans text-[13.5px] font-bold text-[#71717a]">다른 계정으로 로그인</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
                 <PassportEyebrow>Your Skin Journey</PassportEyebrow>
                 <PassportTitle compact>
                   WELCOME
@@ -3813,6 +3910,19 @@ export default function BeautyPassportExperience() {
                             if (isConcern) concernMatches.forEach(({ p }) => addWithDefault(p));
                             else if (isBetter) usedItems.forEach(({ p }) => addSample(p.id, p.fullMl));
                             else (preTripSnapshot?.recItems ?? []).forEach(({ p }) => addWithDefault(p));
+                            if (loggedInId) {
+                              const tripProducts = (isConcern ? concernMatches : isBetter ? usedItems : preTripSnapshot?.recItems ?? []).map(
+                                ({ p }) => ({ id: p.id, brand: p.brand, name: p.name })
+                              );
+                              saveTripToAccount(loggedInId, {
+                                placeLabel: acCountryName || result?.placeLabel || "여행지",
+                                departDate,
+                                arriveDate,
+                                skinCode: skin?.code ?? null,
+                                outcome: acChange,
+                                productsUsed: tripProducts,
+                              });
+                            }
                             acSave();
                           }}
                         >
@@ -5343,6 +5453,58 @@ export default function BeautyPassportExperience() {
                         </div>
                       )}
 
+                      {/* 피부 결과지 — 바우만 4축 상세 + 추천/주의 성분 */}
+                      {skinCode &&
+                        (() => {
+                          const care = baumannCare(skinCode);
+                          return (
+                            <div className="rounded-2xl border-[1.5px] border-[#e7e7ea] p-[15px]">
+                              <div className="font-sans text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9ca3af]">Skin Report · {t("피부 결과지", lang)}</div>
+                              <div className="mt-2 flex items-center gap-3">
+                                <div className="flex h-12 items-center rounded-xl bg-[#0a0a0a] px-3.5 text-lg font-black tracking-[0.08em] text-white">{skinCode}</div>
+                                <div className="min-w-0">
+                                  <div className="text-[15px] font-black leading-tight text-[#0a0a0a]">{t(bTag?.nick ?? skinCode, lang)}</div>
+                                  <div className="text-[11.5px] leading-snug text-[#71717a]">{t(bTag?.tagline ?? "", lang)}</div>
+                                </div>
+                              </div>
+                              <div className="mt-3 grid grid-cols-2 gap-2">
+                                {BAUMANN_AXES.map((ax, i) => {
+                                  const opt = skinCode[i] === ax.a.letter ? ax.a : ax.b;
+                                  return (
+                                    <div key={ax.key} className="rounded-xl bg-[#f4f4f5] p-2.5">
+                                      <div className="flex items-center gap-1.5 text-[12px] font-extrabold text-[#0a0a0a]">
+                                        <span>{opt.icon}</span>
+                                        {t(opt.ko, lang)}
+                                      </div>
+                                      <div className="mt-0.5 text-[10.5px] leading-snug text-[#71717a]">{t(opt.desc, lang)}</div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {care.good.length > 0 && (
+                                <div className="mt-3">
+                                  <div className="text-[11px] font-extrabold text-[#0a0a0a]">👍 {t("추천 성분", lang)}</div>
+                                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                    {care.good.map((g) => (
+                                      <span key={g} className="rounded-full bg-[#f4f4f5] px-2.5 py-1 text-[11px] font-semibold text-[#3f3f46]">{t(g, lang)}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {care.avoid.length > 0 && (
+                                <div className="mt-2.5">
+                                  <div className="text-[11px] font-extrabold text-[#ec1c24]">⚠️ {t("주의 성분", lang)}</div>
+                                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                    {care.avoid.map((g) => (
+                                      <span key={g} className="rounded-full border border-[#ec1c24] px-2.5 py-1 text-[11px] font-semibold text-[#ec1c24]">{t(g, lang)}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
                       {country && (
                         <div className="rounded-2xl border-[1.5px] border-[#e7e7ea] p-[15px]">
                           <div className="font-sans text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9ca3af]">{t("이번 여행", lang)}</div>
@@ -5365,17 +5527,58 @@ export default function BeautyPassportExperience() {
                         return (
                           <div className="rounded-2xl border-[1.5px] border-[#e7e7ea] p-[15px]">
                             <div className="flex items-center justify-between">
-                              <div className="font-sans text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9ca3af]">Saved Products · {t("저장한 제품", lang)}</div>
+                              <div className="font-sans text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9ca3af]">Saved Products · {t("내가 쓰는 화장품", lang)}</div>
                               <div className="font-sans text-[11px] font-bold text-[#71717a]">{saved.length}</div>
                             </div>
                             <div className="mt-2.5 flex flex-col gap-2">
-                              {saved.slice(0, 5).map((p: SavedProduct) => (
+                              {saved.slice(0, 10).map((p: SavedProduct) => (
                                 <div key={p.key} className="flex items-center gap-2.5">
                                   <span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-[#f4f4f5] text-[13px]">🧴</span>
                                   <div className="min-w-0 flex-1">
                                     <div className="truncate font-sans text-[13px] font-bold text-[#0a0a0a]">{p.name}</div>
                                     <div className="font-sans text-[11px] text-[#9ca3af]">{p.brand} · {p.category}</div>
                                   </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* 여행 기록 — 지금까지 다녀온 여행 + 그때 사용한 화장품 */}
+                      {(() => {
+                        const trips = loggedInId ? getTrips(loggedInId) : [];
+                        if (trips.length === 0) return null;
+                        const outcomeLabel: Record<string, string> = { better: "😊 좋아짐", same: "😐 비슷함", worse: "😣 안 좋아짐" };
+                        return (
+                          <div className="rounded-2xl border-[1.5px] border-[#e7e7ea] p-[15px]">
+                            <div className="flex items-center justify-between">
+                              <div className="font-sans text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9ca3af]">Trip History · {t("여행 기록", lang)}</div>
+                              <div className="font-sans text-[11px] font-bold text-[#71717a]">{trips.length}</div>
+                            </div>
+                            <div className="mt-2.5 flex flex-col gap-3">
+                              {trips.map((trip: TripRecord) => (
+                                <div key={trip.id} className="rounded-xl bg-[#f4f4f5] p-3">
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-[13.5px] font-extrabold text-[#0a0a0a]">{t(trip.placeLabel, lang)}</div>
+                                    {trip.outcome && (
+                                      <span className="text-[11px] font-bold text-[#3f3f46]">{t(outcomeLabel[trip.outcome], lang)}</span>
+                                    )}
+                                  </div>
+                                  <div className="mt-0.5 text-[11px] text-[#9ca3af]">
+                                    {trip.departDate ? fmtISO(trip.departDate) : ""}
+                                    {trip.arriveDate ? ` ~ ${fmtISO(trip.arriveDate)}` : ""}
+                                    {trip.skinCode ? ` · ${trip.skinCode}` : ""}
+                                  </div>
+                                  {trip.productsUsed.length > 0 && (
+                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                      {trip.productsUsed.map((p) => (
+                                        <span key={p.id} className="rounded-full bg-white px-2.5 py-1 text-[10.5px] font-semibold text-[#3f3f46]">
+                                          {p.brand} {p.name}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
                               ))}
                             </div>
@@ -5525,7 +5728,6 @@ export default function BeautyPassportExperience() {
               </motion.section>
             )}
           </AnimatePresence>
-          </div>
 
           {/* [6-2] 플로팅 장바구니 + 시트 */}
           <AnimatePresence>
@@ -6269,123 +6471,6 @@ function ProductDetail({
         </div>
       </motion.div>
     </>
-  );
-}
-
-// 전역 상단바 — 모든 로그인 후 화면에 고정 노출. 메뉴(내 여권 보기) · 장바구니(+배송현황 페이지) 진입점.
-function GlobalTopBar({
-  lang,
-  cartCount,
-  menuOpen,
-  onToggleMenu,
-  onCloseMenu,
-  onOpenPassport,
-  onOpenCart,
-  onNewSurvey,
-  onScan,
-  onSwitchAccount,
-}: {
-  lang: "ko" | "jp" | "en";
-  cartCount: number;
-  menuOpen: boolean;
-  onToggleMenu: () => void;
-  onCloseMenu: () => void;
-  onOpenPassport: () => void;
-  onOpenCart: () => void;
-  onNewSurvey: () => void;
-  onScan: () => void;
-  onSwitchAccount: () => void;
-}) {
-  return (
-    <div className="absolute inset-x-0 top-0 z-[95] flex h-11 items-center justify-between border-b border-[#e7e7ea] bg-white/95 px-3 backdrop-blur">
-      <div className="relative">
-        <button
-          type="button"
-          onClick={onToggleMenu}
-          aria-label="메뉴"
-          className="flex h-8 w-8 items-center justify-center rounded-full text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
-        >
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-            <line x1="4" y1="7" x2="20" y2="7" />
-            <line x1="4" y1="12" x2="20" y2="12" />
-            <line x1="4" y1="17" x2="20" y2="17" />
-          </svg>
-        </button>
-        {menuOpen && (
-          <>
-            <div className="fixed inset-0 z-[94]" onClick={onCloseMenu} />
-            <div className="absolute left-0 top-10 z-[96] w-56 overflow-hidden rounded-2xl border border-[#e7e7ea] bg-white shadow-[0_16px_40px_rgba(20,30,50,0.18)]">
-              <button
-                type="button"
-                onClick={onOpenPassport}
-                className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-[13.5px] font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
-              >
-                <span className="text-[15px]">🛂</span> {t("내 여권 보기", lang)}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onCloseMenu();
-                  onNewSurvey();
-                }}
-                className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left text-[13.5px] font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
-              >
-                <span className="text-[15px]">📝</span> {t("새 피부 설문", lang)}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onCloseMenu();
-                  onScan();
-                }}
-                className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left text-[13.5px] font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
-              >
-                <span className="text-[15px]">📷</span> {t("화장품 성분 스캔", lang)}
-              </button>
-              <a
-                href="/ingredients"
-                className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left text-[13.5px] font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
-              >
-                <span className="text-[15px]">🔍</span> {t("성분 가이드", lang)}
-              </a>
-              <a
-                href="/diagnose"
-                className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left text-[13.5px] font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
-              >
-                <span className="text-[15px]">🧭</span> {t("여행 피부 진단", lang)}
-              </a>
-              <button
-                type="button"
-                onClick={() => {
-                  onCloseMenu();
-                  onSwitchAccount();
-                }}
-                className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left text-[13.5px] font-bold text-[#71717a] transition active:bg-[#f4f4f5]"
-              >
-                <span className="text-[15px]">↩️</span> {t("다른 계정으로 로그인", lang)}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/assets/passport-seal.png" alt="" className="h-[26px] w-auto flex-none" />
-
-      <button
-        type="button"
-        onClick={onOpenCart}
-        aria-label="장바구니"
-        className="relative flex h-8 w-8 items-center justify-center rounded-full text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
-      >
-        <span className="text-[17px] leading-none">🧳</span>
-        {cartCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#ec1c24] px-1 text-[9px] font-extrabold text-white">
-            {cartCount}
-          </span>
-        )}
-      </button>
-    </div>
   );
 }
 

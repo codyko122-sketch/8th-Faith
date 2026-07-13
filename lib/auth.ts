@@ -9,6 +9,18 @@ export type SavedProduct = {
   savedAt: string;
 };
 
+// 여행 기록 — 여행지·기간·피부 변화·그 여행에서 사용한 화장품을 한 건으로 저장.
+export type TripRecord = {
+  id: string;
+  placeLabel: string; // "국가 · 도시"
+  departDate: string | null;
+  arriveDate: string | null;
+  skinCode: string | null; // 그 시점의 피부 코드
+  outcome: "better" | "same" | "worse" | null; // 여행 후 피부 변화(애프터케어 응답)
+  productsUsed: { id: string; brand: string; name: string }[];
+  savedAt: string;
+};
+
 export type Account = {
   id: string;
   password: string;
@@ -20,6 +32,7 @@ export type Account = {
   createdAt: string;
   savedProducts?: SavedProduct[];
   allergyIngredients?: string[]; // 알러지·기피 성분 (lib/allergens-data.ts 아이디 또는 자유 입력 텍스트)
+  trips?: TripRecord[]; // 여행 기록(여행지·기간·피부 변화·사용 화장품)
 };
 
 const ACCOUNTS_KEY = "beauty-passport:accounts";
@@ -183,6 +196,21 @@ export function removeSavedProduct(id: string, key: string) {
   const idx = accounts.findIndex((a) => a.id === id);
   if (idx === -1) return;
   accounts[idx] = { ...accounts[idx], savedProducts: (accounts[idx].savedProducts ?? []).filter((p) => p.key !== key) };
+  writeAccounts(accounts);
+}
+
+export function getTrips(id: string): TripRecord[] {
+  return findAccount(id)?.trips ?? [];
+}
+
+// 여행 기록 저장 — 애프터케어에서 "여권에 저장" 시 호출 (최대 50건 유지)
+export function saveTripToAccount(id: string, trip: Omit<TripRecord, "id" | "savedAt">) {
+  const accounts = readAccounts();
+  const idx = accounts.findIndex((a) => a.id === id);
+  if (idx === -1) return;
+  const entry: TripRecord = { ...trip, id: `${trip.placeLabel}-${trip.departDate ?? ""}-${accounts[idx].trips?.length ?? 0}-${Math.round(Math.random() * 1e6)}`, savedAt: new Date().toISOString() };
+  const existing = accounts[idx].trips ?? [];
+  accounts[idx] = { ...accounts[idx], trips: [entry, ...existing].slice(0, 50) };
   writeAccounts(accounts);
 }
 

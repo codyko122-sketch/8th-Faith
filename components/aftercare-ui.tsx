@@ -167,66 +167,129 @@ export function AcFooter({ code }: { code: string }) {
   );
 }
 
-// 전역 상단바(메뉴 · 장바구니) — 애프터케어는 document.body로 포털돼 앱 프레임의 상단바와
-// 별개 DOM이라, 문구는 page.tsx에서 이미 번역된 문자열로 넘겨받아 그대로 표시만 한다.
+// Welcome back 홈 화면의 ZigZag 상단바와 동일한 디자인·메뉴 구성 — 애프터케어는
+// document.body로 포털되는 별개 DOM이라, 필요한 콜백/상태를 page.tsx에서 그대로 props로 받는다.
 export type AcTopBarProps = {
-  menuLabel: string;
-  cartCount: number;
   menuOpen: boolean;
   onToggleMenu: () => void;
   onCloseMenu: () => void;
   onOpenPassport: () => void;
+  onNewSurvey: () => void;
+  onScan: () => void;
+  onSwitchAccount: () => void;
   onOpenCart: () => void;
+  cartCount: number;
 };
 
-function AcTopBar({ menuLabel, cartCount, menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onOpenCart }: AcTopBarProps) {
+function AcTopBar({ menuOpen, onToggleMenu, onCloseMenu, onOpenPassport, onNewSurvey, onScan, onSwitchAccount, onOpenCart, cartCount }: AcTopBarProps) {
   return (
-    <div className="mb-3 flex h-11 flex-none items-center justify-between border-b border-[#e7e7ea]">
-      <div className="relative">
+    <div className="relative -mx-7 mb-3 flex items-center justify-between border-b border-[#eee] px-7 pb-3">
+      <div className="font-sans text-[19px] font-black tracking-[-0.01em] text-[#0a0a0a]">BEAUTY PASSPORT</div>
+      <div className="flex items-center gap-0.5">
         <button
           type="button"
-          onClick={onToggleMenu}
           aria-label="메뉴"
-          className="flex h-8 w-8 items-center justify-center rounded-full text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
+          onClick={onToggleMenu}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
         >
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-            <line x1="4" y1="7" x2="20" y2="7" />
-            <line x1="4" y1="12" x2="20" y2="12" />
-            <line x1="4" y1="17" x2="20" y2="17" />
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+            <path d="M4 12h16M4 6h16M4 18h16" />
           </svg>
         </button>
-        {menuOpen && (
-          <>
-            <div className="fixed inset-0 z-[130]" onClick={onCloseMenu} />
-            <div className="absolute left-0 top-10 z-[131] w-44 overflow-hidden rounded-2xl border border-[#e7e7ea] bg-white shadow-[0_16px_40px_rgba(20,30,50,0.18)]">
-              <button
-                type="button"
-                onClick={onOpenPassport}
-                className="flex w-full items-center gap-2 px-4 py-3 text-left text-[13.5px] font-bold text-[#0a0a0a] transition active:bg-[#f4f4f5]"
-              >
-                🛂 {menuLabel}
-              </button>
-            </div>
-          </>
-        )}
+        <a
+          href="/ingredients"
+          aria-label="성분 검색"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
+        >
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+        </a>
+        <button
+          type="button"
+          aria-label="장바구니"
+          onClick={onOpenCart}
+          className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+            <path d="M3 6h18" />
+            <path d="M16 10a4 4 0 0 1-8 0" />
+          </svg>
+          {cartCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#ec1c24] px-1 text-[9px] font-extrabold text-white">
+              {cartCount}
+            </span>
+          )}
+        </button>
       </div>
 
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/assets/passport-seal.png" alt="" className="h-[26px] w-auto flex-none" />
-
-      <button
-        type="button"
-        onClick={onOpenCart}
-        aria-label="장바구니"
-        className="relative flex h-8 w-8 items-center justify-center rounded-full text-[#0a0a0a] transition active:scale-90 active:bg-[#f4f4f5]"
-      >
-        <span className="text-[17px] leading-none">🧳</span>
-        {cartCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#ec1c24] px-1 text-[9px] font-extrabold text-white">
-            {cartCount}
-          </span>
-        )}
-      </button>
+      {menuOpen && (
+        <>
+          <div className="fixed inset-0 z-[130]" onClick={onCloseMenu} />
+          <div className="absolute right-7 top-full z-[131] mt-1 w-56 overflow-hidden rounded-2xl border-[1.5px] border-[#e7e7ea] bg-white shadow-[0_14px_36px_rgba(20,30,50,0.14)]">
+            <button
+              type="button"
+              onClick={() => {
+                onCloseMenu();
+                onOpenPassport();
+              }}
+              className="flex w-full items-center gap-2.5 px-4 py-3 text-left transition active:bg-[#f4f4f5]"
+            >
+              <span className="text-[15px]">🛂</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">내 여권 보기</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onCloseMenu();
+                onNewSurvey();
+              }}
+              className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
+            >
+              <span className="text-[15px]">📝</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">새 피부 설문</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onCloseMenu();
+                onScan();
+              }}
+              className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
+            >
+              <span className="text-[15px]">📷</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">화장품 성분 스캔</span>
+            </button>
+            <a
+              href="/ingredients"
+              className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
+            >
+              <span className="text-[15px]">🔍</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">성분 가이드</span>
+            </a>
+            <a
+              href="/diagnose"
+              className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
+            >
+              <span className="text-[15px]">🧭</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#0a0a0a]">여행 피부 진단</span>
+            </a>
+            <button
+              type="button"
+              onClick={() => {
+                onCloseMenu();
+                onSwitchAccount();
+              }}
+              className="flex w-full items-center gap-2.5 border-t border-[#f0f0f2] px-4 py-3 text-left transition active:bg-[#f4f4f5]"
+            >
+              <span className="text-[15px]">↩️</span>
+              <span className="font-sans text-[13.5px] font-bold text-[#71717a]">다른 계정으로 로그인</span>
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
