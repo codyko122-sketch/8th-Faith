@@ -121,7 +121,20 @@ export const COSMETICS: Cosmetic[] = [
 ];
 
 export type WxProfile = { temp: number; humidity: number; uv: number; dust: number };
-export type Recommendation = { p: Cosmetic; reason: string };
+export type Recommendation = { p: Cosmetic; reason: string; reasonJp: string; reasonEn: string };
+
+// 언어 전환(KO/JP/EN) — 추천 요약·이유 문장에 쓰이는 고정 어휘(유한 집합) 번역 사전
+const SKINTYPE_TR: Record<string, { jp: string; en: string }> = {
+  "건성": { jp: "乾燥肌", en: "dry skin" },
+  "지성": { jp: "脂性肌", en: "oily skin" },
+  "민감성": { jp: "敏感肌", en: "sensitive skin" },
+};
+const CONCERN_TR: Record<string, { jp: string; en: string }> = {
+  "수분": { jp: "水分", en: "Hydration" },
+  "트러블": { jp: "トラブル", en: "Blemishes" },
+  "기미": { jp: "シミ", en: "Spots" },
+  "주름": { jp: "シワ", en: "Wrinkles" },
+};
 
 function normType(t: string) {
   return t.replace("복합성", "복합").replace("민감성", "민감");
@@ -133,7 +146,7 @@ export function recommendCosmetics(
   concerns: string[],
   wx: WxProfile,
   userAllergies: string[] = []
-): { summary: string; items: Recommendation[] } {
+): { summary: string; summaryJp: string; summaryEn: string; items: Recommendation[] } {
   const skin = normType(skinTypeForRec);
   const dry = wx.humidity <= 45;
   const hotHumid = wx.temp >= 30 && wx.humidity >= 70;
@@ -179,20 +192,60 @@ export function recommendCosmetics(
     return true;
   });
 
+  const skinTr = SKINTYPE_TR[skinTypeForRec] ?? { jp: skinTypeForRec, en: skinTypeForRec };
+
   const items: Recommendation[] = top.map(({ p, matched, allergyRisk }) => {
     const bits: string[] = [];
-    if (allergyRisk.length) bits.push(`⚠️ ${allergyRisk.join("·")} 주의`);
-    if (p.forTypes.includes(skin)) bits.push(`${skinTypeForRec} 피부 적합`);
-    if (p.ingredients[0]) bits.push(`${p.ingredients[0]} 함유`);
-    if (hiUV && p.category === "선크림") bits.push("강한 자외선 차단");
-    else if (hiDust && p.category === "클렌징") bits.push("미세먼지 많은 날 클렌징 케어");
-    else if (dry && p.concerns.includes("수분")) bits.push("건조한 기후 속보습");
-    else if (hotHumid && p.feel === "산뜻") bits.push("습한 날 산뜻하게");
-    else if (matched[0]) bits.push(`'${matched[0]}' 고민 케어`);
-    return { p, reason: bits.slice(0, 3).join(" · ") };
+    const bitsJp: string[] = [];
+    const bitsEn: string[] = [];
+    if (allergyRisk.length) {
+      bits.push(`⚠️ ${allergyRisk.join("·")} 주의`);
+      bitsJp.push(`⚠️ ${allergyRisk.join("・")} 注意`);
+      bitsEn.push(`⚠️ Caution: ${allergyRisk.join(", ")}`);
+    }
+    if (p.forTypes.includes(skin)) {
+      bits.push(`${skinTypeForRec} 피부 적합`);
+      bitsJp.push(`${skinTr.jp}に適合`);
+      bitsEn.push(`Great fit for ${skinTr.en}`);
+    }
+    if (p.ingredients[0]) {
+      bits.push(`${p.ingredients[0]} 함유`);
+      bitsJp.push(`${p.ingredients[0]}配合`);
+      bitsEn.push(`Contains ${p.ingredients[0]}`);
+    }
+    if (hiUV && p.category === "선크림") {
+      bits.push("강한 자외선 차단");
+      bitsJp.push("強い紫外線カット");
+      bitsEn.push("Strong UV protection");
+    } else if (hiDust && p.category === "클렌징") {
+      bits.push("미세먼지 많은 날 클렌징 케어");
+      bitsJp.push("微細粉塵の多い日のクレンジングケア");
+      bitsEn.push("Cleansing care for high-dust days");
+    } else if (dry && p.concerns.includes("수분")) {
+      bits.push("건조한 기후 속보습");
+      bitsJp.push("乾燥した気候でのインナー保湿");
+      bitsEn.push("Deep hydration for dry climates");
+    } else if (hotHumid && p.feel === "산뜻") {
+      bits.push("습한 날 산뜻하게");
+      bitsJp.push("湿度が高い日もさっぱり");
+      bitsEn.push("Refreshing on humid days");
+    } else if (matched[0]) {
+      const c = CONCERN_TR[matched[0]];
+      bits.push(`'${matched[0]}' 고민 케어`);
+      bitsJp.push(`「${c?.jp ?? matched[0]}」ケア`);
+      bitsEn.push(`${c?.en ?? matched[0]} care`);
+    }
+    return {
+      p,
+      reason: bits.slice(0, 3).join(" · "),
+      reasonJp: bitsJp.slice(0, 3).join(" · "),
+      reasonEn: bitsEn.slice(0, 3).join(" · "),
+    };
   });
 
   const driver = hiUV ? "강한 자외선" : dry ? "건조한 공기" : hotHumid ? "고온다습" : hiDust ? "높은 미세먼지" : "쾌적한 날씨";
+  const driverJp = hiUV ? "強い紫外線" : dry ? "乾燥した空気" : hotHumid ? "高温多湿" : hiDust ? "高い微細粉塵" : "快適な天気";
+  const driverEn = hiUV ? "strong UV" : dry ? "dry air" : hotHumid ? "hot and humid weather" : hiDust ? "high fine dust" : "pleasant weather";
   const approach =
     sensitivity === "민감"
       ? "진정 성분(센텔라·판테놀)"
@@ -201,10 +254,30 @@ export function recommendCosmetics(
         : skin === "지성"
           ? "피지 케어(BHA·나이아신)"
           : "수분·톤 밸런스";
+  const approachJp =
+    sensitivity === "민감"
+      ? "鎮静成分（ツボクサ・パンテノール）"
+      : skin === "건성"
+        ? "高保湿（ヒアルロン酸・セラミド）"
+        : skin === "지성"
+          ? "皮脂ケア（BHA・ナイアシン）"
+          : "水分・トーンバランス";
+  const approachEn =
+    sensitivity === "민감"
+      ? "soothing ingredients (Centella, Panthenol)"
+      : skin === "건성"
+        ? "deep hydration (Hyaluronic acid, Ceramide)"
+        : skin === "지성"
+          ? "sebum care (BHA, Niacinamide)"
+          : "hydration & tone balance";
   const sun = hiUV ? " + 무기자차 선크림" : "";
+  const sunJp = hiUV ? " + ノンケミカル日焼け止め" : "";
+  const sunEn = hiUV ? " + mineral sunscreen" : "";
   const summary = `${skinTypeForRec} + ${driver} → ${approach}${sun} → 아래 추천`;
+  const summaryJp = `${skinTr.jp} + ${driverJp} → ${approachJp}${sunJp} → 下記のおすすめ`;
+  const summaryEn = `${skinTr.en} + ${driverEn} → ${approachEn}${sunEn} → recommendations below`;
 
-  return { summary, items };
+  return { summary, summaryJp, summaryEn, items };
 }
 
 /* ── [5-4] 소용량 샘플 로직 ── */

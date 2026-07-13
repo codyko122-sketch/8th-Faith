@@ -758,20 +758,56 @@ const ROUTINE_TR = {
   en: { doubleCleanse: "Double cleanse", gentleCleanse: "Gentle cleansing", moistureSerum: "Hydrating serum", soothingToner: "Soothing toner", moistureCream: "Moisture cream", ceramideCream: "Ceramide cream", spfReapply: "Reapply SPF50+" },
 } as const;
 
-function comboComment(p: { temp: number; humidity: number; uv: number; dust: number }, type: string) {
-  const bits: string[] = [];
-  if (p.humidity >= 75) bits.push("습도가 높고");
-  else if (p.humidity <= 45) bits.push("공기가 건조하고");
-  if (p.uv >= 9) bits.push("자외선이 강하고");
-  if (p.dust >= 80) bits.push("미세먼지가 많은");
-  const env = bits.length ? bits.join(" ").replace(/고$/, "고 ") : "비교적 쾌적한";
-  const advice: Record<string, string> = {
-    건성: "수분·유분 잠금과 자외선 차단을 놓치지 마세요.",
-    지성: "산뜻한 수분과 피지 관리에 집중하세요.",
-    복합성: "부위별 맞춤 케어로 균형을 잡아주세요.",
-    민감성: "저자극 진정 위주로 장벽을 지켜주세요.",
+function comboComment(p: { temp: number; humidity: number; uv: number; dust: number }, type: string, lang: "ko" | "jp" | "en" = "ko") {
+  if (lang === "ko") {
+    const bits: string[] = [];
+    if (p.humidity >= 75) bits.push("습도가 높고");
+    else if (p.humidity <= 45) bits.push("공기가 건조하고");
+    if (p.uv >= 9) bits.push("자외선이 강하고");
+    if (p.dust >= 80) bits.push("미세먼지가 많은");
+    const env = bits.length ? bits.join(" ").replace(/고$/, "고 ") : "비교적 쾌적한";
+    const advice: Record<string, string> = {
+      건성: "수분·유분 잠금과 자외선 차단을 놓치지 마세요.",
+      지성: "산뜻한 수분과 피지 관리에 집중하세요.",
+      복합성: "부위별 맞춤 케어로 균형을 잡아주세요.",
+      민감성: "저자극 진정 위주로 장벽을 지켜주세요.",
+    };
+    return `${env} 여행지에서 ${type} 피부라면 ${advice[type] ?? "기본 보습과 자외선 차단을 챙기세요."}`;
+  }
+  const typeTr: Record<string, { jp: string; en: string }> = {
+    건성: { jp: "乾燥肌", en: "dry skin" },
+    지성: { jp: "脂性肌", en: "oily skin" },
+    복합성: { jp: "混合肌", en: "combination skin" },
+    민감성: { jp: "敏感肌", en: "sensitive skin" },
   };
-  return `${env} 여행지에서 ${type} 피부라면 ${advice[type] ?? "기본 보습과 자외선 차단을 챙기세요."}`;
+  if (lang === "jp") {
+    const bits: string[] = [];
+    if (p.humidity >= 75) bits.push("湿度が高く");
+    else if (p.humidity <= 45) bits.push("空気が乾燥していて");
+    if (p.uv >= 9) bits.push("紫外線が強く");
+    if (p.dust >= 80) bits.push("微細粉塵が多い");
+    const env = bits.length ? bits.join("、") : "比較的快適な";
+    const adviceJp: Record<string, string> = {
+      건성: "水分・油分の蓄えと紫外線対策を忘れずに。",
+      지성: "軽い保湿と皮脂ケアに集中しましょう。",
+      복합성: "部位別のケアでバランスを整えましょう。",
+      민감성: "低刺激の鎮静ケアでバリアを守りましょう。",
+    };
+    return `${env}旅行先で${typeTr[type]?.jp ?? type}なら、${adviceJp[type] ?? "基本の保湿と紫外線対策を心がけましょう。"}`;
+  }
+  const bits: string[] = [];
+  if (p.humidity >= 75) bits.push("humid");
+  else if (p.humidity <= 45) bits.push("dry");
+  if (p.uv >= 9) bits.push("high-UV");
+  if (p.dust >= 80) bits.push("dusty");
+  const env = bits.length ? bits.join(", ") : "fairly pleasant";
+  const adviceEn: Record<string, string> = {
+    건성: "lock in moisture and oil, and don't skip sun protection.",
+    지성: "focus on light hydration and sebum control.",
+    복합성: "balance things out with targeted, area-by-area care.",
+    민감성: "protect your barrier with gentle, soothing care.",
+  };
+  return `For a ${env} destination, with ${typeTr[type]?.en ?? type}, ${adviceEn[type] ?? "stick to basic hydration and sun protection."}`;
 }
 
 // 피부 자극 지수 세부 항목(자외선노출/색소침착/수분손실/트러블·유수분) — 여행지 기후 × Baumann 코드로 산출
@@ -1563,6 +1599,8 @@ export default function BeautyPassportExperience() {
           ? buildCalendarFromDaily(weather.daily)
           : buildCalendarP(profile, seed * 1000 + days, days, start),
       recSummary: rec.summary,
+      recSummaryJp: rec.summaryJp,
+      recSummaryEn: rec.summaryEn,
       recItems: rec.items,
     };
   }, [stage, useCustom, city, country, customCountry, customCity, departDate, arriveDate, skin, weather, userAllergies]);
@@ -1570,7 +1608,7 @@ export default function BeautyPassportExperience() {
   // AI 써머리 — 결과 화면 진입 시 실측 날씨·미세먼지 + 목적지 수질 + 바우만 피부타입으로 AI 코멘트 생성
   useEffect(() => {
     if (!result || !skin) return;
-    const key = JSON.stringify({ place: result.placeLabel, profile: result.profile, code: skin.code, days: result.days });
+    const key = JSON.stringify({ place: result.placeLabel, profile: result.profile, code: skin.code, days: result.days, lang });
     if (aiSummaryKeyRef.current === key) return;
     aiSummaryKeyRef.current = key;
     let cancelled = false;
@@ -1594,6 +1632,7 @@ export default function BeautyPassportExperience() {
         name,
         age,
         gender,
+        lang,
       }),
     })
       .then((res) => (res.ok ? res.json() : null))
@@ -1609,7 +1648,7 @@ export default function BeautyPassportExperience() {
     return () => {
       cancelled = true;
     };
-  }, [result, skin, name, age, gender, userAllergies]);
+  }, [result, skin, name, age, gender, userAllergies, lang]);
 
   const dday = departDate ? daysUntil(departDate) : null;
 
@@ -3479,7 +3518,7 @@ export default function BeautyPassportExperience() {
                                     <p className="mt-2.5 animate-pulse text-[13.5px] leading-relaxed text-[#9ca3af]">💬 AI가 여행지 날씨·미세먼지·수질을 분석하고 있어요…</p>
                                   ) : (
                                     <p className="mt-2.5 text-[13.5px] leading-relaxed text-[#444]">
-                                      💬 {aiSummary?.summary ?? comboComment(result.profile, skin.skinTypeForRec)}
+                                      💬 {lang === "ko" ? (aiSummary?.summary ?? comboComment(result.profile, skin.skinTypeForRec, lang)) : comboComment(result.profile, skin.skinTypeForRec, lang)}
                                     </p>
                                   )}
                                   {aiSummary && aiSummary.tips.length > 0 && (
@@ -3530,16 +3569,16 @@ export default function BeautyPassportExperience() {
                         {recTab === "set" && (
                           <div className="mt-4">
                             <div className="rounded-xl bg-[#f4f4f5] px-4 py-3 text-center text-[13px] font-semibold text-[#3f3f46]">
-                              {result.recSummary}
+                              {lang === "jp" ? result.recSummaryJp : lang === "en" ? result.recSummaryEn : result.recSummary}
                             </div>
                             <p className="mt-3 text-xs text-[#71717a]">카테고리별 대표 {result.recItems.length}개 · 좌우로 넘겨보세요</p>
                             <div className="scroll-x mt-2 flex gap-2.5 overflow-x-auto pb-1">
-                              {result.recItems.map(({ p }) => (
+                              {result.recItems.map(({ p, reason, reasonJp, reasonEn }) => (
                                 <button
                                   key={p.id}
                                   type="button"
                                   onClick={() => setDetailId(p.id)}
-                                  className="flex w-[108px] flex-none flex-col overflow-hidden rounded-xl border border-[#e7e7ea] bg-white text-left"
+                                  className="flex w-[132px] flex-none flex-col overflow-hidden rounded-xl border border-[#e7e7ea] bg-white text-left"
                                 >
                                   <div className="flex h-[52px] items-center justify-center bg-[#f4f4f5]">
                                     <ProductImage product={p} />
@@ -3547,6 +3586,9 @@ export default function BeautyPassportExperience() {
                                   <div className="p-2">
                                     <div className="line-clamp-2 text-[11.5px] font-extrabold leading-tight text-[#0a0a0a]">{p.name}</div>
                                     <span className="mt-1.5 inline-block rounded-full bg-[#f4f4f5] px-1.5 py-0.5 text-[9px] font-semibold text-[#71717a]">{p.category}</span>
+                                    <div className="mt-1 line-clamp-2 text-[9.5px] leading-snug text-[#9ca3af]">
+                                      {lang === "jp" ? reasonJp : lang === "en" ? reasonEn : reason}
+                                    </div>
                                   </div>
                                 </button>
                               ))}
@@ -4403,7 +4445,11 @@ export default function BeautyPassportExperience() {
                 days={result.days}
                 dryHigh={result.profile.humidity <= 45}
                 uvHigh={result.profile.uv >= 8}
-                reason={result.recItems.find((it) => it.p.id === detailId)?.reason ?? ""}
+                reason={(() => {
+                  const it = result.recItems.find((r) => r.p.id === detailId);
+                  if (!it) return "";
+                  return lang === "jp" ? it.reasonJp : lang === "en" ? it.reasonEn : it.reason;
+                })()}
                 destinationCountry={countryCode}
                 cartQty={cartQty}
                 onAdd={addSample}

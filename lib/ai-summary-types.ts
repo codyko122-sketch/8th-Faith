@@ -14,6 +14,7 @@ export type AiSummaryInput = {
   name?: string;
   age?: string;
   gender?: string;
+  lang?: "ko" | "jp" | "en"; // 응답 언어 — 없으면 한국어
 };
 
 export type AiSummaryResult = {
