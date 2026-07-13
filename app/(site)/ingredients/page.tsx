@@ -21,8 +21,7 @@ export default function IngredientsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white font-sans">
-      <div className="mx-auto max-w-[480px] px-6 pb-16 pt-8">
+    <div className="min-h-[100dvh] overflow-y-auto bg-white px-7 pb-8 pt-5 font-sans">
         <button
           type="button"
           onClick={() => router.back()}
@@ -124,7 +123,6 @@ export default function IngredientsPage() {
         <p className="mt-6 text-[11px] leading-relaxed text-[#a1a1aa]">
           ※ 성분 정보는 일반적인 참고용이며 의학적 판정이 아닙니다. 실제 효과·자극은 제품의 전성분·농도·개인 피부에 따라 달라질 수 있어요.
         </p>
-      </div>
     </div>
   );
 }
