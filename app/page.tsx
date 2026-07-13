@@ -1696,6 +1696,11 @@ export default function BeautyPassportExperience() {
   const [deliveryPhone, setDeliveryPhone] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [deliveryNote, setDeliveryNote] = useState("");
+  // 로그인 시 받는 사람 이름을 계정 이름으로 자동 연동 — 공용 게스트 계정("COSMAX 게스트")은
+  // 실제 수령인이 아니므로 자동 채움에서 제외한다.
+  useEffect(() => {
+    if (loggedInId && loggedInId !== COSMAX_GUEST.id) setDeliveryName(name);
+  }, [loggedInId, name]);
   // [6-3B] 공항 픽업 신청
   const [pickupAirport, setPickupAirport] = useState<string | null>(null);
   const [pickupDate, setPickupDate] = useState<string | null>(null);
