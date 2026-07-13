@@ -132,6 +132,7 @@ export function DestinationCareTab({
   destinationCountryCode,
   onShowMakeup,
   onCareArrival,
+  onBackToJourney,
   orderedItems,
 }: {
   country: Country | null;
@@ -141,6 +142,8 @@ export function DestinationCareTab({
   destinationCountryCode: string | null;
   onShowMakeup: () => void;
   onCareArrival: () => void;
+  // 제공되면 "여행 후 케어 처방받기" 버튼 왼쪽에 "돌아가기" 버튼을 반씩 나눠 보여준다.
+  onBackToJourney?: () => void;
   orderedItems: { id: string; brand: string; name: string }[];
 }) {
   const [open, setOpen] = useState(false);
@@ -583,9 +586,20 @@ export function DestinationCareTab({
           <button type="button" className={styles.btnLine} onClick={onShowMakeup}>
             🌸 이 나라의 뷰티 팁 확인하기
           </button>
-          <button type="button" className={styles.btnDark} onClick={onCareArrival}>
-            여행 후 케어 처방 받기 →
-          </button>
+          {onBackToJourney ? (
+            <div className={styles.bottomCtaRow}>
+              <button type="button" className={styles.btnLine} onClick={onBackToJourney}>
+                ← 돌아가기
+              </button>
+              <button type="button" className={styles.btnDark} onClick={onCareArrival}>
+                여행 후 케어 처방 받기 →
+              </button>
+            </div>
+          ) : (
+            <button type="button" className={styles.btnDark} onClick={onCareArrival}>
+              여행 후 케어 처방 받기 →
+            </button>
+          )}
         </div>
       </div>
     </div>

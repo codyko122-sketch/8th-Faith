@@ -3336,6 +3336,7 @@ export default function BeautyPassportExperience() {
                       setAcEntry("duringTrip");
                       setStage("acArrival");
                     }}
+                    onBackToJourney={() => setStage("journey")}
                     orderedItems={orderedProducts}
                   />
                 </div>
