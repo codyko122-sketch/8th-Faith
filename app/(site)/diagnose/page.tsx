@@ -1,12 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { SKIN_TYPES, CONCERNS, DESTINATIONS } from "@/lib/data";
 import { SkinReport } from "@/components/skin-report";
 
 type Report = { skinType: string; concerns: string[]; dest: string; days: number };
 
 export default function DiagnosePage() {
+  const router = useRouter();
   const [skinType, setSkinType] = useState(SKIN_TYPES[0]);
   const [concerns, setConcerns] = useState<string[]>([]);
   const [dest, setDest] = useState(Object.keys(DESTINATIONS)[0]);
@@ -31,6 +33,16 @@ export default function DiagnosePage() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 pb-16 pt-10">
+      <button
+        type="button"
+        onClick={() => router.back()}
+        aria-label="이전 페이지로"
+        className="mb-4 flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white text-ink transition hover:bg-accent-soft/40"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+      </button>
       <h1 className="font-serif text-4xl font-bold tracking-tight">피부 진단</h1>
       <p className="mt-2 text-muted">
         피부 정보와 여행 계획을 입력하면 맞춤 루틴과 기후 리포트를 만들어 드립니다.
